@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
+import app.db.models  # noqa: F401  регистрирует таблицы
 from app.db.base import Base
 from app.db.session import get_db, make_engine
 from app.main import create_app

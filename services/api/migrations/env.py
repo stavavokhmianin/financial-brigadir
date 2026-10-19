@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+from typing import Any
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -6,6 +7,7 @@ from sqlalchemy import engine_from_config, pool
 import app.db.models  # noqa: F401  регистрирует таблицы в Base.metadata
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 config = context.config
 if config.config_file_name is not None and config.attributes.get("configure_logger", True):
@@ -17,6 +19,13 @@ if not config.get_main_option("sqlalchemy.url"):
 target_metadata = Base.metadata
 
 
+def render_item(type_: str, obj: Any, autogen_context: Any) -> str | bool:
+    # В миграциях хранится обычный DateTime(timezone=True): код миграций не зависит от app.
+    if type_ == "type" and isinstance(obj, UTCDateTime):
+        return "sa.DateTime(timezone=True)"
+    return False
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),
@@ -24,6 +33,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         render_as_batch=True,
         compare_type=True,
+        render_item=render_item,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -41,6 +51,7 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             render_as_batch=connection.dialect.name == "sqlite",
             compare_type=True,
+            render_item=render_item,
         )
         with context.begin_transaction():
             context.run_migrations()
