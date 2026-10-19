@@ -47,8 +47,22 @@ def not_implemented(stage: str) -> APIError:
     )
 
 
+# Описания задаются явно: фразы http.HTTPStatus различаются между версиями Python
+# (413 в 3.13 — «Content Too Large»), а контракт не должен от этого зависеть.
+ERROR_DESCRIPTIONS = {
+    400: "Некорректный запрос",
+    401: "Нужна авторизация",
+    404: "Объект не найден",
+    413: "Файл слишком большой",
+    501: "Контракт зафиксирован, реализация на следующем этапе",
+}
+
+
 def error_responses(*codes: int) -> dict[int | str, dict[str, Any]]:
-    return {code: {"model": ErrorOut} for code in codes}
+    return {
+        code: {"model": ErrorOut, "description": ERROR_DESCRIPTIONS.get(code, "Ошибка")}
+        for code in codes
+    }
 
 
 async def _handle_api_error(_: Request, exc: Exception) -> JSONResponse:

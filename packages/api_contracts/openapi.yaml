@@ -86,13 +86,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/DemoSessionOut'
         '400':
-          description: Bad Request
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '404':
-          description: Not Found
+          description: Объект не найден
           content:
             application/json:
               schema:
@@ -117,7 +117,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AccountsOut'
         '401':
-          description: Unauthorized
+          description: Нужна авторизация
           content:
             application/json:
               schema:
@@ -143,7 +143,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AccountOut'
         '401':
-          description: Unauthorized
+          description: Нужна авторизация
           content:
             application/json:
               schema:
@@ -232,23 +232,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionsPage'
         '400':
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Bad Request
         '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Unauthorized
         '404':
+          description: Объект не найден
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Not Found
         '422':
           description: Validation Error
           content:
@@ -297,17 +297,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ObligationsOut'
         '400':
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Bad Request
         '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Unauthorized
         '422':
           description: Validation Error
           content:
@@ -335,17 +335,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ObligationOut'
         '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Unauthorized
         '404':
+          description: Объект не найден
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Not Found
         '422':
           description: Validation Error
           content:
@@ -372,13 +372,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationSettingsOut'
         '400':
-          description: Bad Request
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '401':
-          description: Unauthorized
+          description: Нужна авторизация
           content:
             application/json:
               schema:
@@ -425,29 +425,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImportResultOut'
         '400':
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Bad Request
         '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Unauthorized
         '413':
+          description: Файл слишком большой
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Content Too Large
         '501':
+          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Not Implemented
         '422':
           description: Validation Error
           content:
@@ -488,23 +488,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ForecastOut'
         '400':
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Bad Request
         '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Unauthorized
         '501':
+          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Not Implemented
         '422':
           description: Validation Error
           content:
@@ -534,23 +534,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ForecastOut'
         '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Unauthorized
         '404':
+          description: Объект не найден
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Not Found
         '501':
+          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-          description: Not Implemented
         '422':
           description: Validation Error
           content:
@@ -577,25 +577,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/ScenarioOut'
         '400':
-          description: Bad Request
+          description: Некорректный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '401':
-          description: Unauthorized
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '404':
-          description: Not Found
+          description: Объект не найден
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '501':
-          description: Not Implemented
+          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
@@ -622,13 +622,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/AlertsOut'
         '401':
-          description: Unauthorized
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '501':
-          description: Not Implemented
+          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
@@ -655,13 +655,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/BankMockSyncOut'
         '401':
-          description: Unauthorized
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
         '501':
-          description: Not Implemented
+          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
