@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Финансовый бригадир",
+    "slug": "financial-brigadir",
+    "scheme": "brigadir",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.brigadir.app"
+    },
+    "android": {
+      "package": "ru.brigadir.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

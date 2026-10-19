@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Local data and secrets
+.env
+*.db
+*.sqlite3
+/data/
+
+# Node / Expo
+node_modules/
+.expo/
+dist-web/
+web-build/
+apps/client/src/shared/api/schema.d.ts
+*.tsbuildinfo
+npm-debug.log*
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

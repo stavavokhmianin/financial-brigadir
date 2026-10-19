@@ -1,0 +1,6 @@
+# Установка всех Python-частей monorepo для локальной разработки:
+#   python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+-e packages/forecast_core
+-e packages/synthetic_generator
+-e services/api[dev]
+-e services/worker
