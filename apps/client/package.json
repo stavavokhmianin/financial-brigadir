@@ -8,6 +8,8 @@
     "web": "expo start --web",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "gen:api": "openapi-typescript ../../packages/api_contracts/openapi.yaml -o src/shared/api/schema.d.ts",
+    "postinstall": "npm run gen:api",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --no-warnings --test \"tests/**/*.test.ts\"",
     "build:web": "expo export --platform web --output-dir dist-web"
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "openapi-typescript": "^7.4.0",
     "typescript": "~5.9.2"
   }
 }
