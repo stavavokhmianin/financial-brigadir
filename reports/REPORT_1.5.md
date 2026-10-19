@@ -66,9 +66,15 @@ cd apps/client && npm install && npx expo start --web
   контракта типах.
 - `expo export --platform web` — сборка web-бандла в CI.
 
-CI: прогон коммита `ee1f324` на момент публикации стоял в очереди GitHub Actions. Итог
-(`tsc`, node-тесты, web-сборка, compose-smoke с новым демо-сценарием) смотрите во вкладке Actions.
-Предыдущие прогоны (1.1, 1.2) зелёные по всем трём задачам.
+CI, коммит [`b670622`](https://github.com/stavavokhmianin/financial-brigadir/commit/b670622) — все три задачи зелёные:
+- Client: `tsc` на типах из контракта, node-тесты **8/8**, `expo export --platform web` → `dist-web`.
+- Python: **125 passed** (вместе с миграциями на PostgreSQL 16), ruff и mypy чистые.
+- Compose: Postgres → API → smoke 5/5 (профили, демо-сессия, остаток 55 000 ₽, календарь
+  обязательств), код выхода 0.
+
+Первый прогон 1.5 (`ee1f324`) упал на сверке контракта. Python 3.13 (локально) и 3.12 (CI)
+по-разному называют ответ 413, и `openapi.yaml` разошёлся. Теперь описания ошибок заданы
+явно, и контракт не зависит от версии Python.
 
 ## Ограничения
 

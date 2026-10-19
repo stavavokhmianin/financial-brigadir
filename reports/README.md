@@ -14,6 +14,6 @@ OpenAPI, экран запуска демо.
 | 1.2 | Схема данных и миграции | A (backend/data) | [REPORT_1.2](REPORT_1.2.md) | готово |
 | 1.3 | Демо-генератор синтетических профилей | C (forecasting/QA) | [REPORT_1.3](REPORT_1.3.md) | готово |
 | 1.4 | OpenAPI-контракт и эндпоинты этапа | A (backend/data) | [REPORT_1.4](REPORT_1.4.md) | готово |
-| 1.5 | Экран запуска демо (web/Android/iOS) | B (client/product) | [REPORT_1.5](REPORT_1.5.md) | готово, CI в очереди |
+| 1.5 | Экран запуска демо (web/Android/iOS) | B (client/product) | [REPORT_1.5](REPORT_1.5.md) | готово, CI зелёный |
 
 Итог этапа и бэклог этапа 2: [REPORT_1](REPORT_1.md).
