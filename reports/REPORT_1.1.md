@@ -47,8 +47,10 @@ pytest
 
 Локально (Python 3.13, Windows): ruff — чисто, mypy strict — 0 ошибок, pytest — **23 passed**.
 
-CI: на момент написания прогон коммита стоял в очереди GitHub Actions. Статус web-сборки
-клиента и compose-smoke смотрите во вкладке Actions; итог по CI будет в отчёте 1.5.
+CI (GitHub Actions, прогоны 1.1 и 1.2) — все три задачи зелёные:
+- Python: ruff, mypy, pytest. На CI 35 passed, тест миграций на PostgreSQL 16 не пропускается.
+- Client: `npm install` (811 пакетов, Expo SDK 54), `tsc`, node-тесты, `expo export --platform web`.
+- Compose: сборка образов с нуля, Postgres → API (`alembic upgrade head`) → smoke, код выхода 0.
 
 ## Отклонения и решения
 
