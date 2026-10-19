@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from forecast_core import AccountType, Coverage, ObligationStatus, TxStatus, TxType
+from forecast_core.calendar import Recurrence
 
 __all__ = [
     "AccountType",
@@ -49,12 +50,6 @@ class ObligationKind(StrEnum):
     SUBSCRIPTION = "subscription"
     INSTALLMENT = "installment"
     MANUAL = "manual"
-
-
-class Recurrence(StrEnum):
-    NONE = "none"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
 
 
 class Priority(StrEnum):

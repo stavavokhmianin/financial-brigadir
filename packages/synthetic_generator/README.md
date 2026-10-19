@@ -9,7 +9,8 @@ fb-synth young_specialist --seed 42 --out ys.json
 
 ```python
 from synthetic_generator import generate
-data = generate("two_banks", seed=42)   # dict, JSON-сериализуемый
+
+data = generate("two_banks", seed=42)  # dict, JSON-сериализуемый
 ```
 
 ## Профили

@@ -16,6 +16,7 @@ dependencies = [
   "pydantic-settings>=2.3",
   "psycopg[binary]>=3.2",
   "pyyaml>=6",
+  "python-multipart>=0.0.9",
   "forecast-core",
   "synthetic-generator",
 ]

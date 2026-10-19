@@ -232,6 +232,12 @@ class Obligation(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
+    source: Mapped[DataSource | None] = relationship()
+
+    @property
+    def source_kind(self) -> str:
+        return self.source.kind.value if self.source is not None else DataSourceKind.MANUAL.value
+
 
 class IncomeEvent(Base):
     """Ожидаемое поступление с диапазоном даты и суммы (раздел 8.1, US-05)."""

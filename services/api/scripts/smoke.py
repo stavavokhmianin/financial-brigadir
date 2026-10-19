@@ -28,6 +28,20 @@ def check(condition: bool, message: str) -> None:
 def main(base: str) -> int:
     health = call(base, "GET", "/api/v1/health/ready")
     check(health["status"] == "ok", "readiness")
+
+    profiles = call(base, "GET", "/api/v1/demo/profiles")
+    check(len(profiles) >= 5, f"демо-профилей: {len(profiles)}")
+
+    session = call(base, "POST", "/api/v1/demo/sessions", {"profile_id": "young_specialist"})
+    token = session["access_token"]
+    check(session["summary"]["transactions"] > 0, "демо-профиль создан из seed")
+
+    accounts = call(base, "GET", "/api/v1/accounts", token=token)
+    check(accounts["liquid_balance_minor"] == 5_500_000, "остаток эталонного профиля 55 000 ₽")
+
+    window = "date_from=2026-10-19&date_to=2026-10-31"
+    obligations = call(base, "GET", f"/api/v1/obligations?{window}", token=token)
+    check(len(obligations["calendar"]) >= 2, "календарь обязательств до зарплаты")
     return 0
 
 

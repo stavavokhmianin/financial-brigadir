@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api.v1 import router as v1_router
 from app.core.config import get_settings
+from app.core.errors import install_error_handlers
 
 DESCRIPTION = """
 Расчётный API «Финансового бригадира».
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
     )
+    install_error_handlers(app)
     app.include_router(v1_router)
     return app
 

@@ -1,0 +1,2029 @@
+# Сгенерировано services/api/scripts/export_openapi.py — не редактировать вручную.
+openapi: 3.1.0
+info:
+  title: Financial Brigadir API
+  description: '
+
+    Расчётный API «Финансового бригадира».
+
+
+    * Все деньги — целые копейки (`*_minor`, int64), валюта MVP — RUB.
+
+    * Время хранится в UTC, пользовательские даты считаются в таймзоне профиля.
+
+    * `user_id` определяется по токену сессии и никогда не передаётся клиентом.
+
+    * Прогнозы — модельные оценки, а не гарантированный остаток.
+
+    '
+  version: 0.1.0
+paths:
+  /api/v1/health:
+    get:
+      tags:
+      - health
+      summary: 'Liveness: процесс API отвечает'
+      operationId: getHealth
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOut'
+  /api/v1/health/ready:
+    get:
+      tags:
+      - health
+      summary: 'Readiness: API готово обслуживать запросы (доступна БД)'
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOut'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOut'
+  /api/v1/demo/profiles:
+    get:
+      tags:
+      - demo
+      summary: Демо-профили для экрана запуска
+      operationId: listDemoProfiles
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DemoProfileOut'
+                type: array
+                title: Response Listdemoprofiles
+  /api/v1/demo/sessions:
+    post:
+      tags:
+      - demo
+      summary: Создать изолированный профиль из seed (FR-01)
+      operationId: createDemoSession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoSessionCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoSessionOut'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/accounts:
+    get:
+      tags:
+      - accounts
+      summary: Счета пользователя, свободные средства и свежесть источников
+      operationId: listAccounts
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountsOut'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - accounts
+      summary: Ручное создание счёта и стартового остатка (FR-03)
+      operationId: createAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountOut'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/transactions:
+    get:
+      tags:
+      - transactions
+      summary: 'Операции: фильтрация и курсорная пагинация (новые сверху)'
+      operationId: listTransactions
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: account_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Account Id
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/TxType'
+          - type: 'null'
+          title: Type
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/TxStatus'
+          - type: 'null'
+          title: Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionsPage'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/obligations:
+    get:
+      tags:
+      - obligations
+      summary: Обязательства и календарь платежей в окне дат
+      operationId: listObligations
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      - name: include_canceled
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Canceled
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObligationsOut'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - obligations
+      summary: 'Ручное обязательство (FR-03): подтверждено пользователем'
+      operationId: createObligation
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObligationCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObligationOut'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/notification-settings:
+    patch:
+      tags:
+      - alerts
+      summary: Режим уведомлений, тихие часы и лимит некритичных сообщений
+      operationId: updateNotificationSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettingsPatch'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSettingsOut'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/imports/csv:
+    post:
+      tags:
+      - imports
+      summary: Валидация, предпросмотр и импорт CSV; идемпотентно по fingerprint
+      operationId: importCsv
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          description: Повтор запроса с тем же ключом вернёт тот же результат
+          title: Idempotency-Key
+        description: Повтор запроса с тем же ключом вернёт тот же результат
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_importCsv'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResultOut'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Unauthorized
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Content Too Large
+        '501':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Not Implemented
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/forecasts:
+    post:
+      tags:
+      - forecasts
+      summary: Расчёт прогноза из зафиксированного снимка
+      operationId: createForecast
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          description: Повтор запроса с тем же ключом вернёт тот же результат
+          title: Idempotency-Key
+        description: Повтор запроса с тем же ключом вернёт тот же результат
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForecastRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastOut'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Unauthorized
+        '501':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Not Implemented
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/forecasts/{forecast_id}:
+    get:
+      tags:
+      - forecasts
+      summary: Траектория прогноза и метаданные
+      operationId: getForecast
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: forecast_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Forecast Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastOut'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Not Found
+        '501':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+          description: Not Implemented
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scenarios:
+    post:
+      tags:
+      - forecasts
+      summary: What-if без изменения истории
+      operationId: createScenario
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioOut'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/alerts:
+    get:
+      tags:
+      - alerts
+      summary: Предупреждения и причины подавления
+      operationId: listAlerts
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertsOut'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/connectors/bank-mock/sync:
+    post:
+      tags:
+      - connectors
+      summary: Мок банковского подключения (без реальных банковских данных)
+      operationId: syncBankMock
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankMockSyncRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankMockSyncOut'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+components:
+  schemas:
+    AccountCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Name
+        type:
+          $ref: '#/components/schemas/AccountType'
+        available_balance_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Available Balance Minor
+          examples:
+          - 1200000
+        currency:
+          type: string
+          const: RUB
+          title: Currency
+          default: RUB
+        bank_name:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Bank Name
+        credit_limit_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Credit Limit Minor
+        is_liquid:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Liquid
+          description: По умолчанию false для кредитной карты и вклада
+      type: object
+      required:
+      - name
+      - type
+      - available_balance_minor
+      title: AccountCreate
+    AccountOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        bank_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bank Name
+        type:
+          $ref: '#/components/schemas/AccountType'
+        currency:
+          type: string
+          const: RUB
+          title: Currency
+        available_balance_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Available Balance Minor
+          description: Для кредитной карты отрицательное значение — долг
+          examples:
+          - 1200000
+        credit_limit_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Credit Limit Minor
+        blocked_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Blocked Minor
+          examples:
+          - 500000
+        is_liquid:
+          type: boolean
+          title: Is Liquid
+          description: Учитывается ли счёт в свободных средствах
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        source:
+          anyOf:
+          - $ref: '#/components/schemas/SourceOut'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - name
+      - bank_name
+      - type
+      - currency
+      - available_balance_minor
+      - credit_limit_minor
+      - blocked_minor
+      - is_liquid
+      - updated_at
+      - source
+      title: AccountOut
+    AccountType:
+      type: string
+      enum:
+      - debit
+      - credit_card
+      - savings
+      - deposit
+      - cash
+      title: AccountType
+    AccountsOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AccountOut'
+          type: array
+          title: Items
+        liquid_balance_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Liquid Balance Minor
+          description: 'Свободные собственные средства: без кредитных лимитов, депозитов и блокировок'
+          examples:
+          - 1200000
+        data_quality:
+          $ref: '#/components/schemas/DataQuality'
+      type: object
+      required:
+      - items
+      - liquid_balance_minor
+      - data_quality
+      title: AccountsOut
+    AlertAction:
+      type: string
+      enum:
+      - send
+      - defer
+      - suppress
+      title: AlertAction
+      description: Решение Alert Policy Engine (раздел 7.7).
+    AlertOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        action:
+          $ref: '#/components/schemas/AlertAction'
+        priority:
+          $ref: '#/components/schemas/Priority'
+        reason:
+          type: string
+          title: Reason
+        risk_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Risk Date
+        shortfall_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Shortfall Minor
+        forecast_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Forecast Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - action
+      - priority
+      - reason
+      - risk_date
+      - shortfall_minor
+      - forecast_id
+      - created_at
+      title: AlertOut
+    AlertsOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AlertOut'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: AlertsOut
+    BankMockSyncOut:
+      properties:
+        status:
+          type: string
+          enum:
+          - synced
+          - partial
+          - failed
+          title: Status
+        accounts_seen:
+          type: integer
+          title: Accounts Seen
+        transactions_new:
+          type: integer
+          title: Transactions New
+        transactions_duplicate:
+          type: integer
+          title: Transactions Duplicate
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - status
+      - accounts_seen
+      - transactions_new
+      - transactions_duplicate
+      - message
+      title: BankMockSyncOut
+    BankMockSyncRequest:
+      properties:
+        scenario:
+          type: string
+          enum:
+          - ok
+          - consent_expired
+          - partial
+          - network_error
+          - duplicates
+          title: Scenario
+          default: ok
+      type: object
+      title: BankMockSyncRequest
+    Body_importCsv:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+          description: CSV по поддерживаемому шаблону
+        account_id:
+          type: string
+          title: Account Id
+        mode:
+          type: string
+          pattern: ^(preview|import)$
+          title: Mode
+          default: preview
+      type: object
+      required:
+      - file
+      - account_id
+      title: Body_importCsv
+    CategorySource:
+      type: string
+      enum:
+      - source
+      - rule
+      - manual
+      title: CategorySource
+    Coverage:
+      type: string
+      enum:
+      - full
+      - partial
+      - unknown
+      title: Coverage
+      description: Полнота охвата счетов пользователя (раздел 13.2).
+    DataQuality:
+      properties:
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+          description: Полнота охвата счетов пользователя
+        data_as_of:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Data As Of
+          description: Самые старые из актуальных данных
+        history_days:
+          type: integer
+          minimum: 0.0
+          title: History Days
+          description: Длина доступной истории операций, дней
+        stale:
+          type: boolean
+          title: Stale
+          description: 'Данные устарели: сначала обновить, потом прогнозировать'
+        is_demo:
+          type: boolean
+          title: Is Demo
+        notes:
+          items:
+            type: string
+          type: array
+          title: Notes
+          description: Ограничения, которые нужно показать пользователю
+      type: object
+      required:
+      - coverage
+      - data_as_of
+      - history_days
+      - stale
+      - is_demo
+      - notes
+      title: DataQuality
+      description: 'Метка качества данных (разделы 13.2, FR-04): свежесть, охват, длина истории.'
+    DataSourceKind:
+      type: string
+      enum:
+      - synthetic
+      - csv
+      - manual
+      - bank_mock
+      title: DataSourceKind
+    DemoProfileOut:
+      properties:
+        id:
+          type: string
+          title: Id
+          examples:
+          - young_specialist
+        title:
+          type: string
+          title: Title
+        description:
+          type: string
+          title: Description
+        segment:
+          type: string
+          title: Segment
+        mvp:
+          type: boolean
+          title: Mvp
+          description: false — профиль из дорожной карты, демо-сессию не создать
+        anomalies:
+          items:
+            type: string
+          type: array
+          title: Anomalies
+      type: object
+      required:
+      - id
+      - title
+      - description
+      - segment
+      - mvp
+      - anomalies
+      title: DemoProfileOut
+    DemoSessionCreate:
+      properties:
+        profile_id:
+          type: string
+          maxLength: 64
+          title: Profile Id
+          default: young_specialist
+        seed:
+          type: integer
+          maximum: 2147483647.0
+          minimum: 0.0
+          title: Seed
+          description: Для воспроизводимости
+          default: 42
+      type: object
+      title: DemoSessionCreate
+    DemoSessionOut:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+          description: Показывается один раз; на сервере хранится только хэш
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        user:
+          $ref: '#/components/schemas/UserOut'
+        profile:
+          $ref: '#/components/schemas/DemoProfileOut'
+        summary:
+          $ref: '#/components/schemas/DemoSummary'
+        data_quality:
+          $ref: '#/components/schemas/DataQuality'
+      type: object
+      required:
+      - access_token
+      - expires_at
+      - user
+      - profile
+      - summary
+      - data_quality
+      title: DemoSessionOut
+    DemoSummary:
+      properties:
+        accounts:
+          type: integer
+          title: Accounts
+        transactions:
+          type: integer
+          title: Transactions
+        obligations:
+          type: integer
+          title: Obligations
+        incomes:
+          type: integer
+          title: Incomes
+        duplicates_skipped:
+          type: integer
+          title: Duplicates Skipped
+          description: Сколько операций повторной выгрузки отброшено как уже известные
+      type: object
+      required:
+      - accounts
+      - transactions
+      - obligations
+      - incomes
+      - duplicates_skipped
+      title: DemoSummary
+    ErrorBody:
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+        details:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Details
+      type: object
+      required:
+      - code
+      - message
+      title: ErrorBody
+    ErrorOut:
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+      type: object
+      required:
+      - error
+      title: ErrorOut
+      description: Единый формат ошибок API (кроме 422 валидации FastAPI).
+    ForecastOut:
+      properties:
+        forecast_id:
+          type: string
+          title: Forecast Id
+        data_as_of:
+          type: string
+          format: date-time
+          title: Data As Of
+        horizon_days:
+          type: integer
+          title: Horizon Days
+        model_version:
+          type: string
+          title: Model Version
+        quality:
+          $ref: '#/components/schemas/ForecastQuality'
+        baseline_risk:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Baseline Risk
+        scenario_risk:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Scenario Risk
+        risk_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Risk Date
+        risk_drivers:
+          items:
+            type: string
+          type: array
+          title: Risk Drivers
+        points:
+          items:
+            $ref: '#/components/schemas/ForecastPointOut'
+          type: array
+          title: Points
+      type: object
+      required:
+      - forecast_id
+      - data_as_of
+      - horizon_days
+      - model_version
+      - quality
+      - baseline_risk
+      - scenario_risk
+      - risk_date
+      - risk_drivers
+      - points
+      title: ForecastOut
+    ForecastPointOut:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        p10_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: P10 Minor
+          examples:
+          - 1200000
+        p50_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: P50 Minor
+          examples:
+          - 1200000
+        p90_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: P90 Minor
+          examples:
+          - 1200000
+        risk_probability:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Risk Probability
+      type: object
+      required:
+      - day
+      - p10_minor
+      - p50_minor
+      - p90_minor
+      - risk_probability
+      title: ForecastPointOut
+    ForecastQuality:
+      properties:
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+        confidence:
+          type: string
+          enum:
+          - insufficient
+          - illustrative
+          - calibrated
+          title: Confidence
+          description: Вероятности не считаются реальными, пока модель не откалибрована
+      type: object
+      required:
+      - coverage
+      - confidence
+      title: ForecastQuality
+    ForecastRequest:
+      properties:
+        account_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Account Ids
+          description: По умолчанию все счета
+        horizon_days:
+          type: integer
+          maximum: 90.0
+          minimum: 1.0
+          title: Horizon Days
+          default: 30
+        reserve_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Reserve Minor
+          default: 500000
+          examples:
+          - 500000
+        timezone:
+          type: string
+          title: Timezone
+          default: Europe/Moscow
+        scenario:
+          anyOf:
+          - $ref: '#/components/schemas/ScenarioEvent'
+          - type: 'null'
+      type: object
+      title: ForecastRequest
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthOut:
+      properties:
+        status:
+          type: string
+          enum:
+          - ok
+          - unavailable
+          title: Status
+        version:
+          type: string
+          title: Version
+      type: object
+      required:
+      - status
+      - version
+      title: HealthOut
+    ImportIssue:
+      properties:
+        row:
+          type: integer
+          title: Row
+        column:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Column
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - row
+      - column
+      - code
+      - message
+      title: ImportIssue
+    ImportResultOut:
+      properties:
+        import_id:
+          type: string
+          title: Import Id
+        status:
+          $ref: '#/components/schemas/ImportStatus'
+        fingerprint:
+          type: string
+          title: Fingerprint
+          description: 'SHA-256 файла: повторная загрузка идемпотентна'
+        rows_total:
+          type: integer
+          title: Rows Total
+        rows_imported:
+          type: integer
+          title: Rows Imported
+        rows_duplicate:
+          type: integer
+          title: Rows Duplicate
+        rows_rejected:
+          type: integer
+          title: Rows Rejected
+        column_mapping:
+          additionalProperties:
+            type: string
+          type: object
+          title: Column Mapping
+        preview:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+          title: Preview
+        issues:
+          items:
+            $ref: '#/components/schemas/ImportIssue'
+          type: array
+          title: Issues
+      type: object
+      required:
+      - import_id
+      - status
+      - fingerprint
+      - rows_total
+      - rows_imported
+      - rows_duplicate
+      - rows_rejected
+      - column_mapping
+      - preview
+      - issues
+      title: ImportResultOut
+    ImportStatus:
+      type: string
+      enum:
+      - preview
+      - imported
+      - rejected
+      title: ImportStatus
+    NotificationMode:
+      type: string
+      enum:
+      - quiet
+      - smart
+      - active
+      title: NotificationMode
+    NotificationSettingsOut:
+      properties:
+        mode:
+          $ref: '#/components/schemas/NotificationMode'
+        quiet_hours_start:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Quiet Hours Start
+        quiet_hours_end:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Quiet Hours End
+        max_noncritical_per_week:
+          type: integer
+          title: Max Noncritical Per Week
+        disabled_types:
+          items:
+            type: string
+          type: array
+          title: Disabled Types
+      type: object
+      required:
+      - mode
+      - quiet_hours_start
+      - quiet_hours_end
+      - max_noncritical_per_week
+      - disabled_types
+      title: NotificationSettingsOut
+    NotificationSettingsPatch:
+      properties:
+        mode:
+          anyOf:
+          - $ref: '#/components/schemas/NotificationMode'
+          - type: 'null'
+        quiet_hours_start:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Quiet Hours Start
+        quiet_hours_end:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Quiet Hours End
+        max_noncritical_per_week:
+          anyOf:
+          - type: integer
+            maximum: 14.0
+            minimum: 0.0
+          - type: 'null'
+          title: Max Noncritical Per Week
+        disabled_types:
+          anyOf:
+          - items:
+              type: string
+            type: array
+            maxItems: 20
+          - type: 'null'
+          title: Disabled Types
+      type: object
+      title: NotificationSettingsPatch
+    ObligationCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Title
+        kind:
+          $ref: '#/components/schemas/ObligationKind'
+          default: manual
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Minor
+          examples:
+          - 1200000
+        amount_min_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Min Minor
+        amount_max_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Max Minor
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+          default: none
+        recurrence_day:
+          anyOf:
+          - type: integer
+            maximum: 31.0
+            minimum: 1.0
+          - type: 'null'
+          title: Recurrence Day
+        account_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Account Id
+        priority:
+          $ref: '#/components/schemas/Priority'
+          default: critical
+        movable:
+          type: boolean
+          title: Movable
+          default: false
+      type: object
+      required:
+      - title
+      - amount_minor
+      - due_date
+      title: ObligationCreate
+    ObligationKind:
+      type: string
+      enum:
+      - rent
+      - loan
+      - credit_card
+      - utilities
+      - subscription
+      - installment
+      - manual
+      title: ObligationKind
+    ObligationOccurrence:
+      properties:
+        obligation_id:
+          type: string
+          title: Obligation Id
+        date:
+          type: string
+          format: date
+          title: Date
+        title:
+          type: string
+          title: Title
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Minor
+          examples:
+          - 1200000
+        status:
+          $ref: '#/components/schemas/ObligationStatus'
+        priority:
+          $ref: '#/components/schemas/Priority'
+      type: object
+      required:
+      - obligation_id
+      - date
+      - title
+      - amount_minor
+      - status
+      - priority
+      title: ObligationOccurrence
+    ObligationOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        account_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Account Id
+        kind:
+          $ref: '#/components/schemas/ObligationKind'
+        title:
+          type: string
+          title: Title
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Minor
+          description: Сумма списания, положительная
+          examples:
+          - 1200000
+        amount_min_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Min Minor
+        amount_max_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Max Minor
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+          description: Ближайшая дата платежа
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+        recurrence_day:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Recurrence Day
+        priority:
+          $ref: '#/components/schemas/Priority'
+        status:
+          $ref: '#/components/schemas/ObligationStatus'
+        confidence:
+          type: number
+          title: Confidence
+        movable:
+          type: boolean
+          title: Movable
+        source_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Kind
+          description: 'Откуда событие: synthetic, csv, manual…'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - account_id
+      - kind
+      - title
+      - amount_minor
+      - amount_min_minor
+      - amount_max_minor
+      - due_date
+      - recurrence
+      - recurrence_day
+      - priority
+      - status
+      - confidence
+      - movable
+      - source_kind
+      - created_at
+      title: ObligationOut
+    ObligationStatus:
+      type: string
+      enum:
+      - confirmed
+      - inferred
+      - uncertain
+      - canceled
+      title: ObligationStatus
+      description: Статус будущего события (раздел 7.4).
+    ObligationsOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ObligationOut'
+          type: array
+          title: Items
+        calendar:
+          items:
+            $ref: '#/components/schemas/ObligationOccurrence'
+          type: array
+          title: Calendar
+          description: Все платежи в окне [date_from, date_to] с учётом повторяемости
+      type: object
+      required:
+      - items
+      - calendar
+      title: ObligationsOut
+    Plan:
+      type: string
+      enum:
+      - free
+      - plus
+      title: Plan
+      description: Логическое разделение функций Free/Plus (FR-28).
+    Priority:
+      type: string
+      enum:
+      - critical
+      - normal
+      title: Priority
+    Recurrence:
+      type: string
+      enum:
+      - none
+      - weekly
+      - monthly
+      title: Recurrence
+    ScenarioEvent:
+      properties:
+        type:
+          type: string
+          enum:
+          - expense
+          - income_shift
+          - income_change
+          - postpone_expense
+          title: Type
+        amount_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Minor
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+        shift_days:
+          anyOf:
+          - type: integer
+            maximum: 31.0
+            minimum: -31.0
+          - type: 'null'
+          title: Shift Days
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+          description: Доход или обязательство
+      type: object
+      required:
+      - type
+      title: ScenarioEvent
+    ScenarioOut:
+      properties:
+        scenario_id:
+          type: string
+          title: Scenario Id
+        base:
+          $ref: '#/components/schemas/ForecastOut'
+        result:
+          $ref: '#/components/schemas/ForecastOut'
+        delta_risk:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Delta Risk
+        min_balance_delta_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Min Balance Delta Minor
+          examples:
+          - 1200000
+      type: object
+      required:
+      - scenario_id
+      - base
+      - result
+      - delta_risk
+      - min_balance_delta_minor
+      title: ScenarioOut
+    ScenarioRequest:
+      properties:
+        base_forecast_id:
+          type: string
+          title: Base Forecast Id
+        events:
+          items:
+            $ref: '#/components/schemas/ScenarioEvent'
+          type: array
+          maxItems: 10
+          minItems: 1
+          title: Events
+      type: object
+      required:
+      - base_forecast_id
+      - events
+      title: ScenarioRequest
+    SourceOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        kind:
+          $ref: '#/components/schemas/DataSourceKind'
+        label:
+          type: string
+          title: Label
+        data_as_of:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Data As Of
+        is_partial:
+          type: boolean
+          title: Is Partial
+      type: object
+      required:
+      - id
+      - kind
+      - label
+      - data_as_of
+      - is_partial
+      title: SourceOut
+    TransactionOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        account_id:
+          type: string
+          title: Account Id
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        booked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Booked At
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Amount Minor
+          description: Поступление > 0, списание < 0
+          examples:
+          - 1200000
+        currency:
+          type: string
+          const: RUB
+          title: Currency
+        type:
+          $ref: '#/components/schemas/TxType'
+        status:
+          $ref: '#/components/schemas/TxStatus'
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        category_source:
+          $ref: '#/components/schemas/CategorySource'
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        transfer_group_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transfer Group Id
+        related_transaction_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Related Transaction Id
+        needs_review:
+          type: boolean
+          title: Needs Review
+      type: object
+      required:
+      - id
+      - account_id
+      - occurred_at
+      - booked_at
+      - amount_minor
+      - currency
+      - type
+      - status
+      - category
+      - category_source
+      - description
+      - transfer_group_id
+      - related_transaction_id
+      - needs_review
+      title: TransactionOut
+    TransactionsPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/TransactionOut'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+          description: Передайте в cursor для следующей страницы
+      type: object
+      required:
+      - items
+      - next_cursor
+      title: TransactionsPage
+    TxStatus:
+      type: string
+      enum:
+      - posted
+      - pending
+      - canceled
+      title: TxStatus
+    TxType:
+      type: string
+      enum:
+      - income
+      - expense
+      - transfer_in
+      - transfer_out
+      - refund
+      - credit_purchase
+      - credit_payment
+      - fee
+      title: TxType
+      description: Экономический тип операции (FR-09).
+    UserOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        locale:
+          type: string
+          title: Locale
+        timezone:
+          type: string
+          title: Timezone
+        plan:
+          $ref: '#/components/schemas/Plan'
+        is_demo:
+          type: boolean
+          title: Is Demo
+        demo_profile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Demo Profile
+      type: object
+      required:
+      - id
+      - locale
+      - timezone
+      - plan
+      - is_demo
+      - demo_profile
+      title: UserOut
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      description: Токен сессии из POST /api/v1/demo/sessions
+      scheme: bearer
