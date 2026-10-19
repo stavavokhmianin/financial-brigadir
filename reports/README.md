@@ -13,5 +13,5 @@ OpenAPI, экран запуска демо.
 | 1.1 | Скелет monorepo, инфраструктура, CI | A + B + C | [REPORT_1.1](REPORT_1.1.md) | готово |
 | 1.2 | Схема данных и миграции | A (backend/data) | [REPORT_1.2](REPORT_1.2.md) | готово |
 | 1.3 | Демо-генератор синтетических профилей | C (forecasting/QA) | [REPORT_1.3](REPORT_1.3.md) | готово |
-| 1.4 | OpenAPI-контракт и эндпоинты этапа | A (backend/data) | — | в работе |
-| 1.5 | Экран запуска демо (web/Android/iOS) | B (client/product) | — | ожидает |
+| 1.4 | OpenAPI-контракт и эндпоинты этапа | A (backend/data) | [REPORT_1.4](REPORT_1.4.md) | готово |
+| 1.5 | Экран запуска демо (web/Android/iOS) | B (client/product) | — | в работе |
