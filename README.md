@@ -55,6 +55,15 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+## Демо (раздел 16.4)
+
+Сценарий выступления, тайминги и план Б — `docs/demo-script.md`.
+
+```bash
+python scripts/demo_walkthrough.py --api http://localhost:8000   # против стенда
+python scripts/demo_walkthrough.py --offline                     # План Б: без сети и Docker
+```
+
 ## Проверки
 
 ```bash
