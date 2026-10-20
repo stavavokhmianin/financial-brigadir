@@ -49,7 +49,8 @@ from forecast_core import (
     ObligationEvent,
     snapshot_fingerprint,
 )
-from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
+from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult
+from forecast_core.probabilistic import run_monte_carlo
 from forecast_core.scenarios import compare, safe_to_spend
 from forecast_core.types import IncomeShift, ScenarioExpense
 
@@ -274,8 +275,9 @@ def build_output(
             flags=flags,
             notes=notes(flags),
         ),
-        baseline_risk=None,
-        scenario_risk=None,
+        # Вероятность нарушения резерва на горизонте (9.3): модельная оценка, не калибровка.
+        baseline_risk=None if scenario else result.gap_probability,
+        scenario_risk=result.gap_probability if scenario else None,
         risk_level=result.risk_level,
         risk_date=result.risk_date,
         risk_drivers=risk_codes,
@@ -319,7 +321,7 @@ def build_output(
                 p10_minor=p.p10_minor,
                 p50_minor=p.p50_minor,
                 p90_minor=p.p90_minor,
-                risk_probability=None,
+                risk_probability=p.risk_probability,
                 below_reserve=p.p50_minor < result.reserve_minor,
                 inflow_minor=p.inflow_minor,
                 outflow_minor=p.outflow_minor,
@@ -366,7 +368,7 @@ def _store(
             p10_minor=p.p10_minor,
             p50_minor=p.p50_minor,
             p90_minor=p.p90_minor,
-            risk_probability=None,
+            risk_probability=p.risk_probability,
         )
         for p in result.points
     )
@@ -387,7 +389,9 @@ def create_forecast(
             return ForecastOut.model_validate(existing.result), False
     prepared = prepare_snapshot(db, user, request)
     events = [request.scenario] if request.scenario else []
-    _, output = _store(db, user, prepared, run_baseline(prepared.snapshot), events, idempotency_key)
+    _, output = _store(
+        db, user, prepared, run_monte_carlo(prepared.snapshot), events, idempotency_key
+    )
     db.commit()
     return output, True
 
@@ -406,8 +410,9 @@ def create_scenario(db: Session, user: User, request: ScenarioRequest) -> Scenar
     )
     base_prepared = prepare_snapshot(db, user, params, events=[])
     scenario_prepared = prepare_snapshot(db, user, params, events=request.events)
-    base_result = run_baseline(base_prepared.snapshot)
-    scenario_result = run_baseline(scenario_prepared.snapshot)
+    # Один seed для базы и сценария: разница — эффект события, а не случайности.
+    base_result = run_monte_carlo(base_prepared.snapshot)
+    scenario_result = run_monte_carlo(scenario_prepared.snapshot)
 
     recomputed = snapshot_fingerprint(base_prepared.snapshot) != base_run.input_fingerprint
     if recomputed or base_run.scenario:
@@ -447,7 +452,7 @@ def create_scenario(db: Session, user: User, request: ScenarioRequest) -> Scenar
         created_at=created_at,
         base=base_output,
         result=result_output,
-        delta_risk=None,
+        delta_risk=comparison.delta_risk,
         min_balance_delta_minor=comparison.min_balance_delta_minor,
         pessimistic_min_delta_minor=comparison.pessimistic_min_delta_minor,
         risk_level_before=comparison.risk_level_before,

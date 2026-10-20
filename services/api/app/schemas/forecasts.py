@@ -51,7 +51,9 @@ class ForecastPointOut(APIModel):
     p50_minor: Minor = Field(description="Базовый сценарий")
     p90_minor: Minor = Field(description="Оптимистичный сценарий")
     risk_probability: float | None = Field(
-        ge=0, le=1, description="null до калибровки вероятностной модели"
+        ge=0,
+        le=1,
+        description="Доля траекторий симуляции ниже резерва в этот день; null без симуляции",
     )
     below_reserve: bool = Field(description="Базовый сценарий ниже резерва")
     inflow_minor: NonNegativeMinor = Field(description="Ожидаемые поступления дня")
@@ -144,7 +146,7 @@ class ScenarioOut(APIModel):
     created_at: datetime
     base: ForecastOut
     result: ForecastOut
-    delta_risk: float | None = Field(description="null до калибровки вероятностей")
+    delta_risk: float | None = Field(description="Изменение вероятности нарушения резерва")
     min_balance_delta_minor: Minor
     pessimistic_min_delta_minor: Minor
     risk_level_before: RiskLevel

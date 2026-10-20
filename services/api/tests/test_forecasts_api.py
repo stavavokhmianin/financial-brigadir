@@ -23,14 +23,15 @@ def _forecast(client: TestClient, headers: dict[str, str], **body: Any) -> dict[
 
 def test_demo_forecast_matches_golden_story(client: TestClient, headers: dict[str, str]) -> None:
     data = _forecast(client, headers)
-    assert data["model_version"] == "baseline-0.1"
+    assert data["model_version"] == "mc-0.1"
     assert data["today"] == "2026-10-19"
     assert data["start_balance_minor"] == 5_500_000
     assert data["reserve_minor"] == 500_000
     assert len(data["points"]) == 30 and data["points"][0]["day"] == "2026-10-20"
     assert data["risk_level"] == "medium" and data["risk_date"] == "2026-10-23"
-    assert data["baseline_risk"] is None and data["scenario_risk"] is None
-    assert all(p["risk_probability"] is None for p in data["points"])
+    # Вероятность — модельная оценка симуляции, не откалиброванная на реальных данных.
+    assert 0.1 <= data["baseline_risk"] < 0.5 and data["scenario_risk"] is None
+    assert all(0 <= p["risk_probability"] <= 1 for p in data["points"])
     assert data["quality"]["confidence"] == "illustrative"
     labels = [d["label"] for d in data["risk"]["drivers"] if d["kind"] == "obligation"]
     assert labels[:2] == ["Аренда квартиры", "Потребкредит"]

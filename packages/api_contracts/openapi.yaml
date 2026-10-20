@@ -1612,7 +1612,7 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Risk Probability
-          description: null до калибровки вероятностной модели
+          description: Доля траекторий симуляции ниже резерва в этот день; null без симуляции
         below_reserve:
           type: boolean
           title: Below Reserve
@@ -2736,7 +2736,7 @@ components:
           - type: number
           - type: 'null'
           title: Delta Risk
-          description: null до калибровки вероятностей
+          description: Изменение вероятности нарушения резерва
         min_balance_delta_minor:
           type: integer
           maximum: 9.223372036854776e+18

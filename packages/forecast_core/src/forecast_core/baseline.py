@@ -6,7 +6,7 @@
   (раздел 9.2). Из истории исключаются переводы между своими счетами, возвраты,
   погашения кредитки, оплаты обязательств и аномально крупные покупки.
 
-Коридор p10/p90 — не вероятность, а сценарии: пессимистичный (траты на уровне
+Коридор p10/p90 здесь — не вероятность, а сценарии: пессимистичный (траты на уровне
 90-го перцентиля исторических скользящих сумм, доход в последний день окна,
 верхняя граница неточных платежей) и оптимистичный. Вероятность нарушения
 резерва появится вместе с симуляцией (уровень 2) и калибровкой; до этого
@@ -15,7 +15,7 @@
 
 import math
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from statistics import mean, median
 from typing import Literal
@@ -69,6 +69,9 @@ class SpendingModel:
     band_low_minor: tuple[int, ...]  # насколько траты за k дней могут быть ниже p50
     band_high_minor: tuple[int, ...]  # и выше p50
     card_daily_minor: int
+    # Для симуляции (уровень 2): дневные траты истории и исключённые крупные покупки.
+    daily_history: tuple[tuple[date, int], ...] = ()
+    large_amounts_minor: tuple[int, ...] = ()
 
     def daily(self, day: date) -> int:
         return self.weekday_daily_minor[day.weekday()]
@@ -83,6 +86,7 @@ class DayPoint:
     inflow_minor: int
     outflow_minor: int
     spending_minor: int
+    risk_probability: float | None = None  # только у вероятностной модели
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,6 +117,9 @@ class ForecastResult:
     confidence: str  # insufficient | illustrative
     flags: tuple[str, ...]
     spending: SpendingModel
+    gap_probability: float | None = None  # P(min_t (B_t - R_t) < 0), только у симуляции
+    # Траектории остатка симуляции (для суммы безопасной покупки по формуле 9.4).
+    trajectories: tuple[tuple[int, ...], ...] = field(default=(), compare=False, repr=False)
 
 
 def _quantile(sorted_values: Sequence[int], p: float) -> int:
@@ -165,9 +172,11 @@ def build_spending_model(
     days = [earliest + timedelta(days=i) for i in range(history_days)] if earliest else []
     totals = dict.fromkeys(days, 0)
     excluded_large = 0
+    large_amounts: list[int] = []
     for day, amount in candidates:
         if amount > threshold:
             excluded_large += 1
+            large_amounts.append(amount)
             continue
         totals[day] = totals.get(day, 0) + amount
     daily = [totals[d] for d in days]
@@ -213,6 +222,8 @@ def build_spending_model(
         band_low_minor=tuple(low),
         band_high_minor=tuple(high),
         card_daily_minor=card_mean,
+        daily_history=tuple((d, totals[d]) for d in days),
+        large_amounts_minor=tuple(large_amounts),
     )
 
 
@@ -232,8 +243,45 @@ def _shifted(
     return result
 
 
-def run_baseline(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean") -> ForecastResult:
-    """Прогноз на ``horizon_days`` дней вперёд от даты ``as_of`` (без сегодняшнего дня)."""
+@dataclass(frozen=True, slots=True)
+class ObligationHit:
+    day: date
+    amount_minor: int  # базовая сумма (с учётом трат по кредитке)
+    low_minor: int
+    high_minor: int
+    status: ObligationStatus
+    kind: str
+    label: str
+
+
+@dataclass(frozen=True, slots=True)
+class IncomeHit:
+    first: date  # самая ранняя дата окна
+    last: date  # самая поздняя дата окна
+    min_minor: int
+    max_minor: int
+    probability: float
+    label: str
+
+
+@dataclass
+class Plan:
+    """Всё, что известно о горизонте до расчёта траекторий: общий вход обеих моделей."""
+
+    snapshot: ForecastInputSnapshot
+    today: date
+    days: list[date]
+    index: dict[date, int]
+    spending: SpendingModel
+    start: int
+    liquid_ids: set[str]
+    flags: list[str]
+    obligations: list[ObligationHit]
+    incomes: list[IncomeHit]
+    scenarios: list[tuple[date, int, str]]
+
+
+def prepare_plan(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean") -> Plan:
     tz = ZoneInfo(snapshot.timezone)
     today = snapshot.as_of.astimezone(tz).date()
     horizon = snapshot.horizon_days
@@ -252,11 +300,7 @@ def run_baseline(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
     start = liquid_balance_minor(snapshot.accounts, snapshot.currency)
     flags: list[str] = []
 
-    # Потоки по дням для трёх сценариев: 0 — p10 (плохой), 1 — p50, 2 — p90 (хороший).
-    inflow = [[0] * horizon for _ in range(3)]
-    outflow = [[0] * horizon for _ in range(3)]
-    obligation_hits: list[tuple[date, int, str, str]] = []  # (день, сумма p50, код, подпись)
-
+    obligations: list[ObligationHit] = []
     for obligation in snapshot.obligations:
         if obligation.status == ObligationStatus.CANCELED:
             continue
@@ -270,103 +314,113 @@ def run_baseline(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
             end,
             obligation.recurrence_day,
         ):
-            amount50, amount_bad, amount_good = base, high, low
+            amount, worst = base, high
             if obligation.kind == "credit_card" and spending.card_daily_minor > 0:
                 # Траты по кредитке до даты платежа увеличат сумму погашения (9.5).
-                accrual = spending.card_daily_minor * (day - today).days
-                amount50 = base + accrual
-                amount_bad = max(high, amount50)
+                amount = base + spending.card_daily_minor * (day - today).days
+                worst = max(high, amount)
                 if "card_spending_accrual" not in flags:
                     flags.append("card_spending_accrual")
-            i = index[day]
-            outflow[0][i] += amount_bad
-            outflow[1][i] += amount50
-            outflow[2][i] += amount_good
-            obligation_hits.append(
-                (day, amount50, obligation.kind, obligation.title or obligation.kind)
+            obligations.append(
+                ObligationHit(
+                    day,
+                    amount,
+                    low,
+                    worst,
+                    obligation.status,
+                    obligation.kind,
+                    obligation.title or obligation.kind,
+                )
             )
 
-    income_days_p50: list[tuple[date, str]] = []
+    incomes: list[IncomeHit] = []
     for income in _shifted(snapshot.incomes, snapshot):
         spread = income.date_to - income.date_from
-        middle = (income.amount_min_minor + income.amount_max_minor) // 2
         for first in occurrences(income.date_from, income.recurrence, today - spread, end):
-            last = first + spread
-            if income.probability >= P50_MIN_PROBABILITY and first in index:
-                inflow[1][index[first]] += middle
-                income_days_p50.append((first, income.title or income.kind))
-            if income.probability >= P10_MIN_PROBABILITY and last in index:
-                inflow[0][index[last]] += income.amount_min_minor
-            if income.probability >= P90_MIN_PROBABILITY and first in index:
-                inflow[2][index[first]] += income.amount_max_minor
+            incomes.append(
+                IncomeHit(
+                    first,
+                    first + spread,
+                    income.amount_min_minor,
+                    income.amount_max_minor,
+                    income.probability,
+                    income.title or income.kind,
+                )
+            )
 
-    scenario_hits: list[tuple[date, int, str]] = []
+    scenarios: list[tuple[date, int, str]] = []
     for expense in snapshot.extra_expenses:
         if expense.day in index:
-            for band in range(3):
-                outflow[band][index[expense.day]] += expense.amount_minor
-            scenario_hits.append((expense.day, expense.amount_minor, expense.label))
+            scenarios.append((expense.day, expense.amount_minor, expense.label))
         elif today >= expense.day:
             # Покупка сегодня (или «прямо сейчас») сразу уменьшает остаток.
             start -= expense.amount_minor
-            scenario_hits.append((today, expense.amount_minor, expense.label))
+            scenarios.append((today, expense.amount_minor, expense.label))
 
-    points: list[DayPoint] = []
-    cum_in = [0, 0, 0]
-    cum_out = [0, 0, 0]
-    cum_spend = 0
-    for i, day in enumerate(days):
-        for band in range(3):
-            cum_in[band] += inflow[band][i]
-            cum_out[band] += outflow[band][i]
-        spend_today = spending.daily(day)
-        cum_spend += spend_today
-        p50 = start + cum_in[1] - cum_out[1] - cum_spend
-        p10 = start + cum_in[0] - cum_out[0] - (cum_spend + spending.band_high_minor[i])
-        p90 = start + cum_in[2] - cum_out[2] - max(0, cum_spend - spending.band_low_minor[i])
-        p10 = min(p10, p50)
-        p90 = max(p90, p50)
-        points.append(DayPoint(day, p10, p50, p90, inflow[1][i], outflow[1][i], spend_today))
+    return Plan(
+        snapshot,
+        today,
+        days,
+        index,
+        spending,
+        start,
+        liquid_ids,
+        flags,
+        obligations,
+        incomes,
+        scenarios,
+    )
 
-    reserve = snapshot.reserve_minor
+
+def finalize(
+    plan: Plan,
+    points: list[DayPoint],
+    level: str,
+    risk_date: date | None,
+    shortfall: int,
+    model_version: str,
+    gap_probability: float | None = None,
+    trajectories: tuple[tuple[int, ...], ...] = (),
+) -> ForecastResult:
+    """Минимумы, причины риска (раздел 9.6), флаги качества и итоговый результат."""
+    snapshot, today, spending = plan.snapshot, plan.today, plan.spending
     if points:
         min50 = min(points, key=lambda p: (p.p50_minor, p.day))
         min10 = min(points, key=lambda p: (p.p10_minor, p.day))
         min50_value, min50_day = min50.p50_minor, min50.day
         min10_value, min10_day = min10.p10_minor, min10.day
     else:
-        min50_value = min10_value = start
+        min50_value = min10_value = plan.start
         min50_day = min10_day = today
-    breach50 = next((p.day for p in points if p.p50_minor < reserve), None)
-    breach10 = next((p.day for p in points if p.p10_minor < reserve), None)
-    if breach50 is not None:
-        level, risk_date, shortfall = "high", breach50, reserve - min50_value
-    elif breach10 is not None:
-        level, risk_date, shortfall = "medium", breach10, reserve - min10_value
-    else:
-        level, risk_date, shortfall = "low", None, 0
 
+    income_days = [
+        (hit.first, hit.label)
+        for hit in plan.incomes
+        if hit.probability >= P50_MIN_PROBABILITY and hit.first in plan.index
+    ]
     target = risk_date or min50_day
     drivers: list[RiskDriver] = []
     before = sorted(
-        (hit for hit in obligation_hits if hit[0] <= target), key=lambda h: (-h[1], h[0])
+        (hit for hit in plan.obligations if hit.day <= target),
+        key=lambda h: (-h.amount_minor, h.day),
     )
-    for day, amount, code, label in before[:3]:
-        drivers.append(RiskDriver("obligation", code, label, amount, day))
-    for day, amount, label in scenario_hits:
+    for hit in before[:3]:
+        drivers.append(RiskDriver("obligation", hit.kind, hit.label, hit.amount_minor, hit.day))
+    for day, amount, label in plan.scenarios:
         if day <= target:
             drivers.append(RiskDriver("scenario", "scenario_expense", label, amount, day))
-    spend_until = sum(p.spending_minor for p in points if p.day <= target)
+    spend_until = sum(spending.daily(p.day) for p in points if p.day <= target)
     if spend_until > 0:
         drivers.append(
             RiskDriver("daily_spending", "daily_spending", "Повседневные траты", spend_until, None)
         )
-    later_income = min((d for d, _ in income_days_p50 if d > target), default=None)
-    next_income = min((d for d, _ in income_days_p50), default=None)
+    later_income = min((d for d, _ in income_days if d > target), default=None)
+    next_income = min((d for d, _ in income_days), default=None)
     if later_income is not None and level != "low":
-        title = next(t for d, t in income_days_p50 if d == later_income)
+        title = next(t for d, t in income_days if d == later_income)
         drivers.append(RiskDriver("income_after_risk", "income_after_risk", title, 0, later_income))
 
+    flags = list(plan.flags)
     if spending.history_days == 0:
         flags.append("no_history")
     elif spending.history_days < SHORT_HISTORY_DAYS:
@@ -384,14 +438,14 @@ def run_baseline(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
     if snapshot.extra_expenses or snapshot.income_shifts:
         flags.append("scenario_applied")
 
-    insufficient = not liquid_ids or (
+    insufficient = not plan.liquid_ids or (
         spending.history_days < MIN_HISTORY_DAYS and not snapshot.obligations
     )
     return ForecastResult(
-        model_version=MODEL_VERSION,
+        model_version=model_version,
         today=today,
-        start_balance_minor=start,
-        reserve_minor=reserve,
+        start_balance_minor=plan.start,
+        reserve_minor=snapshot.reserve_minor,
         points=tuple(points),
         risk_level=level,
         risk_date=risk_date,
@@ -405,4 +459,64 @@ def run_baseline(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
         confidence="insufficient" if insufficient else "illustrative",
         flags=tuple(flags),
         spending=spending,
+        gap_probability=gap_probability,
+        trajectories=trajectories,
     )
+
+
+def run_baseline(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean") -> ForecastResult:
+    """Детерминированный прогноз (уровни 0–1) на ``horizon_days`` дней от ``as_of``."""
+    plan = prepare_plan(snapshot, estimator)
+    horizon = len(plan.days)
+    # Потоки по дням для трёх сценариев: 0 — p10 (плохой), 1 — p50, 2 — p90 (хороший).
+    inflow = [[0] * horizon for _ in range(3)]
+    outflow = [[0] * horizon for _ in range(3)]
+    for hit in plan.obligations:
+        i = plan.index[hit.day]
+        outflow[0][i] += hit.high_minor
+        outflow[1][i] += hit.amount_minor
+        outflow[2][i] += hit.low_minor
+    for income in plan.incomes:
+        middle = (income.min_minor + income.max_minor) // 2
+        if income.probability >= P50_MIN_PROBABILITY and income.first in plan.index:
+            inflow[1][plan.index[income.first]] += middle
+        if income.probability >= P10_MIN_PROBABILITY and income.last in plan.index:
+            inflow[0][plan.index[income.last]] += income.min_minor
+        if income.probability >= P90_MIN_PROBABILITY and income.first in plan.index:
+            inflow[2][plan.index[income.first]] += income.max_minor
+    for day, amount, _ in plan.scenarios:
+        if day in plan.index:
+            for band in range(3):
+                outflow[band][plan.index[day]] += amount
+
+    spending = plan.spending
+    points: list[DayPoint] = []
+    cum_in = [0, 0, 0]
+    cum_out = [0, 0, 0]
+    cum_spend = 0
+    for i, day in enumerate(plan.days):
+        for band in range(3):
+            cum_in[band] += inflow[band][i]
+            cum_out[band] += outflow[band][i]
+        spend_today = spending.daily(day)
+        cum_spend += spend_today
+        start = plan.start
+        p50 = start + cum_in[1] - cum_out[1] - cum_spend
+        p10 = start + cum_in[0] - cum_out[0] - (cum_spend + spending.band_high_minor[i])
+        p90 = start + cum_in[2] - cum_out[2] - max(0, cum_spend - spending.band_low_minor[i])
+        p10 = min(p10, p50)
+        p90 = max(p90, p50)
+        points.append(DayPoint(day, p10, p50, p90, inflow[1][i], outflow[1][i], spend_today))
+
+    reserve = snapshot.reserve_minor
+    min50 = min((p.p50_minor for p in points), default=plan.start)
+    min10 = min((p.p10_minor for p in points), default=plan.start)
+    breach50 = next((p.day for p in points if p.p50_minor < reserve), None)
+    breach10 = next((p.day for p in points if p.p10_minor < reserve), None)
+    if breach50 is not None:
+        level, risk_date, shortfall = "high", breach50, reserve - min50
+    elif breach10 is not None:
+        level, risk_date, shortfall = "medium", breach10, reserve - min10
+    else:
+        level, risk_date, shortfall = "low", None, 0
+    return finalize(plan, points, level, risk_date, shortfall, MODEL_VERSION)

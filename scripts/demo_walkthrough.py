@@ -112,7 +112,10 @@ class Demo:
         )
         self.expect(forecast["risk_level"] == "medium", "риск «возможен»")
         self.expect(forecast["risk_date"] == "2026-10-23", "дата риска 23 октября")
-        self.expect(forecast["baseline_risk"] is None, "без псевдопроцентов (9.3)")
+        self.expect(
+            forecast["quality"]["confidence"] == "illustrative",
+            "вероятность помечена как модельная оценка (9.3)",
+        )
 
         self.say("3", "Покупка 12 000 ₽: график и риск меняются без записи фиктивной операции.")
         before = call("GET", "/api/v1/transactions?limit=200", None, token)
