@@ -69,5 +69,7 @@ def test_money_fields_are_integers() -> None:
     for name, component in schema["components"]["schemas"].items():
         for field, spec in component.get("properties", {}).items():
             if field.endswith("_minor"):
+                if spec.get("type") == "array":
+                    spec = spec["items"]
                 types = {spec.get("type")} | {s.get("type") for s in spec.get("anyOf", [])}
                 assert types - {None, "null"} == {"integer"}, f"{name}.{field}"

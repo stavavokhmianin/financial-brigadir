@@ -41,6 +41,8 @@ jobs:
         run: mypy packages/forecast_core/src packages/synthetic_generator/src services/api/app services/worker/fb_worker
       - name: Pytest (SQLite + PostgreSQL)
         run: pytest
+      - name: Бэктест базового прогноза (раздел 15.2)
+        run: python scripts/backtest_baseline.py --seeds 10 --out "$RUNNER_TEMP/backtest.md"
 
   client:
     name: Client — typecheck, unit, web build

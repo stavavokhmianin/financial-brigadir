@@ -299,6 +299,9 @@ class ForecastRun(Base):
     input_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
     input_fingerprint: Mapped[str] = mapped_column(String(64))
     quality_flags: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    # Применённый сценарий (покупка, сдвиг дохода) и итог расчёта для GET /forecasts/{id}.
+    scenario: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     idempotency_key: Mapped[str | None] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 

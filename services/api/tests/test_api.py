@@ -289,11 +289,13 @@ def test_notification_settings_patch(client: TestClient) -> None:
 
 def test_planned_endpoints_answer_501_with_stage(client: TestClient) -> None:
     headers = _auth(_session(client))
-    response = client.post("/api/v1/forecasts", headers=headers, json={"horizon_days": 30})
+    response = client.post(
+        "/api/v1/scenarios",
+        headers=headers,
+        json={"base_forecast_id": "fc_x", "events": [{"type": "expense", "amount_minor": 100}]},
+    )
     assert response.status_code == 501
     error = response.json()["error"]
     assert error["code"] == "not_implemented"
-    assert "этап 2" in error["details"]["planned_stage"]
+    assert "этап 3" in error["details"]["planned_stage"]
     assert client.get("/api/v1/alerts", headers=headers).status_code == 501
-    invalid = client.post("/api/v1/forecasts", headers=headers, json={"horizon_days": 365})
-    assert invalid.status_code == 422

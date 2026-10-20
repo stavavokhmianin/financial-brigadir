@@ -88,6 +88,9 @@ class ObligationEvent:
     movable: bool = False
     amount_min_minor: int | None = None
     amount_max_minor: int | None = None
+    recurrence: str = "none"
+    recurrence_day: int | None = None
+    title: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +103,26 @@ class IncomeExpectation:
     amount_max_minor: int
     probability: float
     confirmed: bool
+    recurrence: str = "none"
+    title: str = ""
+    kind: str = "other"
+
+
+@dataclass(frozen=True, slots=True)
+class ScenarioExpense:
+    """Гипотетическая трата (US-04): не записывается в историю операций."""
+
+    day: date
+    amount_minor: int
+    label: str = "Покупка"
+
+
+@dataclass(frozen=True, slots=True)
+class IncomeShift:
+    """Сдвиг ожидаемого дохода на N дней (US-05, демо 16.4: «зарплата на два дня позже»)."""
+
+    income_id: str
+    shift_days: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,3 +138,5 @@ class ForecastInputSnapshot:
     coverage: Coverage = Coverage.UNKNOWN
     currency: str = "RUB"
     notes: tuple[str, ...] = field(default=())
+    extra_expenses: tuple[ScenarioExpense, ...] = ()
+    income_shifts: tuple[IncomeShift, ...] = ()

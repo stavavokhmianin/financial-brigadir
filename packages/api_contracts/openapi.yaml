@@ -723,7 +723,7 @@ paths:
     post:
       tags:
       - forecasts
-      summary: Расчёт прогноза из зафиксированного снимка
+      summary: Прогноз остатка по дням из зафиксированного снимка (уровни 0–1, раздел 23.1)
       operationId: createForecast
       security:
       - HTTPBearer: []
@@ -736,9 +736,9 @@ paths:
           - type: string
             maxLength: 80
           - type: 'null'
-          description: Повтор запроса с тем же ключом вернёт тот же результат
+          description: Повтор запроса с тем же ключом вернёт тот же расчёт
           title: Idempotency-Key
-        description: Повтор запроса с тем же ключом вернёт тот же результат
+        description: Повтор запроса с тем же ключом вернёт тот же расчёт
       requestBody:
         required: true
         content:
@@ -748,6 +748,12 @@ paths:
       responses:
         '201':
           description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastOut'
+        '200':
+          description: Повтор по Idempotency-Key
           content:
             application/json:
               schema:
@@ -764,8 +770,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-        '501':
-          description: Контракт зафиксирован, реализация на следующем этапе
+        '404':
+          description: Объект не найден
           content:
             application/json:
               schema:
@@ -780,7 +786,7 @@ paths:
     get:
       tags:
       - forecasts
-      summary: Траектория прогноза и метаданные
+      summary: 'Сохранённый расчёт: траектория, риск, качество данных, версия модели'
       operationId: getForecast
       security:
       - HTTPBearer: []
@@ -806,12 +812,6 @@ paths:
                 $ref: '#/components/schemas/ErrorOut'
         '404':
           description: Объект не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorOut'
-        '501':
-          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
@@ -1478,16 +1478,38 @@ components:
         forecast_id:
           type: string
           title: Forecast Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
         data_as_of:
           type: string
           format: date-time
           title: Data As Of
+        today:
+          type: string
+          format: date
+          title: Today
         horizon_days:
           type: integer
           title: Horizon Days
+        reserve_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Reserve Minor
+          examples:
+          - 500000
         model_version:
           type: string
           title: Model Version
+        start_balance_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Start Balance Minor
+          examples:
+          - 1200000
         quality:
           $ref: '#/components/schemas/ForecastQuality'
         baseline_risk:
@@ -1504,6 +1526,13 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Scenario Risk
+        risk_level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Risk Level
         risk_date:
           anyOf:
           - type: string
@@ -1515,6 +1544,14 @@ components:
             type: string
           type: array
           title: Risk Drivers
+        risk:
+          $ref: '#/components/schemas/RiskOut'
+        spending:
+          $ref: '#/components/schemas/SpendingModelOut'
+        scenario:
+          anyOf:
+          - $ref: '#/components/schemas/ScenarioEvent'
+          - type: 'null'
         points:
           items:
             $ref: '#/components/schemas/ForecastPointOut'
@@ -1523,14 +1560,22 @@ components:
       type: object
       required:
       - forecast_id
+      - created_at
       - data_as_of
+      - today
       - horizon_days
+      - reserve_minor
       - model_version
+      - start_balance_minor
       - quality
       - baseline_risk
       - scenario_risk
+      - risk_level
       - risk_date
       - risk_drivers
+      - risk
+      - spending
+      - scenario
       - points
       title: ForecastOut
     ForecastPointOut:
@@ -1544,6 +1589,7 @@ components:
           maximum: 9.223372036854776e+18
           minimum: -9.223372036854776e+18
           title: P10 Minor
+          description: Пессимистичный сценарий
           examples:
           - 1200000
         p50_minor:
@@ -1551,6 +1597,7 @@ components:
           maximum: 9.223372036854776e+18
           minimum: -9.223372036854776e+18
           title: P50 Minor
+          description: Базовый сценарий
           examples:
           - 1200000
         p90_minor:
@@ -1558,6 +1605,7 @@ components:
           maximum: 9.223372036854776e+18
           minimum: -9.223372036854776e+18
           title: P90 Minor
+          description: Оптимистичный сценарий
           examples:
           - 1200000
         risk_probability:
@@ -1567,6 +1615,35 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Risk Probability
+          description: null до калибровки вероятностной модели
+        below_reserve:
+          type: boolean
+          title: Below Reserve
+          description: Базовый сценарий ниже резерва
+        inflow_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Inflow Minor
+          description: Ожидаемые поступления дня
+          examples:
+          - 500000
+        outflow_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Outflow Minor
+          description: Обязательные платежи дня
+          examples:
+          - 500000
+        spending_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Spending Minor
+          description: Ожидаемые повседневные траты дня
+          examples:
+          - 500000
       type: object
       required:
       - day
@@ -1574,6 +1651,10 @@ components:
       - p50_minor
       - p90_minor
       - risk_probability
+      - below_reserve
+      - inflow_minor
+      - outflow_minor
+      - spending_minor
       title: ForecastPointOut
     ForecastQuality:
       properties:
@@ -1587,10 +1668,27 @@ components:
           - calibrated
           title: Confidence
           description: Вероятности не считаются реальными, пока модель не откалибрована
+        history_days:
+          type: integer
+          title: History Days
+        flags:
+          items:
+            type: string
+          type: array
+          title: Flags
+        notes:
+          items:
+            type: string
+          type: array
+          title: Notes
+          description: Ограничения расчёта для показа пользователю
       type: object
       required:
       - coverage
       - confidence
+      - history_days
+      - flags
+      - notes
       title: ForecastQuality
     ForecastRequest:
       properties:
@@ -1609,17 +1707,15 @@ components:
           title: Horizon Days
           default: 30
         reserve_minor:
-          type: integer
-          maximum: 9.223372036854776e+18
-          minimum: 0.0
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
           title: Reserve Minor
-          default: 500000
-          examples:
-          - 500000
-        timezone:
-          type: string
-          title: Timezone
-          default: Europe/Moscow
+          description: Резерв R; по умолчанию — из настроек пользователя
         scenario:
           anyOf:
           - $ref: '#/components/schemas/ScenarioEvent'
@@ -2430,6 +2526,117 @@ components:
       - weekly
       - monthly
       title: Recurrence
+    RiskDriverOut:
+      properties:
+        kind:
+          type: string
+          enum:
+          - obligation
+          - daily_spending
+          - scenario
+          - income_after_risk
+          title: Kind
+        code:
+          type: string
+          title: Code
+        label:
+          type: string
+          title: Label
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Amount Minor
+          examples:
+          - 500000
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      type: object
+      required:
+      - kind
+      - code
+      - label
+      - amount_minor
+      - date
+      title: RiskDriverOut
+    RiskOut:
+      properties:
+        level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Level
+          description: high — резерв нарушен в базовом сценарии; medium — только в пессимистичном
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+        shortfall_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Shortfall Minor
+          description: Насколько остаток ниже резерва
+          examples:
+          - 500000
+        min_balance_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Min Balance Minor
+          examples:
+          - 1200000
+        min_balance_date:
+          type: string
+          format: date
+          title: Min Balance Date
+        pessimistic_min_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Pessimistic Min Minor
+          examples:
+          - 1200000
+        pessimistic_min_date:
+          type: string
+          format: date
+          title: Pessimistic Min Date
+        next_income_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Next Income Date
+        explanation:
+          type: string
+          title: Explanation
+          description: Структурированное объяснение по шаблону (раздел 9.6)
+        drivers:
+          items:
+            $ref: '#/components/schemas/RiskDriverOut'
+          type: array
+          title: Drivers
+      type: object
+      required:
+      - level
+      - date
+      - shortfall_minor
+      - min_balance_minor
+      - min_balance_date
+      - pessimistic_min_minor
+      - pessimistic_min_date
+      - next_income_date
+      - explanation
+      - drivers
+      title: RiskOut
     ScenarioEvent:
       properties:
         type:
@@ -2437,8 +2644,6 @@ components:
           enum:
           - expense
           - income_shift
-          - income_change
-          - postpone_expense
           title: Type
         amount_minor:
           anyOf:
@@ -2449,12 +2654,20 @@ components:
             - 1200000
           - type: 'null'
           title: Amount Minor
+          description: Для expense
         date:
           anyOf:
           - type: string
             format: date
           - type: 'null'
           title: Date
+          description: Для expense; по умолчанию — сегодня
+        label:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          title: Label
         shift_days:
           anyOf:
           - type: integer
@@ -2462,16 +2675,18 @@ components:
             minimum: -31.0
           - type: 'null'
           title: Shift Days
+          description: Для income_shift
         target_id:
           anyOf:
           - type: string
           - type: 'null'
           title: Target Id
-          description: Доход или обязательство
+          description: id дохода для income_shift
       type: object
       required:
       - type
       title: ScenarioEvent
+      description: 'Гипотетическое событие: не меняет историю операций (раздел 7.6).'
     ScenarioOut:
       properties:
         scenario_id:
@@ -2545,6 +2760,34 @@ components:
       - data_as_of
       - is_partial
       title: SourceOut
+    SpendingModelOut:
+      properties:
+        estimator:
+          type: string
+          title: Estimator
+        daily_by_weekday_minor:
+          items:
+            type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          type: array
+          title: Daily By Weekday Minor
+          description: Понедельник — первый
+        history_days:
+          type: integer
+          title: History Days
+        excluded_large:
+          type: integer
+          title: Excluded Large
+      type: object
+      required:
+      - estimator
+      - daily_by_weekday_minor
+      - history_days
+      - excluded_large
+      title: SpendingModelOut
     TransactionOut:
       properties:
         id:

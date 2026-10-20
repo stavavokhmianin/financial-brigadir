@@ -42,6 +42,15 @@ def main(base: str) -> int:
     window = "date_from=2026-10-19&date_to=2026-10-31"
     obligations = call(base, "GET", f"/api/v1/obligations?{window}", token=token)
     check(len(obligations["calendar"]) >= 2, "календарь обязательств до зарплаты")
+
+    forecast = call(base, "POST", "/api/v1/forecasts", {}, token=token)
+    check(
+        forecast["risk_level"] == "medium" and forecast["risk_date"] == "2026-10-23",
+        "прогноз: риск до зарплаты 23 октября",
+    )
+    purchase = {"scenario": {"type": "expense", "amount_minor": 1_200_000, "date": "2026-10-20"}}
+    with_purchase = call(base, "POST", "/api/v1/forecasts", purchase, token=token)
+    check(with_purchase["risk_level"] == "high", "покупка 12 000 ₽ повышает риск")
     return 0
 
 

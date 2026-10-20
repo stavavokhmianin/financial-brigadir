@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     accounts,
     demo,
+    forecasts,
     health,
     imports,
     incomes,
@@ -21,4 +22,5 @@ router.include_router(obligations.router)
 router.include_router(notifications.router)
 router.include_router(imports.router)
 router.include_router(incomes.router)
+router.include_router(forecasts.router)
 router.include_router(planned.router)

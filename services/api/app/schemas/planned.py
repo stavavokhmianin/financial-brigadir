@@ -4,60 +4,16 @@
 параллельно. Обработчики отвечают ``501`` до реализации на своём этапе.
 """
 
-import datetime as dt
 from datetime import date, datetime, time
 from typing import Literal
 
 from pydantic import Field
 
-from app.domain.enums import AlertAction, Coverage, NotificationMode, Priority
-from app.schemas.common import APIModel, Minor, NonNegativeMinor, PositiveMinor
+from app.domain.enums import AlertAction, NotificationMode, Priority
+from app.schemas.common import APIModel, Minor, NonNegativeMinor
+from app.schemas.forecasts import ForecastOut, ScenarioEvent
 
-# --- Прогноз и сценарии (этапы 2–3) ---
-
-
-class ScenarioEvent(APIModel):
-    type: Literal["expense", "income_shift", "income_change", "postpone_expense"]
-    amount_minor: PositiveMinor | None = None
-    date: dt.date | None = None
-    shift_days: int | None = Field(default=None, ge=-31, le=31)
-    target_id: str | None = Field(default=None, description="Доход или обязательство")
-
-
-class ForecastRequest(APIModel):
-    account_ids: list[str] | None = Field(default=None, description="По умолчанию все счета")
-    horizon_days: int = Field(default=30, ge=1, le=90)
-    reserve_minor: NonNegativeMinor = 500_000
-    timezone: str = "Europe/Moscow"
-    scenario: ScenarioEvent | None = None
-
-
-class ForecastPointOut(APIModel):
-    day: date
-    p10_minor: Minor
-    p50_minor: Minor
-    p90_minor: Minor
-    risk_probability: float | None = Field(ge=0, le=1)
-
-
-class ForecastQuality(APIModel):
-    coverage: Coverage
-    confidence: Literal["insufficient", "illustrative", "calibrated"] = Field(
-        description="Вероятности не считаются реальными, пока модель не откалибрована"
-    )
-
-
-class ForecastOut(APIModel):
-    forecast_id: str
-    data_as_of: datetime
-    horizon_days: int
-    model_version: str
-    quality: ForecastQuality
-    baseline_risk: float | None = Field(ge=0, le=1)
-    scenario_risk: float | None = Field(ge=0, le=1)
-    risk_date: date | None
-    risk_drivers: list[str]
-    points: list[ForecastPointOut]
+# --- Сравнение сценариев (этап 3) ---
 
 
 class ScenarioRequest(APIModel):

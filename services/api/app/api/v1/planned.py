@@ -4,9 +4,7 @@
 с указанием этапа, чтобы клиент мог показать честное состояние.
 """
 
-from typing import Annotated
-
-from fastapi import APIRouter, Header
+from fastapi import APIRouter
 
 from app.api.deps import CurrentUser
 from app.core.errors import error_responses, not_implemented
@@ -14,52 +12,15 @@ from app.schemas.planned import (
     AlertsOut,
     BankMockSyncOut,
     BankMockSyncRequest,
-    ForecastOut,
-    ForecastRequest,
     ScenarioOut,
     ScenarioRequest,
 )
 
 router = APIRouter()
 
-STAGE_2 = "этап 2 (23–26 октября)"
 STAGE_3 = "этап 3 (27 октября – 1 ноября)"
 STAGE_4 = "этап 4 (2–15 ноября)"
 STAGE_5 = "этап 5 (16–29 ноября)"
-
-IdempotencyKey = Annotated[
-    str | None,
-    Header(
-        alias="Idempotency-Key",
-        max_length=80,
-        description="Повтор запроса с тем же ключом вернёт тот же результат",
-    ),
-]
-
-
-@router.post(
-    "/forecasts",
-    tags=["forecasts"],
-    operation_id="createForecast",
-    summary="Расчёт прогноза из зафиксированного снимка",
-    status_code=201,
-    responses=error_responses(400, 401, 501),
-)
-def create_forecast(
-    body: ForecastRequest, user: CurrentUser, idempotency_key: IdempotencyKey = None
-) -> ForecastOut:
-    raise not_implemented(STAGE_2)
-
-
-@router.get(
-    "/forecasts/{forecast_id}",
-    tags=["forecasts"],
-    operation_id="getForecast",
-    summary="Траектория прогноза и метаданные",
-    responses=error_responses(401, 404, 501),
-)
-def get_forecast(forecast_id: str, user: CurrentUser) -> ForecastOut:
-    raise not_implemented(STAGE_2)
 
 
 @router.post(
