@@ -530,6 +530,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/notification-settings:
+    get:
+      tags:
+      - alerts
+      summary: Текущие настройки уведомлений
+      operationId: getNotificationSettings
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSettingsOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
     patch:
       tags:
       - alerts
@@ -944,8 +964,28 @@ paths:
     get:
       tags:
       - alerts
-      summary: Предупреждения и причины подавления
+      summary: 'Предупреждения и причины подавления (7.7): send, defer, suppress'
       operationId: listAlerts
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/AlertAction'
+          - type: 'null'
+          title: Action
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
       responses:
         '200':
           description: Successful Response
@@ -959,14 +999,79 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-        '501':
-          description: Контракт зафиксирован, реализация на следующем этапе
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/alerts/analytics:
+    get:
+      tags:
+      - alerts
+      summary: 'Метрики уведомлений: нагрузка, причины подавления, полезность, отключения'
+      operationId: getAlertAnalytics
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertAnalyticsOut'
+        '401':
+          description: Нужна авторизация
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
       security:
       - HTTPBearer: []
+  /api/v1/alerts/{alert_id}:
+    patch:
+      tags:
+      - alerts
+      summary: 'Отзыв о предупреждении: полезно, не актуально или отключить этот тип (23.4)'
+      operationId: sendAlertFeedback
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Alert Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertFeedback'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/connectors/bank-mock/sync:
     post:
       tags:
@@ -1209,6 +1314,66 @@ components:
       - suppress
       title: AlertAction
       description: Решение Alert Policy Engine (раздел 7.7).
+    AlertAnalyticsOut:
+      properties:
+        total_decisions:
+          type: integer
+          title: Total Decisions
+        by_action:
+          additionalProperties:
+            type: integer
+          type: object
+          title: By Action
+        by_reason:
+          additionalProperties:
+            type: integer
+          type: object
+          title: By Reason
+        feedback:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Feedback
+        useful_share:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Useful Share
+          description: Доля «полезно» среди отзывов
+        disable_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Disable Rate
+          description: Доля отключений среди отзывов
+        sent_last_7_days:
+          type: integer
+          title: Sent Last 7 Days
+      type: object
+      required:
+      - total_decisions
+      - by_action
+      - by_reason
+      - feedback
+      - useful_share
+      - disable_rate
+      - sent_last_7_days
+      title: AlertAnalyticsOut
+      description: 'Метрики уведомлений (раздел 4.4): нагрузка, причины подавления, полезность.'
+    AlertFeedback:
+      properties:
+        feedback:
+          type: string
+          enum:
+          - useful
+          - not_relevant
+          - disable_type
+          title: Feedback
+      type: object
+      required:
+      - feedback
+      title: AlertFeedback
+      description: 'Кнопки из 23.4: «полезно», «не актуально», «отключить этот тип».'
     AlertOut:
       properties:
         id:
@@ -1216,11 +1381,23 @@ components:
           title: Id
         action:
           $ref: '#/components/schemas/AlertAction'
+          description: send — показано; defer — отложено; suppress — подавлено
         priority:
           $ref: '#/components/schemas/Priority'
         reason:
           type: string
           title: Reason
+          description: Код причины решения
+        reason_text:
+          type: string
+          title: Reason Text
+          description: Причина простыми словами
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+          description: Текст предупреждения по шаблону 11.4
         risk_date:
           anyOf:
           - type: string
@@ -1241,6 +1418,11 @@ components:
           - type: string
           - type: 'null'
           title: Forecast Id
+        feedback:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Feedback
         created_at:
           type: string
           format: date-time
@@ -1251,9 +1433,12 @@ components:
       - action
       - priority
       - reason
+      - reason_text
+      - message
       - risk_date
       - shortfall_minor
       - forecast_id
+      - feedback
       - created_at
       title: AlertOut
     AlertsOut:

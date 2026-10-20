@@ -289,10 +289,8 @@ def test_notification_settings_patch(client: TestClient) -> None:
 
 def test_planned_endpoints_answer_501_with_stage(client: TestClient) -> None:
     headers = _auth(_session(client))
-    response = client.get("/api/v1/alerts", headers=headers)
+    response = client.post("/api/v1/connectors/bank-mock/sync", headers=headers, json={})
     assert response.status_code == 501
     error = response.json()["error"]
     assert error["code"] == "not_implemented"
-    assert "этап 4" in error["details"]["planned_stage"]
-    bank = client.post("/api/v1/connectors/bank-mock/sync", headers=headers, json={})
-    assert bank.status_code == 501
+    assert "этап 5" in error["details"]["planned_stage"]

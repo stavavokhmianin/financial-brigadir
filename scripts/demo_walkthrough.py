@@ -156,8 +156,17 @@ class Demo:
         self.expect(delayed["min_balance_delta_minor"] < 0, "задержка зарплаты снижает минимум")
         self.expect(delayed["risk_level_after"] == "high", "задержка на 2 дня — «риск нехватки»")
 
-        self.say("5", "Предупреждения и подавление повторов, демо-режим банковского API.")
-        print("      Этап 4–5 по плану 16.2: API отвечает 501 с указанием этапа (контракт готов).")
+        self.say("5", "Полезное предупреждение и подавление повторного сообщения.")
+        alerts = call("GET", "/api/v1/alerts", None, token)["items"]
+        sent = [a for a in alerts if a["action"] == "send"]
+        if sent:
+            print(f"      Предупреждение: {sent[0]['message']}")
+        call("POST", "/api/v1/forecasts", {}, token)
+        latest = call("GET", "/api/v1/alerts", None, token)["items"][0]
+        print(f"      Повторный расчёт: {latest['reason_text']}.")
+        print("      Демо-режим банковского API — этап 5 (контракт в OpenAPI).")
+        self.expect(len(sent) == 1, "показано одно предупреждение")
+        self.expect(latest["reason"] == "repeat_without_change", "повтор без изменений подавлен")
 
         self.say("6", "Код, тесты, отчёт сравнения с baseline, бизнес-модель с допущениями.")
         safe = forecast["safe_to_spend"]

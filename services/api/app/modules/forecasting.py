@@ -26,6 +26,7 @@ from app.db.models import (
 )
 from app.domain.enums import ObligationStatus
 from app.domain.ids import new_id
+from app.modules.alerts import evaluate as evaluate_alert
 from app.modules.explain import explain, explain_comparison, notes
 from app.modules.quality import data_quality
 from app.schemas.forecasts import (
@@ -391,9 +392,11 @@ def create_forecast(
             return ForecastOut.model_validate(existing.result), False
     prepared = prepare_snapshot(db, user, request)
     events = [request.scenario] if request.scenario else []
-    _, output = _store(
-        db, user, prepared, run_monte_carlo(prepared.snapshot), events, idempotency_key
-    )
+    result = run_monte_carlo(prepared.snapshot)
+    run, output = _store(db, user, prepared, result, events, idempotency_key)
+    if not events:
+        # Сценарии «что если» не порождают предупреждений — только реальный прогноз.
+        evaluate_alert(db, user, run.id, result, prepared.data_as_of, prepared.stale)
     db.commit()
     return output, True
 

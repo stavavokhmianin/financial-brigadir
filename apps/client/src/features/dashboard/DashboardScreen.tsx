@@ -240,6 +240,11 @@ export function DashboardScreen() {
 
       <Button label={ru.dashboard.calendar} onPress={() => router.push("/calendar")} />
       <Button
+        label={ru.dashboard.alerts}
+        variant="secondary"
+        onPress={() => router.push("/alerts")}
+      />
+      <Button
         label={ru.dashboard.add}
         variant="secondary"
         onPress={() => router.push("/add")}

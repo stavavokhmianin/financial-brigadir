@@ -3,9 +3,22 @@ from fastapi import APIRouter, status
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import APIError, error_responses
 from app.db.models import AuditEvent, NotificationSettings
-from app.schemas.planned import NotificationSettingsOut, NotificationSettingsPatch
+from app.modules.alerts import get_settings
+from app.schemas.alerts import NotificationSettingsOut, NotificationSettingsPatch
 
 router = APIRouter(prefix="/notification-settings", tags=["alerts"])
+
+
+@router.get(
+    "",
+    operation_id="getNotificationSettings",
+    summary="Текущие настройки уведомлений",
+    responses=error_responses(401),
+)
+def read_settings(user: CurrentUser, db: DbSession) -> NotificationSettingsOut:
+    settings = get_settings(db, user)
+    db.commit()
+    return NotificationSettingsOut.model_validate(settings)
 
 
 @router.patch(

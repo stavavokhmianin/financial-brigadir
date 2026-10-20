@@ -374,6 +374,8 @@ class Alert(Base):
     shortfall_minor: Mapped[int | None] = mapped_column(BigInteger)
     delivery_status: Mapped[str] = mapped_column(String(32), default="pending")
     feedback: Mapped[str | None] = mapped_column(String(32))
+    # Текст по шаблону 11.4 (тезис, дата, причина, действие, ограничение модели).
+    message: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

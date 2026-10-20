@@ -24,6 +24,9 @@ export type ForecastRequest = Schemas["ForecastRequest"];
 export type ScenarioRequest = Schemas["ScenarioRequest"];
 export type ScenarioResult = Schemas["ScenarioOut"];
 export type DuplicatePair = Schemas["DuplicatePair"];
+export type AlertItem = Schemas["AlertOut"];
+export type AlertAnalytics = Schemas["AlertAnalyticsOut"];
+export type NotificationSettings = Schemas["NotificationSettingsOut"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -148,6 +151,32 @@ export const api = {
       `/api/v1/transactions/${encodeURIComponent(id)}/duplicate-resolution`,
       { method: "POST", token, body: { decision } },
     ),
+
+  listAlerts: (token: string) => request<Schemas["AlertsOut"]>("/api/v1/alerts", { token }),
+
+  getAlertAnalytics: (token: string) =>
+    request<AlertAnalytics>("/api/v1/alerts/analytics", { token }),
+
+  sendAlertFeedback: (
+    token: string,
+    id: string,
+    feedback: "useful" | "not_relevant" | "disable_type",
+  ) =>
+    request<AlertItem>(`/api/v1/alerts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      token,
+      body: { feedback },
+    }),
+
+  getNotificationSettings: (token: string) =>
+    request<NotificationSettings>("/api/v1/notification-settings", { token }),
+
+  updateNotificationSettings: (token: string, body: Schemas["NotificationSettingsPatch"]) =>
+    request<NotificationSettings>("/api/v1/notification-settings", {
+      method: "PATCH",
+      token,
+      body,
+    }),
 
   importCsv: (token: string, input: CsvImportInput) => {
     // Текст отправляется полем content: так одинаково работает web, Android и iOS
