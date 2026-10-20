@@ -10,24 +10,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.domain.enums import AlertAction, NotificationMode, Priority
-from app.schemas.common import APIModel, Minor, NonNegativeMinor
-from app.schemas.forecasts import ForecastOut, ScenarioEvent
-
-# --- Сравнение сценариев (этап 3) ---
-
-
-class ScenarioRequest(APIModel):
-    base_forecast_id: str
-    events: list[ScenarioEvent] = Field(min_length=1, max_length=10)
-
-
-class ScenarioOut(APIModel):
-    scenario_id: str
-    base: ForecastOut
-    result: ForecastOut
-    delta_risk: float | None
-    min_balance_delta_minor: Minor
-
+from app.schemas.common import APIModel, NonNegativeMinor
 
 # --- Уведомления ---
 

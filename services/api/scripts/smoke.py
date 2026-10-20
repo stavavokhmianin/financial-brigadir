@@ -51,6 +51,19 @@ def main(base: str) -> int:
     purchase = {"scenario": {"type": "expense", "amount_minor": 1_200_000, "date": "2026-10-20"}}
     with_purchase = call(base, "POST", "/api/v1/forecasts", purchase, token=token)
     check(with_purchase["risk_level"] == "high", "покупка 12 000 ₽ повышает риск")
+
+    scenario = call(
+        base,
+        "POST",
+        "/api/v1/scenarios",
+        {"base_forecast_id": forecast["forecast_id"], "events": [purchase["scenario"]]},
+        token=token,
+    )
+    check(
+        scenario["worsened"] and scenario["min_balance_delta_minor"] == -1_200_000,
+        "сравнение до/после: минимум ниже на 12 000 ₽",
+    )
+    check(forecast["safe_to_spend"]["available"], "безопасная сумма покупки рассчитана")
     return 0
 
 

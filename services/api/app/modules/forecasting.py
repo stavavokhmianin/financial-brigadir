@@ -15,16 +15,18 @@ from sqlalchemy.orm import Session
 
 from app.db.models import (
     Account,
+    AuditEvent,
     ForecastPoint,
     ForecastRun,
     IncomeEvent,
     Obligation,
+    Scenario,
     Transaction,
     User,
 )
 from app.domain.enums import ObligationStatus
 from app.domain.ids import new_id
-from app.modules.explain import explain, notes
+from app.modules.explain import explain, explain_comparison, notes
 from app.modules.quality import data_quality
 from app.schemas.forecasts import (
     ForecastOut,
@@ -33,7 +35,10 @@ from app.schemas.forecasts import (
     ForecastRequest,
     RiskDriverOut,
     RiskOut,
+    SafeSpendOut,
     ScenarioEvent,
+    ScenarioOut,
+    ScenarioRequest,
     SpendingModelOut,
 )
 from forecast_core import (
@@ -45,6 +50,7 @@ from forecast_core import (
     snapshot_fingerprint,
 )
 from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
+from forecast_core.scenarios import compare, safe_to_spend
 from forecast_core.types import IncomeShift, ScenarioExpense
 
 DEFAULT_RESERVE_MINOR = 500_000
@@ -72,7 +78,15 @@ def _as_of(db: Session, user: User) -> tuple[datetime, datetime, bool]:
     return as_of, data_as_of, quality.stale
 
 
-def prepare_snapshot(db: Session, user: User, request: ForecastRequest) -> PreparedSnapshot:
+def prepare_snapshot(
+    db: Session,
+    user: User,
+    request: ForecastRequest,
+    events: list[ScenarioEvent] | None = None,
+) -> PreparedSnapshot:
+    """Снимок на текущие данные. ``events`` по умолчанию — сценарий из запроса."""
+    if events is None:
+        events = [request.scenario] if request.scenario else []
     as_of, data_as_of, stale = _as_of(db, user)
     query = select(Account).where(Account.user_id == user.id, Account.archived.is_(False))
     accounts = list(db.scalars(query))
@@ -115,20 +129,19 @@ def prepare_snapshot(db: Session, user: User, request: ForecastRequest) -> Prepa
     if reserve is None:
         reserve = int(user.risk_preferences.get("reserve_minor", DEFAULT_RESERVE_MINOR))
 
-    extra: tuple[ScenarioExpense, ...] = ()
-    shifts: tuple[IncomeShift, ...] = ()
-    scenario = request.scenario
-    if scenario is not None and scenario.type == "expense" and scenario.amount_minor:
-        today = as_of.astimezone(ZoneInfo(user.timezone)).date()
-        extra = (
-            ScenarioExpense(
-                scenario.date or today, scenario.amount_minor, scenario.label or "Покупка"
-            ),
-        )
-    elif scenario is not None and scenario.type == "income_shift":
-        if scenario.target_id not in {i.id for i in incomes}:
-            raise ForecastInputError("income_not_found", "Доход для сдвига не найден")
-        shifts = (IncomeShift(scenario.target_id or "", scenario.shift_days or 0),)
+    extra: list[ScenarioExpense] = []
+    shifts: list[IncomeShift] = []
+    today = as_of.astimezone(ZoneInfo(user.timezone)).date()
+    income_ids = {i.id for i in incomes}
+    for event in events:
+        if event.type == "expense" and event.amount_minor:
+            extra.append(
+                ScenarioExpense(event.date or today, event.amount_minor, event.label or "Покупка")
+            )
+        elif event.type == "income_shift":
+            if event.target_id not in income_ids:
+                raise ForecastInputError("income_not_found", "Доход для сдвига не найден")
+            shifts.append(IncomeShift(event.target_id or "", event.shift_days or 0))
 
     snapshot = ForecastInputSnapshot(
         as_of=as_of,
@@ -195,8 +208,8 @@ def prepare_snapshot(db: Session, user: User, request: ForecastRequest) -> Prepa
             for t in history
         ),
         coverage=data_quality(db, user).coverage,
-        extra_expenses=extra,
-        income_shifts=shifts,
+        extra_expenses=tuple(extra),
+        income_shifts=tuple(shifts),
     )
     return PreparedSnapshot(snapshot, data_as_of, stale)
 
@@ -236,6 +249,7 @@ def build_output(
     scenario: ScenarioEvent | None,
 ) -> ForecastOut:
     snapshot = prepared.snapshot
+    safe = safe_to_spend(result)
     flags = list(result.flags)
     if prepared.stale:
         flags.append("stale_data")
@@ -293,6 +307,12 @@ def build_output(
             excluded_large=result.spending.excluded_large,
         ),
         scenario=scenario,
+        safe_to_spend=SafeSpendOut(
+            date=safe.day,
+            base_minor=safe.base_minor,
+            conservative_minor=safe.conservative_minor,
+            available=safe.available and not prepared.stale,
+        ),
         points=[
             ForecastPointOut(
                 day=p.day,
@@ -310,23 +330,17 @@ def build_output(
     )
 
 
-def create_forecast(
-    db: Session, user: User, request: ForecastRequest, idempotency_key: str | None
-) -> tuple[ForecastOut, bool]:
-    """Возвращает ``(прогноз, создан_ли_новый)``. Повтор ключа отдаёт сохранённый расчёт."""
-    if idempotency_key:
-        existing = db.scalar(
-            select(ForecastRun).where(
-                ForecastRun.user_id == user.id, ForecastRun.idempotency_key == idempotency_key
-            )
-        )
-        if existing is not None and existing.result is not None:
-            return ForecastOut.model_validate(existing.result), False
-    prepared = prepare_snapshot(db, user, request)
-    result = run_baseline(prepared.snapshot)
+def _store(
+    db: Session,
+    user: User,
+    prepared: PreparedSnapshot,
+    result: ForecastResult,
+    events: list[ScenarioEvent],
+    idempotency_key: str | None = None,
+) -> tuple[ForecastRun, ForecastOut]:
     run_id = new_id("fc")
     created_at = datetime.now(UTC)
-    output = build_output(run_id, created_at, prepared, result, request.scenario)
+    output = build_output(run_id, created_at, prepared, result, events[0] if events else None)
     run = ForecastRun(
         id=run_id,
         user_id=user.id,
@@ -338,7 +352,7 @@ def create_forecast(
         input_snapshot=_compact_input(prepared.snapshot),
         input_fingerprint=snapshot_fingerprint(prepared.snapshot),
         quality_flags={"flags": output.quality.flags, "confidence": output.quality.confidence},
-        scenario=request.scenario.model_dump(mode="json") if request.scenario else None,
+        scenario={"events": [e.model_dump(mode="json") for e in events]} if events else None,
         result=output.model_dump(mode="json"),
         idempotency_key=idempotency_key,
         created_at=created_at,
@@ -356,8 +370,98 @@ def create_forecast(
         )
         for p in result.points
     )
+    return run, output
+
+
+def create_forecast(
+    db: Session, user: User, request: ForecastRequest, idempotency_key: str | None
+) -> tuple[ForecastOut, bool]:
+    """Возвращает ``(прогноз, создан_ли_новый)``. Повтор ключа отдаёт сохранённый расчёт."""
+    if idempotency_key:
+        existing = db.scalar(
+            select(ForecastRun).where(
+                ForecastRun.user_id == user.id, ForecastRun.idempotency_key == idempotency_key
+            )
+        )
+        if existing is not None and existing.result is not None:
+            return ForecastOut.model_validate(existing.result), False
+    prepared = prepare_snapshot(db, user, request)
+    events = [request.scenario] if request.scenario else []
+    _, output = _store(db, user, prepared, run_baseline(prepared.snapshot), events, idempotency_key)
     db.commit()
     return output, True
+
+
+def create_scenario(db: Session, user: User, request: ScenarioRequest) -> ScenarioOut:
+    """Сравнение «до/после» на текущих данных с параметрами базового расчёта (раздел 11.3)."""
+    base_run = db.scalar(
+        select(ForecastRun).where(
+            ForecastRun.id == request.base_forecast_id, ForecastRun.user_id == user.id
+        )
+    )
+    if base_run is None or base_run.result is None:
+        raise ForecastInputError("forecast_not_found", "Базовый прогноз не найден")
+    params = ForecastRequest(
+        horizon_days=base_run.horizon_days, reserve_minor=base_run.reserve_minor
+    )
+    base_prepared = prepare_snapshot(db, user, params, events=[])
+    scenario_prepared = prepare_snapshot(db, user, params, events=request.events)
+    base_result = run_baseline(base_prepared.snapshot)
+    scenario_result = run_baseline(scenario_prepared.snapshot)
+
+    recomputed = snapshot_fingerprint(base_prepared.snapshot) != base_run.input_fingerprint
+    if recomputed or base_run.scenario:
+        base_run, base_output = _store(db, user, base_prepared, base_result, [])
+    else:
+        base_output = ForecastOut.model_validate(base_run.result)
+    result_run, result_output = _store(db, user, scenario_prepared, scenario_result, request.events)
+
+    comparison = compare(base_result, scenario_result)
+    first_expense = next((e for e in request.events if e.type == "expense"), None)
+    safe_day = first_expense.date if first_expense and first_expense.date else None
+    safe = safe_to_spend(base_result, safe_day)
+    scenario_id = new_id("scn")
+    created_at = datetime.now(UTC)
+    db.add(
+        Scenario(
+            id=scenario_id,
+            user_id=user.id,
+            base_run_id=base_run.id,
+            delta_events=[e.model_dump(mode="json") for e in request.events],
+            result_run_id=result_run.id,
+            created_at=created_at,
+        )
+    )
+    db.add(
+        AuditEvent(
+            user_id=user.id,
+            action="scenario_calculated",
+            object_type="scenario",
+            object_id=scenario_id,
+            meta={"events": [e.type for e in request.events]},
+        )
+    )
+    db.commit()
+    return ScenarioOut(
+        scenario_id=scenario_id,
+        created_at=created_at,
+        base=base_output,
+        result=result_output,
+        delta_risk=None,
+        min_balance_delta_minor=comparison.min_balance_delta_minor,
+        pessimistic_min_delta_minor=comparison.pessimistic_min_delta_minor,
+        risk_level_before=comparison.risk_level_before,
+        risk_level_after=comparison.risk_level_after,
+        risk_date_before=comparison.risk_date_before,
+        risk_date_after=comparison.risk_date_after,
+        days_below_reserve_before=comparison.days_below_reserve_before,
+        days_below_reserve_after=comparison.days_below_reserve_after,
+        worsened=comparison.worsened,
+        base_recomputed=recomputed,
+        explanation=explain_comparison(
+            comparison, base_result, scenario_result, request.events, safe
+        ),
+    )
 
 
 def load_forecast(db: Session, user: User, forecast_id: str) -> ForecastOut | None:

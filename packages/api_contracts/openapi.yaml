@@ -826,7 +826,7 @@ paths:
     post:
       tags:
       - forecasts
-      summary: What-if без изменения истории
+      summary: 'What-if: сравнение «до/после» без изменения истории (покупка, сдвиг дохода)'
       operationId: createScenario
       requestBody:
         content:
@@ -855,12 +855,6 @@ paths:
                 $ref: '#/components/schemas/ErrorOut'
         '404':
           description: Объект не найден
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorOut'
-        '501':
-          description: Контракт зафиксирован, реализация на следующем этапе
           content:
             application/json:
               schema:
@@ -1552,6 +1546,8 @@ components:
           anyOf:
           - $ref: '#/components/schemas/ScenarioEvent'
           - type: 'null'
+        safe_to_spend:
+          $ref: '#/components/schemas/SafeSpendOut'
         points:
           items:
             $ref: '#/components/schemas/ForecastPointOut'
@@ -1576,6 +1572,7 @@ components:
       - risk
       - spending
       - scenario
+      - safe_to_spend
       - points
       title: ForecastOut
     ForecastPointOut:
@@ -2637,6 +2634,40 @@ components:
       - explanation
       - drivers
       title: RiskOut
+    SafeSpendOut:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        base_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Base Minor
+          description: Не опускает базовый сценарий ниже резерва
+          examples:
+          - 500000
+        conservative_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Conservative Minor
+          description: Не опускает ниже резерва даже пессимистичный сценарий
+          examples:
+          - 500000
+        available:
+          type: boolean
+          title: Available
+          description: false — данных недостаточно, сумму не показываем
+      type: object
+      required:
+      - date
+      - base_minor
+      - conservative_minor
+      - available
+      title: SafeSpendOut
+      description: Сумма условно безопасной покупки в день ``date`` (раздел 9.4) — диапазон, а не точка.
     ScenarioEvent:
       properties:
         type:
@@ -2692,6 +2723,10 @@ components:
         scenario_id:
           type: string
           title: Scenario Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
         base:
           $ref: '#/components/schemas/ForecastOut'
         result:
@@ -2701,6 +2736,7 @@ components:
           - type: number
           - type: 'null'
           title: Delta Risk
+          description: null до калибровки вероятностей
         min_balance_delta_minor:
           type: integer
           maximum: 9.223372036854776e+18
@@ -2708,14 +2744,75 @@ components:
           title: Min Balance Delta Minor
           examples:
           - 1200000
+        pessimistic_min_delta_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Pessimistic Min Delta Minor
+          examples:
+          - 1200000
+        risk_level_before:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Risk Level Before
+        risk_level_after:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Risk Level After
+        risk_date_before:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Risk Date Before
+        risk_date_after:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Risk Date After
+        days_below_reserve_before:
+          type: integer
+          title: Days Below Reserve Before
+        days_below_reserve_after:
+          type: integer
+          title: Days Below Reserve After
+        worsened:
+          type: boolean
+          title: Worsened
+        base_recomputed:
+          type: boolean
+          title: Base Recomputed
+          description: Данные изменились после базового расчёта — база пересчитана
+        explanation:
+          type: string
+          title: Explanation
       type: object
       required:
       - scenario_id
+      - created_at
       - base
       - result
       - delta_risk
       - min_balance_delta_minor
+      - pessimistic_min_delta_minor
+      - risk_level_before
+      - risk_level_after
+      - risk_date_before
+      - risk_date_after
+      - days_below_reserve_before
+      - days_below_reserve_after
+      - worsened
+      - base_recomputed
+      - explanation
       title: ScenarioOut
+      description: 'Сравнение «до/после» (раздел 11.3): исходные операции не меняются.'
     ScenarioRequest:
       properties:
         base_forecast_id:

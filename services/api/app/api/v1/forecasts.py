@@ -4,10 +4,15 @@ from fastapi import APIRouter, Header, Response, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import APIError, error_responses, not_found
-from app.modules.forecasting import ForecastInputError, create_forecast, load_forecast
-from app.schemas.forecasts import ForecastOut, ForecastRequest
+from app.modules.forecasting import (
+    ForecastInputError,
+    create_forecast,
+    create_scenario,
+    load_forecast,
+)
+from app.schemas.forecasts import ForecastOut, ForecastRequest, ScenarioOut, ScenarioRequest
 
-router = APIRouter(prefix="/forecasts", tags=["forecasts"])
+router = APIRouter(tags=["forecasts"])
 
 IdempotencyKey = Annotated[
     str | None,
@@ -20,7 +25,7 @@ IdempotencyKey = Annotated[
 
 
 @router.post(
-    "",
+    "/forecasts",
     operation_id="createForecast",
     summary="Прогноз остатка по дням из зафиксированного снимка (уровни 0–1, раздел 23.1)",
     status_code=status.HTTP_201_CREATED,
@@ -46,7 +51,7 @@ def post_forecast(
 
 
 @router.get(
-    "/{forecast_id}",
+    "/forecasts/{forecast_id}",
     operation_id="getForecast",
     summary="Сохранённый расчёт: траектория, риск, качество данных, версия модели",
     responses=error_responses(401, 404),
@@ -56,3 +61,17 @@ def get_forecast(forecast_id: str, user: CurrentUser, db: DbSession) -> Forecast
     if output is None:
         raise not_found("Прогноз")
     return output
+
+
+@router.post(
+    "/scenarios",
+    operation_id="createScenario",
+    summary="What-if: сравнение «до/после» без изменения истории (покупка, сдвиг дохода)",
+    status_code=status.HTTP_201_CREATED,
+    responses=error_responses(400, 401, 404),
+)
+def post_scenario(body: ScenarioRequest, user: CurrentUser, db: DbSession) -> ScenarioOut:
+    try:
+        return create_scenario(db, user, body)
+    except ForecastInputError as exc:
+        raise APIError(status.HTTP_404_NOT_FOUND, exc.code, exc.message) from exc

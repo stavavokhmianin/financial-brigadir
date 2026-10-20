@@ -1,8 +1,11 @@
 """Explain API (раздел 7.8): объяснение риска детерминированными шаблонами, без LLM."""
 
+from collections.abc import Sequence
 from datetime import date, datetime
+from typing import Any
 
 from forecast_core.baseline import ForecastResult, RiskDriver
+from forecast_core.scenarios import SafeSpend, ScenarioComparison
 
 MONTHS = (
     "января", "февраля", "марта", "апреля", "мая", "июня",
@@ -25,7 +28,7 @@ FLAG_NOTES = {
 
 def rub(minor: int) -> str:
     sign = "−" if minor < 0 else ""
-    units = abs(minor) // 100
+    units = round(abs(minor) / 100)
     return f"{sign}{units:,}".replace(",", " ") + " ₽"
 
 
@@ -76,3 +79,46 @@ def explain(result: ForecastResult, data_as_of: datetime) -> str:
 
 def notes(flags: list[str]) -> list[str]:
     return [FLAG_NOTES[f] for f in flags if f in FLAG_NOTES]
+
+
+LEVEL_TEXT = {"low": "резерв сохраняется", "medium": "возможен риск", "high": "риск нехватки"}
+
+
+def _event_text(event: Any) -> str:
+    if event.type == "expense":
+        when = day_text(event.date) if event.date else "сегодня"
+        label = event.label or "покупку"
+        return f"{when} купить «{label}» за {rub(event.amount_minor or 0)}"
+    days = event.shift_days or 0
+    direction = "позже" if days > 0 else "раньше"
+    return f"доход придёт на {abs(days)} дн. {direction}"
+
+
+def explain_comparison(
+    comparison: ScenarioComparison,
+    base: ForecastResult,
+    scenario: ForecastResult,
+    events: Sequence[Any],
+    safe: SafeSpend,
+) -> str:
+    """«Что будет, если…» (раздел 11.3): изменение минимума, уровня и даты риска."""
+    what = " и ".join(_event_text(e) for e in events)
+    parts = [
+        f"Если {what}: минимум остатка {rub(base.min_p50_minor)} → {rub(scenario.min_p50_minor)}"
+        f", {LEVEL_TEXT[comparison.risk_level_before]} → {LEVEL_TEXT[comparison.risk_level_after]}."
+    ]
+    if comparison.risk_date_after and comparison.risk_date_after != comparison.risk_date_before:
+        parts.append(f"Резерв под угрозой с {day_text(comparison.risk_date_after)}.")
+    if safe.available:
+        careful = (
+            f"с запасом на плохой сценарий — до {rub(safe.conservative_minor)}"
+            if safe.conservative_minor > 0
+            else "в плохом сценарии лучше ничего не тратить"
+        )
+        parts.append(
+            f"Без риска для резерва {day_text(safe.day)} можно потратить до "
+            f"{rub(safe.base_minor)} ({careful})."
+        )
+    else:
+        parts.append("Данных недостаточно, чтобы назвать безопасную сумму.")
+    return " ".join(parts)

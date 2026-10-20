@@ -12,27 +12,12 @@ from app.schemas.planned import (
     AlertsOut,
     BankMockSyncOut,
     BankMockSyncRequest,
-    ScenarioOut,
-    ScenarioRequest,
 )
 
 router = APIRouter()
 
-STAGE_3 = "этап 3 (27 октября – 1 ноября)"
 STAGE_4 = "этап 4 (2–15 ноября)"
 STAGE_5 = "этап 5 (16–29 ноября)"
-
-
-@router.post(
-    "/scenarios",
-    tags=["forecasts"],
-    operation_id="createScenario",
-    summary="What-if без изменения истории",
-    status_code=201,
-    responses=error_responses(400, 401, 404, 501),
-)
-def create_scenario(body: ScenarioRequest, user: CurrentUser) -> ScenarioOut:
-    raise not_implemented(STAGE_3)
 
 
 @router.get(

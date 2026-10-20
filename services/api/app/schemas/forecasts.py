@@ -99,6 +99,17 @@ class SpendingModelOut(APIModel):
     excluded_large: int
 
 
+class SafeSpendOut(APIModel):
+    """Сумма условно безопасной покупки в день ``date`` (раздел 9.4) — диапазон, а не точка."""
+
+    date: dt.date
+    base_minor: NonNegativeMinor = Field(description="Не опускает базовый сценарий ниже резерва")
+    conservative_minor: NonNegativeMinor = Field(
+        description="Не опускает ниже резерва даже пессимистичный сценарий"
+    )
+    available: bool = Field(description="false — данных недостаточно, сумму не показываем")
+
+
 class ForecastOut(APIModel):
     forecast_id: str
     created_at: datetime
@@ -117,4 +128,33 @@ class ForecastOut(APIModel):
     risk: RiskOut
     spending: SpendingModelOut
     scenario: ScenarioEvent | None
+    safe_to_spend: SafeSpendOut
     points: list[ForecastPointOut]
+
+
+class ScenarioRequest(APIModel):
+    base_forecast_id: str
+    events: list[ScenarioEvent] = Field(min_length=1, max_length=10)
+
+
+class ScenarioOut(APIModel):
+    """Сравнение «до/после» (раздел 11.3): исходные операции не меняются."""
+
+    scenario_id: str
+    created_at: datetime
+    base: ForecastOut
+    result: ForecastOut
+    delta_risk: float | None = Field(description="null до калибровки вероятностей")
+    min_balance_delta_minor: Minor
+    pessimistic_min_delta_minor: Minor
+    risk_level_before: RiskLevel
+    risk_level_after: RiskLevel
+    risk_date_before: dt.date | None
+    risk_date_after: dt.date | None
+    days_below_reserve_before: int
+    days_below_reserve_after: int
+    worsened: bool
+    base_recomputed: bool = Field(
+        description="Данные изменились после базового расчёта — база пересчитана"
+    )
+    explanation: str
