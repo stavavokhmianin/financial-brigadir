@@ -147,6 +147,8 @@ class ImportBatch(Base):
     rows_rejected: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
+    source: Mapped[DataSource] = relationship()
+
 
 class Transaction(Base):
     """Нормализованное событие реестра (разделы 7.3, 8.2)."""

@@ -6,7 +6,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, Header, UploadFile
+from fastapi import APIRouter, Header
 
 from app.api.deps import CurrentUser
 from app.core.errors import error_responses, not_implemented
@@ -16,7 +16,6 @@ from app.schemas.planned import (
     BankMockSyncRequest,
     ForecastOut,
     ForecastRequest,
-    ImportResultOut,
     ScenarioOut,
     ScenarioRequest,
 )
@@ -36,24 +35,6 @@ IdempotencyKey = Annotated[
         description="Повтор запроса с тем же ключом вернёт тот же результат",
     ),
 ]
-
-
-@router.post(
-    "/imports/csv",
-    tags=["imports"],
-    operation_id="importCsv",
-    summary="Валидация, предпросмотр и импорт CSV; идемпотентно по fingerprint",
-    status_code=201,
-    responses=error_responses(400, 401, 413, 501),
-)
-def import_csv(
-    user: CurrentUser,
-    file: Annotated[UploadFile, File(description="CSV по поддерживаемому шаблону")],
-    account_id: Annotated[str, Form()],
-    mode: Annotated[str, Form(pattern="^(preview|import)$")] = "preview",
-    idempotency_key: IdempotencyKey = None,
-) -> ImportResultOut:
-    raise not_implemented(STAGE_2)
 
 
 @router.post(

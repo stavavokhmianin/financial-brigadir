@@ -295,12 +295,5 @@ def test_planned_endpoints_answer_501_with_stage(client: TestClient) -> None:
     assert error["code"] == "not_implemented"
     assert "этап 2" in error["details"]["planned_stage"]
     assert client.get("/api/v1/alerts", headers=headers).status_code == 501
-    upload = client.post(
-        "/api/v1/imports/csv",
-        headers=headers,
-        files={"file": ("x.csv", b"date,amount\n", "text/csv")},
-        data={"account_id": "acc_x"},
-    )
-    assert upload.status_code == 501
     invalid = client.post("/api/v1/forecasts", headers=headers, json={"horizon_days": 365})
     assert invalid.status_code == 422

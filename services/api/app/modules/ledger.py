@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import DataSource, Transaction, User
-from app.domain.enums import TxStatus, TxType
+from app.domain.enums import CategorySource, TxStatus, TxType
 from app.domain.ids import new_id
 
 
@@ -18,6 +18,7 @@ def ingest_transactions(
     source: DataSource,
     account_ids: dict[str, str],
     records: Iterable[dict[str, Any]],
+    import_batch_id: str | None = None,
 ) -> tuple[int, int]:
     """Добавляет операции; уже известные ``(account, source, external_id)`` пропускает.
 
@@ -49,6 +50,7 @@ def ingest_transactions(
             user_id=user.id,
             account_id=account_id,
             source_id=source.id,
+            import_batch_id=import_batch_id,
             external_id=record["external_id"],
             occurred_at=datetime.fromisoformat(record["occurred_at"]),
             booked_at=(
@@ -59,6 +61,7 @@ def ingest_transactions(
             type=TxType(record["type"]),
             status=TxStatus(record["status"]),
             category=record.get("category"),
+            category_source=CategorySource(record.get("category_source", "source")),
             description=record.get("description"),
             transfer_group_id=record.get("transfer_group_id"),
         )

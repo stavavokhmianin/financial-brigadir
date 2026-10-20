@@ -7,7 +7,7 @@ name = "forecast-core"
 version = "0.1.0"
 description = "Cashflow & Risk Engine: чистый Python, без FastAPI/ORM/UI"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["tzdata>=2024.1"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/forecast_core"]

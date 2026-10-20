@@ -11,6 +11,7 @@ export type Account = Schemas["AccountOut"];
 export type ObligationsResponse = Schemas["ObligationsOut"];
 export type ObligationOccurrence = Schemas["ObligationOccurrence"];
 export type DataQuality = Schemas["DataQuality"];
+export type ImportResult = Schemas["ImportResultOut"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -29,8 +30,10 @@ type Query = Record<string, string | number | boolean | undefined>;
 interface RequestOptions {
   method?: "GET" | "POST" | "PATCH";
   body?: unknown;
+  form?: FormData;
   token?: string;
   query?: Query;
+  headers?: Record<string, string>;
 }
 
 function buildUrl(path: string, query?: Query): string {
@@ -41,7 +44,7 @@ function buildUrl(path: string, query?: Query): string {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
 
@@ -50,7 +53,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     response = await fetch(buildUrl(path, options.query), {
       method: options.method ?? "GET",
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.form ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
     });
   } catch {
     throw new ApiError(0, "network", "Сервер недоступен. Проверьте, что API запущен.");
@@ -70,6 +73,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   throw new ApiError(response.status, "http_error", `Ошибка сервера (${response.status}).`);
 }
 
+export interface CsvImportInput {
+  accountId: string;
+  content: string;
+  mode: "preview" | "import";
+  idempotencyKey?: string;
+}
+
 export const api = {
   listDemoProfiles: () => request<DemoProfile[]>("/api/v1/demo/profiles"),
 
@@ -83,4 +93,19 @@ export const api = {
       token,
       query: { date_from: dateFrom, date_to: dateTo },
     }),
+
+  importCsv: (token: string, input: CsvImportInput) => {
+    // Текст отправляется полем content: так одинаково работает web, Android и iOS
+    // без выбора файла через нативный диалог.
+    const form = new FormData();
+    form.append("account_id", input.accountId);
+    form.append("mode", input.mode);
+    form.append("content", input.content);
+    return request<ImportResult>("/api/v1/imports/csv", {
+      method: "POST",
+      token,
+      form,
+      headers: input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : undefined,
+    });
+  },
 };

@@ -395,7 +395,7 @@ paths:
     post:
       tags:
       - imports
-      summary: Валидация, предпросмотр и импорт CSV; идемпотентно по fingerprint
+      summary: Предпросмотр и импорт CSV-выписки; идемпотентно по fingerprint и Idempotency-Key
       operationId: importCsv
       security:
       - HTTPBearer: []
@@ -424,6 +424,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImportResultOut'
+        '200':
+          description: Предпросмотр или повтор импорта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResultOut'
         '400':
           description: Некорректный запрос
           content:
@@ -436,14 +442,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-        '413':
-          description: Файл слишком большой
+        '404':
+          description: Объект не найден
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-        '501':
-          description: Контракт зафиксирован, реализация на следующем этапе
+        '409':
+          description: Конфликт с уже выполненным запросом
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '413':
+          description: Файл слишком большой
           content:
             application/json:
               schema:
@@ -936,22 +948,33 @@ components:
       title: BankMockSyncRequest
     Body_importCsv:
       properties:
-        file:
-          type: string
-          contentMediaType: application/octet-stream
-          title: File
-          description: CSV по поддерживаемому шаблону
         account_id:
           type: string
           title: Account Id
+          description: Счёт, к которому относится выписка
         mode:
           type: string
-          pattern: ^(preview|import)$
+          enum:
+          - preview
+          - import
           title: Mode
           default: preview
+        file:
+          anyOf:
+          - type: string
+            contentMediaType: application/octet-stream
+          - type: 'null'
+          title: File
+          description: CSV-файл до 2 МБ
+        content:
+          anyOf:
+          - type: string
+            maxLength: 2097152
+          - type: 'null'
+          title: Content
+          description: Текст CSV вместо файла
       type: object
       required:
-      - file
       - account_id
       title: Body_importCsv
     CategorySource:
@@ -1336,6 +1359,7 @@ components:
         row:
           type: integer
           title: Row
+          description: Номер строки файла (1 — заголовок)
         column:
           anyOf:
           - type: string
@@ -1357,14 +1381,24 @@ components:
     ImportResultOut:
       properties:
         import_id:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Import Id
+          description: null для предпросмотра
+        account_id:
+          type: string
+          title: Account Id
         status:
           $ref: '#/components/schemas/ImportStatus'
         fingerprint:
           type: string
           title: Fingerprint
           description: 'SHA-256 файла: повторная загрузка идемпотентна'
+        already_imported:
+          type: boolean
+          title: Already Imported
+          description: Этот файл или ключ уже импортирован раньше
         rows_total:
           type: integer
           title: Rows Total
@@ -1374,14 +1408,28 @@ components:
         rows_duplicate:
           type: integer
           title: Rows Duplicate
+          description: Строки, уже известные по external_id
         rows_rejected:
           type: integer
           title: Rows Rejected
+        period_from:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Period From
+        period_to:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Period To
         column_mapping:
           additionalProperties:
             type: string
           type: object
           title: Column Mapping
+          description: Поле → заголовок файла
         preview:
           items:
             additionalProperties:
@@ -1389,6 +1437,7 @@ components:
             type: object
           type: array
           title: Preview
+          description: Первые 10 нормализованных строк
         issues:
           items:
             $ref: '#/components/schemas/ImportIssue'
@@ -1397,12 +1446,16 @@ components:
       type: object
       required:
       - import_id
+      - account_id
       - status
       - fingerprint
+      - already_imported
       - rows_total
       - rows_imported
       - rows_duplicate
       - rows_rejected
+      - period_from
+      - period_to
       - column_mapping
       - preview
       - issues

@@ -187,6 +187,7 @@ export function DashboardScreen() {
         })}
       </Card>
 
+      <Button label={ru.dashboard.importCsv} onPress={() => router.push("/import")} />
       <Button label={ru.dashboard.switchProfile} onPress={switchProfile} variant="secondary" />
     </Screen>
   );

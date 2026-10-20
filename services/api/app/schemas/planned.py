@@ -10,31 +10,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.domain.enums import AlertAction, Coverage, ImportStatus, NotificationMode, Priority
+from app.domain.enums import AlertAction, Coverage, NotificationMode, Priority
 from app.schemas.common import APIModel, Minor, NonNegativeMinor, PositiveMinor
-
-# --- Импорт CSV (этап 2) ---
-
-
-class ImportIssue(APIModel):
-    row: int
-    column: str | None
-    code: str
-    message: str
-
-
-class ImportResultOut(APIModel):
-    import_id: str
-    status: ImportStatus
-    fingerprint: str = Field(description="SHA-256 файла: повторная загрузка идемпотентна")
-    rows_total: int
-    rows_imported: int
-    rows_duplicate: int
-    rows_rejected: int
-    column_mapping: dict[str, str]
-    preview: list[dict[str, str]]
-    issues: list[ImportIssue]
-
 
 # --- Прогноз и сценарии (этапы 2–3) ---
 
