@@ -16,6 +16,7 @@ export default function RootLayout() {
           <Stack.Screen name="import" options={{ title: ru.imports.screenTitle }} />
           <Stack.Screen name="add" options={{ title: ru.manual.screenTitle }} />
           <Stack.Screen name="calendar" options={{ title: ru.calendar.screenTitle }} />
+          <Stack.Screen name="forecast" options={{ title: ru.forecast.screenTitle }} />
         </Stack>
       </SessionProvider>
     </SafeAreaProvider>

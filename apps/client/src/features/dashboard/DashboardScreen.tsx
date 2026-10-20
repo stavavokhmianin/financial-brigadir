@@ -1,19 +1,28 @@
-import { Redirect, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { Redirect, useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
   api,
   ApiError,
   type AccountsResponse,
+  type Forecast,
   type ObligationsResponse,
 } from "@/shared/api/client";
-import { addDays, formatDay, formatMoment, formatRub, localDate } from "@/shared/format";
+import {
+  addDays,
+  formatDay,
+  formatMoment,
+  formatRub,
+  formatRubApprox,
+  localDate,
+} from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
 import { Badge, Button, Card, ErrorState, LoadingState, Muted, Screen } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
 
+import { RiskBanner } from "../forecast/ForecastScreen";
 import { describeAccount, upcoming } from "./logic";
 
 const WINDOW_DAYS = 30;
@@ -21,6 +30,7 @@ const WINDOW_DAYS = 30;
 interface DashboardData {
   accounts: AccountsResponse;
   obligations: ObligationsResponse;
+  forecast: Forecast | null;
   from: string;
   to: string;
 }
@@ -41,19 +51,24 @@ export function DashboardScreen() {
     try {
       const from = asOf ? localDate(asOf) : new Date().toISOString().slice(0, 10);
       const to = addDays(from, WINDOW_DAYS);
-      const [accounts, obligations] = await Promise.all([
+      const [accounts, obligations, forecast] = await Promise.all([
         api.listAccounts(token),
         api.listObligations(token, from, to),
+        // Прогноз не должен ломать главный экран: без него показываем остальные данные.
+        api.createForecast(token, {}).catch(() => null),
       ]);
-      setData({ accounts, obligations, from, to });
+      setData({ accounts, obligations, forecast, from, to });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
     }
   }, [token, asOf]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Перезагрузка при возврате на экран: данные могли измениться в календаре или импорте.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (!session) {
     return <Redirect href="/" />;
@@ -153,8 +168,19 @@ export function DashboardScreen() {
         )}
       </Card>
 
-      <Card title={ru.dashboard.forecastTitle}>
-        <Muted>{ru.dashboard.forecastSoon}</Muted>
+      <Card title={ru.forecast.dashboardTitle}>
+        {data.forecast ? (
+          <>
+            <RiskBanner forecast={data.forecast} />
+            <Muted>
+              {ru.forecast.minimum}: {formatRubApprox(data.forecast.risk.min_balance_minor)} ·{" "}
+              {formatDay(data.forecast.risk.min_balance_date, year)}
+            </Muted>
+            <Button label={ru.forecast.open} onPress={() => router.push("/forecast")} />
+          </>
+        ) : (
+          <Muted>{ru.forecast.error}</Muted>
+        )}
       </Card>
 
       <Card title={ru.dashboard.accountsTitle}>

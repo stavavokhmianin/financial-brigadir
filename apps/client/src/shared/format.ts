@@ -32,6 +32,11 @@ export function formatRub(minor: number): string {
   return `${sign}${grouped}${fraction}${NBSP}₽`;
 }
 
+/** Прогнозная сумма — оценка, поэтому без копеек: «≈ 6 530 ₽». */
+export function formatRubApprox(minor: number): string {
+  return formatRub(Math.round(minor / 100) * 100);
+}
+
 function parseIsoDate(iso: string): { year: number; month: number; day: number } {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!match) {

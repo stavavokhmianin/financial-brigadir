@@ -6,6 +6,7 @@ import {
   formatDay,
   formatMoment,
   formatRub,
+  formatRubApprox,
   localDate,
   plural,
 } from "../src/shared/format.ts";
@@ -18,6 +19,11 @@ test("formatRub: копейки → рубли с неразрывными пр�
   assert.equal(formatRub(7), `0,07${NBSP}₽`);
   assert.equal(formatRub(0), `0${NBSP}₽`);
   assert.equal(formatRub(123_456_789_00), `123${NBSP}456${NBSP}789${NBSP}₽`);
+});
+
+test("formatRubApprox: прогнозные суммы без копеек", () => {
+  assert.equal(formatRubApprox(652_965), `6${NBSP}530${NBSP}₽`);
+  assert.equal(formatRubApprox(-147_035), `−1${NBSP}470${NBSP}₽`);
 });
 
 test("formatRub: дробные значения отвергаются", () => {

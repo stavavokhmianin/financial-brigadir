@@ -84,6 +84,7 @@ export function Choice<T extends string>({ label, options, value, onChange }: Ch
             <Pressable
               key={option.value}
               accessibilityRole="radio"
+              accessibilityLabel={option.label}
               accessibilityState={{ checked: active }}
               onPress={() => onChange(option.value)}
               style={[

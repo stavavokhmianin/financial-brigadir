@@ -151,8 +151,11 @@ export function ImportScreen() {
               <View style={styles.lineMain}>
                 <Text style={{ color: palette.text }}>{row.description || row.category || "—"}</Text>
                 <Muted>
-                  {row.occurred_at ? formatMoment(row.occurred_at) : ""} · {row.type}
-                  {row.status !== "posted" ? ` · ${row.status}` : ""}
+                  {row.occurred_at ? formatMoment(row.occurred_at) : ""} ·{" "}
+                  {ru.txType[row.type as keyof typeof ru.txType] ?? row.type}
+                  {row.status !== "posted"
+                    ? ` · ${ru.txStatus[row.status as keyof typeof ru.txStatus] ?? row.status}`
+                    : ""}
                 </Muted>
               </View>
               <Text style={[styles.amount, { color: palette.text }]}>

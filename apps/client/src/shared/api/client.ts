@@ -19,6 +19,8 @@ export type AccountCreate = Schemas["AccountCreate"];
 export type IncomesResponse = Schemas["IncomesOut"];
 export type IncomeCreate = Schemas["IncomeCreate"];
 export type TransactionsPage = Schemas["TransactionsPage"];
+export type Forecast = Schemas["ForecastOut"];
+export type ForecastRequest = Schemas["ForecastRequest"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -128,6 +130,9 @@ export const api = {
 
   createIncome: (token: string, body: IncomeCreate) =>
     request<Schemas["IncomeOut"]>("/api/v1/incomes", { method: "POST", token, body }),
+
+  createForecast: (token: string, body: ForecastRequest) =>
+    request<Forecast>("/api/v1/forecasts", { method: "POST", token, body }),
 
   importCsv: (token: string, input: CsvImportInput) => {
     // Текст отправляется полем content: так одинаково работает web, Android и iOS
