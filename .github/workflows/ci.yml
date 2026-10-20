@@ -59,6 +59,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build:web
+      - name: Мобильные бандлы (Hermes) Android и iOS
+        run: npx expo export --platform android --output-dir dist-android && npx expo export --platform ios --output-dir dist-ios
 
   compose-smoke:
     name: Docker Compose — сборка и smoke-тест

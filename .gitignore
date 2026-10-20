@@ -23,6 +23,8 @@ build/
 node_modules/
 .expo/
 dist-web/
+dist-android/
+dist-ios/
 web-build/
 apps/client/src/shared/api/schema.d.ts
 *.tsbuildinfo
