@@ -24,6 +24,7 @@ from sqlalchemy import (
     String,
     Time,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -268,7 +269,15 @@ class IncomeEvent(Base):
     recurrence: Mapped[Recurrence] = mapped_column(
         str_enum(Recurrence, "recurrence"), default=Recurrence.NONE
     )
+    # Пользователь отметил, что поступления не будет; запись остаётся для истории.
+    canceled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    source: Mapped[DataSource | None] = relationship()
+
+    @property
+    def source_kind(self) -> str:
+        return self.source.kind.value if self.source is not None else DataSourceKind.MANUAL.value
 
 
 class ForecastRun(Base):

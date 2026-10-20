@@ -8,7 +8,7 @@
     "web": "expo start --web",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "gen:api": "openapi-typescript ../../packages/api_contracts/openapi.yaml -o src/shared/api/schema.d.ts",
+    "gen:api": "openapi-typescript ../../packages/api_contracts/openapi.yaml -o src/shared/api/schema.d.ts --default-non-nullable false",
     "postinstall": "npm run gen:api",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --no-warnings --test \"tests/**/*.test.ts\"",

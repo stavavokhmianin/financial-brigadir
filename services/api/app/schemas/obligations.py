@@ -1,6 +1,6 @@
 import datetime as dt
 from datetime import date, datetime
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
@@ -66,3 +66,16 @@ class ObligationCreate(APIModel):
         if self.recurrence_day is not None and self.recurrence != Recurrence.MONTHLY:
             raise ValueError("recurrence_day используется только для monthly")
         return self
+
+
+class ObligationPatch(APIModel):
+    """Подтверждение предполагаемого платежа, отмена или правка (раздел 7.4)."""
+
+    status: Literal["confirmed", "canceled"] | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    amount_minor: PositiveMinor | None = None
+    amount_min_minor: PositiveMinor | None = None
+    amount_max_minor: PositiveMinor | None = None
+    due_date: date | None = None
+    priority: Priority | None = None
+    movable: bool | None = None

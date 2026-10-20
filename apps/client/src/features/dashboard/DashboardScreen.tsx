@@ -187,7 +187,17 @@ export function DashboardScreen() {
         })}
       </Card>
 
-      <Button label={ru.dashboard.importCsv} onPress={() => router.push("/import")} />
+      <Button label={ru.dashboard.calendar} onPress={() => router.push("/calendar")} />
+      <Button
+        label={ru.dashboard.add}
+        variant="secondary"
+        onPress={() => router.push("/add")}
+      />
+      <Button
+        label={ru.dashboard.importCsv}
+        variant="secondary"
+        onPress={() => router.push("/import")}
+      />
       <Button label={ru.dashboard.switchProfile} onPress={switchProfile} variant="secondary" />
     </Screen>
   );

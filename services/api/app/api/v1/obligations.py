@@ -13,6 +13,7 @@ from app.schemas.obligations import (
     ObligationCreate,
     ObligationOccurrence,
     ObligationOut,
+    ObligationPatch,
     ObligationsOut,
 )
 from forecast_core.calendar import occurrences
@@ -109,6 +110,44 @@ def create_obligation(body: ObligationCreate, user: CurrentUser, db: DbSession) 
             action="obligation_created",
             object_type="obligation",
             object_id=obligation.id,
+        )
+    )
+    db.commit()
+    db.refresh(obligation)
+    return _out(obligation)
+
+
+@router.patch(
+    "/{obligation_id}",
+    operation_id="updateObligation",
+    summary="Подтвердить, отменить или поправить обязательство",
+    responses=error_responses(400, 401, 404),
+)
+def update_obligation(
+    obligation_id: str, body: ObligationPatch, user: CurrentUser, db: DbSession
+) -> ObligationOut:
+    obligation = db.scalar(
+        select(Obligation).where(Obligation.id == obligation_id, Obligation.user_id == user.id)
+    )
+    if obligation is None:
+        raise not_found("Обязательство")
+    changes = body.model_dump(exclude_unset=True, exclude_none=True)
+    for field, value in changes.items():
+        setattr(obligation, field, ObligationStatus(value) if field == "status" else value)
+    if obligation.status == ObligationStatus.CONFIRMED:
+        obligation.confidence = 1.0
+    low, high = obligation.amount_min_minor, obligation.amount_max_minor
+    if low is not None and high is not None and not low <= obligation.amount_minor <= high:
+        raise APIError(
+            status.HTTP_400_BAD_REQUEST, "bad_amounts", "Сумма должна лежать в диапазоне [min, max]"
+        )
+    db.add(
+        AuditEvent(
+            user_id=user.id,
+            action="obligation_updated",
+            object_type="obligation",
+            object_id=obligation.id,
+            meta={"fields": sorted(changes)},
         )
     )
     db.commit()

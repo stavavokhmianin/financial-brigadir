@@ -12,6 +12,13 @@ export type ObligationsResponse = Schemas["ObligationsOut"];
 export type ObligationOccurrence = Schemas["ObligationOccurrence"];
 export type DataQuality = Schemas["DataQuality"];
 export type ImportResult = Schemas["ImportResultOut"];
+export type Obligation = Schemas["ObligationOut"];
+export type ObligationCreate = Schemas["ObligationCreate"];
+export type ObligationPatch = Schemas["ObligationPatch"];
+export type AccountCreate = Schemas["AccountCreate"];
+export type IncomesResponse = Schemas["IncomesOut"];
+export type IncomeCreate = Schemas["IncomeCreate"];
+export type TransactionsPage = Schemas["TransactionsPage"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -93,6 +100,34 @@ export const api = {
       token,
       query: { date_from: dateFrom, date_to: dateTo },
     }),
+
+  listTransactions: (token: string, dateFrom: string, dateTo: string, limit = 200) =>
+    request<TransactionsPage>("/api/v1/transactions", {
+      token,
+      query: { date_from: dateFrom, date_to: dateTo, limit },
+    }),
+
+  createAccount: (token: string, body: AccountCreate) =>
+    request<Account>("/api/v1/accounts", { method: "POST", token, body }),
+
+  createObligation: (token: string, body: ObligationCreate) =>
+    request<Obligation>("/api/v1/obligations", { method: "POST", token, body }),
+
+  updateObligation: (token: string, id: string, body: ObligationPatch) =>
+    request<Obligation>(`/api/v1/obligations/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      token,
+      body,
+    }),
+
+  listIncomes: (token: string, dateFrom: string, dateTo: string) =>
+    request<IncomesResponse>("/api/v1/incomes", {
+      token,
+      query: { date_from: dateFrom, date_to: dateTo },
+    }),
+
+  createIncome: (token: string, body: IncomeCreate) =>
+    request<Schemas["IncomeOut"]>("/api/v1/incomes", { method: "POST", token, body }),
 
   importCsv: (token: string, input: CsvImportInput) => {
     // Текст отправляется полем content: так одинаково работает web, Android и iOS

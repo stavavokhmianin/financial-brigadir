@@ -156,6 +156,58 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
       security:
       - HTTPBearer: []
+  /api/v1/accounts/{account_id}:
+    patch:
+      tags:
+      - accounts
+      summary: Обновить остаток или название счёта вручную
+      operationId: updateAccount
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/transactions:
     get:
       tags:
@@ -352,6 +404,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/obligations/{obligation_id}:
+    patch:
+      tags:
+      - obligations
+      summary: Подтвердить, отменить или поправить обязательство
+      operationId: updateObligation
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: obligation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Obligation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObligationPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObligationOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/notification-settings:
     patch:
       tags:
@@ -456,6 +560,155 @@ paths:
                 $ref: '#/components/schemas/ErrorOut'
         '413':
           description: Файл слишком большой
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/incomes:
+    get:
+      tags:
+      - incomes
+      summary: Ожидаемые поступления и их календарь в окне дат
+      operationId: listIncomes
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      - name: include_canceled
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Canceled
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomesOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - incomes
+      summary: 'Ожидаемый доход вручную (US-01, US-05): дата или окно дат, сумма или диапазон'
+      operationId: createIncome
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncomeCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/incomes/{income_id}:
+    patch:
+      tags:
+      - incomes
+      summary: Подтвердить, сдвинуть, изменить или отменить ожидаемый доход
+      operationId: updateIncome
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: income_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Income Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncomePatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
           content:
             application/json:
               schema:
@@ -805,6 +1058,50 @@ components:
       - updated_at
       - source
       title: AccountOut
+    AccountPatch:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 120
+            minLength: 1
+          - type: 'null'
+          title: Name
+        available_balance_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: -9.223372036854776e+18
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Available Balance Minor
+        blocked_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Blocked Minor
+        credit_limit_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Credit Limit Minor
+        is_liquid:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Liquid
+      type: object
+      title: AccountPatch
+      description: 'Обновление остатка или названия вручную (FR-03): дата актуальности = сейчас.'
     AccountType:
       type: string
       enum:
@@ -1467,6 +1764,287 @@ components:
       - imported
       - rejected
       title: ImportStatus
+    IncomeCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Title
+        kind:
+          $ref: '#/components/schemas/IncomeKind'
+          default: salary
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Minor
+          description: Ожидаемая сумма
+          examples:
+          - 1200000
+        amount_min_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Min Minor
+          description: Если сумма плавает
+        amount_max_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Max Minor
+        date_from:
+          type: string
+          format: date
+          title: Date From
+        date_to:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+          description: По умолчанию равна date_from
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+          default: monthly
+        confirmed:
+          type: boolean
+          title: Confirmed
+          default: true
+        probability:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Probability
+          description: По умолчанию 1 для подтверждённого, 0.7 иначе
+        account_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Account Id
+      type: object
+      required:
+      - title
+      - amount_minor
+      - date_from
+      title: IncomeCreate
+    IncomeKind:
+      type: string
+      enum:
+      - salary
+      - advance
+      - freelance
+      - other
+      title: IncomeKind
+    IncomeOccurrence:
+      properties:
+        income_id:
+          type: string
+          title: Income Id
+        date_from:
+          type: string
+          format: date
+          title: Date From
+        date_to:
+          type: string
+          format: date
+          title: Date To
+        title:
+          type: string
+          title: Title
+        amount_min_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Min Minor
+          examples:
+          - 1200000
+        amount_max_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Max Minor
+          examples:
+          - 1200000
+        confirmed:
+          type: boolean
+          title: Confirmed
+        probability:
+          type: number
+          title: Probability
+      type: object
+      required:
+      - income_id
+      - date_from
+      - date_to
+      - title
+      - amount_min_minor
+      - amount_max_minor
+      - confirmed
+      - probability
+      title: IncomeOccurrence
+    IncomeOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        account_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Account Id
+        kind:
+          $ref: '#/components/schemas/IncomeKind'
+        title:
+          type: string
+          title: Title
+        date_from:
+          type: string
+          format: date
+          title: Date From
+          description: Самая ранняя ожидаемая дата поступления
+        date_to:
+          type: string
+          format: date
+          title: Date To
+          description: Самая поздняя дата (задержка зарплаты, US-05)
+        amount_min_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Min Minor
+          examples:
+          - 1200000
+        amount_max_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Max Minor
+          examples:
+          - 1200000
+        probability:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Probability
+        confirmed:
+          type: boolean
+          title: Confirmed
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+        canceled:
+          type: boolean
+          title: Canceled
+        source_kind:
+          type: string
+          title: Source Kind
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - account_id
+      - kind
+      - title
+      - date_from
+      - date_to
+      - amount_min_minor
+      - amount_max_minor
+      - probability
+      - confirmed
+      - recurrence
+      - canceled
+      - source_kind
+      - created_at
+      title: IncomeOut
+    IncomePatch:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 120
+            minLength: 1
+          - type: 'null'
+          title: Title
+        date_from:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+        date_to:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+        amount_min_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Min Minor
+        amount_max_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Max Minor
+        probability:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Probability
+        confirmed:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Confirmed
+        canceled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Canceled
+      type: object
+      title: IncomePatch
+    IncomesOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/IncomeOut'
+          type: array
+          title: Items
+        calendar:
+          items:
+            $ref: '#/components/schemas/IncomeOccurrence'
+          type: array
+          title: Calendar
+          description: Ожидаемые поступления в окне [date_from, date_to] с учётом повторяемости
+      type: object
+      required:
+      - items
+      - calendar
+      title: IncomesOut
     NotificationMode:
       type: string
       enum:
@@ -1743,6 +2321,68 @@ components:
       - source_kind
       - created_at
       title: ObligationOut
+    ObligationPatch:
+      properties:
+        status:
+          anyOf:
+          - type: string
+            enum:
+            - confirmed
+            - canceled
+          - type: 'null'
+          title: Status
+        title:
+          anyOf:
+          - type: string
+            maxLength: 120
+            minLength: 1
+          - type: 'null'
+          title: Title
+        amount_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Minor
+        amount_min_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Min Minor
+        amount_max_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            exclusiveMinimum: 0.0
+            examples:
+            - 1200000
+          - type: 'null'
+          title: Amount Max Minor
+        due_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due Date
+        priority:
+          anyOf:
+          - $ref: '#/components/schemas/Priority'
+          - type: 'null'
+        movable:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Movable
+      type: object
+      title: ObligationPatch
+      description: Подтверждение предполагаемого платежа, отмена или правка (раздел 7.4).
     ObligationStatus:
       type: string
       enum:

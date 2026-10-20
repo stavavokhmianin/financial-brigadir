@@ -59,3 +59,13 @@ class AccountCreate(APIModel):
         if self.type == AccountType.CREDIT_CARD and self.is_liquid:
             raise ValueError("кредитный лимит не является свободными средствами")
         return self
+
+
+class AccountPatch(APIModel):
+    """Обновление остатка или названия вручную (FR-03): дата актуальности = сейчас."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    available_balance_minor: Minor | None = None
+    blocked_minor: NonNegativeMinor | None = None
+    credit_limit_minor: NonNegativeMinor | None = None
+    is_liquid: bool | None = None

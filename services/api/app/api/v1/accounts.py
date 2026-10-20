@@ -5,12 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
-from app.core.errors import error_responses
+from app.core.errors import APIError, error_responses, not_found
 from app.db.models import Account, AuditEvent, DataSource, User
 from app.domain.enums import AccountType, DataSourceKind
 from app.domain.ids import new_id
 from app.modules.quality import data_quality
-from app.schemas.accounts import AccountCreate, AccountOut, AccountsOut
+from app.schemas.accounts import AccountCreate, AccountOut, AccountPatch, AccountsOut
 from forecast_core import AccountSnapshot, liquid_balance_minor
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
@@ -98,6 +98,49 @@ def create_account(body: AccountCreate, user: CurrentUser, db: DbSession) -> Acc
     db.add(
         AuditEvent(
             user_id=user.id, action="account_created", object_type="account", object_id=account.id
+        )
+    )
+    db.commit()
+    db.refresh(account)
+    return AccountOut.model_validate(account)
+
+
+@router.patch(
+    "/{account_id}",
+    operation_id="updateAccount",
+    summary="Обновить остаток или название счёта вручную",
+    responses=error_responses(400, 401, 404),
+)
+def update_account(
+    account_id: str, body: AccountPatch, user: CurrentUser, db: DbSession
+) -> AccountOut:
+    account = db.scalar(select(Account).where(Account.id == account_id, Account.user_id == user.id))
+    if account is None:
+        raise not_found("Счёт")
+    changes = body.model_dump(exclude_unset=True, exclude_none=True)
+    for field, value in changes.items():
+        setattr(account, field, value)
+    if account.type == AccountType.CREDIT_CARD and account.is_liquid:
+        raise APIError(
+            status.HTTP_400_BAD_REQUEST,
+            "credit_not_liquid",
+            "Кредитный лимит не является свободными средствами",
+        )
+    if account.type != AccountType.CREDIT_CARD and account.credit_limit_minor is not None:
+        raise APIError(
+            status.HTTP_400_BAD_REQUEST,
+            "limit_only_for_credit",
+            "credit_limit_minor допустим только для кредитной карты",
+        )
+    if "available_balance_minor" in changes or "blocked_minor" in changes:
+        account.updated_at = datetime.now(UTC)
+    db.add(
+        AuditEvent(
+            user_id=user.id,
+            action="account_updated",
+            object_type="account",
+            object_id=account.id,
+            meta={"fields": sorted(changes)},
         )
     )
     db.commit()
