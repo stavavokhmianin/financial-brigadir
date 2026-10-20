@@ -129,6 +129,22 @@ class Account(Base):
     source: Mapped[DataSource | None] = relationship()
 
 
+class BankConsent(Base):
+    """One explicit, scoped mock consent per profile; never a real bank token."""
+
+    __tablename__ = "bank_consents"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    id: Mapped[str] = mapped_column(ID, unique=True)
+    scopes: Mapped[list[str]] = mapped_column(JSON)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    source_id: Mapped[str | None] = mapped_column(ForeignKey("data_sources.id"))
+
+
 class ImportBatch(Base):
     """Версия импорта: повторная загрузка того же файла идемпотентна (7.2)."""
 

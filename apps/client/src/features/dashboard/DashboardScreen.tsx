@@ -39,7 +39,7 @@ interface DashboardData {
 export function DashboardScreen() {
   const router = useRouter();
   const palette = usePalette();
-  const { session, setSession } = useSession();
+  const { session } = useSession();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const token = session?.access_token;
@@ -253,6 +253,7 @@ export function DashboardScreen() {
         variant="secondary"
         onPress={() => router.push("/import")}
       />
+      <Button label="Учебный банк (мок)" onPress={() => router.push("/bank")} variant="secondary" />
       <Button label="Приватность, экспорт и выход" onPress={switchProfile} variant="secondary" />
     </Screen>
   );

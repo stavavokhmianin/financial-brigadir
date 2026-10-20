@@ -34,12 +34,15 @@ class SourceTransaction:
     currency: str
     status: str
     description: str | None
+    type: str = "expense"
+    category: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class SourcePage:
     items: tuple[SourceTransaction, ...]
     next_cursor: str | None
+    is_partial: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -11,6 +11,7 @@ from app.db.models import (
     Alert,
     AuditEvent,
     AuthSession,
+    BankConsent,
     DataSource,
     ForecastPoint,
     ForecastRun,
@@ -24,6 +25,7 @@ from app.db.models import (
 )
 
 EXPORT_MODELS = (
+    BankConsent,
     Account,
     DataSource,
     Transaction,
@@ -79,6 +81,7 @@ def erase_profile(db: Session, user: User) -> None:
         IncomeEvent,
         Account,
         ImportBatch,
+        BankConsent,
         DataSource,
         NotificationSettings,
         AuditEvent,

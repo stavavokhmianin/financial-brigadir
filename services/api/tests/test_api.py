@@ -287,10 +287,9 @@ def test_notification_settings_patch(client: TestClient) -> None:
 # --- контракты следующих этапов --------------------------------------------------
 
 
-def test_planned_endpoints_answer_501_with_stage(client: TestClient) -> None:
+def test_bank_mock_requires_explicit_consent(client: TestClient) -> None:
     headers = _auth(_session(client))
     response = client.post("/api/v1/connectors/bank-mock/sync", headers=headers, json={})
-    assert response.status_code == 501
+    assert response.status_code == 403
     error = response.json()["error"]
-    assert error["code"] == "not_implemented"
-    assert "этап 5" in error["details"]["planned_stage"]
+    assert error["code"] == "consent_required"

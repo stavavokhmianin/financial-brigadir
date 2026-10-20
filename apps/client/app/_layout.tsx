@@ -21,6 +21,7 @@ export default function RootLayout() {
           <Stack.Screen name="duplicates" options={{ title: ru.duplicates.screenTitle }} />
           <Stack.Screen name="alerts" options={{ title: ru.alerts.screenTitle }} />
           <Stack.Screen name="privacy" options={{ title: "Приватность и данные" }} />
+          <Stack.Screen name="bank" options={{ title: "Учебный банк" }} />
         </Stack>
       </SessionProvider>
     </SafeAreaProvider>

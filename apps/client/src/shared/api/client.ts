@@ -96,6 +96,14 @@ export interface CsvImportInput {
 }
 
 export const api = {
+  bankConsent: (token: string) => request<Schemas["BankConsentOut"] | null>("/api/v1/connectors/bank-mock/consent", { token }),
+  grantBankConsent: (token: string) => request<Schemas["BankConsentOut"]>("/api/v1/connectors/bank-mock/consent", {
+    token, method: "POST", body: { accepted: true, scopes: ["accounts", "balances", "transactions"], ttl_hours: 24 },
+  }),
+  revokeBankConsent: (token: string) => request<void>("/api/v1/connectors/bank-mock/consent", { token, method: "DELETE" }),
+  syncBank: (token: string, scenario: Schemas["BankMockSyncRequest"]["scenario"]) => request<Schemas["BankMockSyncOut"]>("/api/v1/connectors/bank-mock/sync", {
+    token, method: "POST", body: { scenario },
+  }),
   exportProfile: (token: string) => request<Record<string, unknown>>("/api/v1/privacy/export", { token }),
   logout: (token: string) => request<void>("/api/v1/privacy/logout", { token, method: "POST" }),
   deleteProfile: (token: string) => request<void>("/api/v1/privacy/profile", {

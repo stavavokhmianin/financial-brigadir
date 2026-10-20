@@ -1072,11 +1072,83 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/connectors/bank-mock/consent:
+    get:
+      tags:
+      - connectors
+      summary: Get Consent
+      operationId: getBankMockConsent
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                anyOf:
+                - $ref: '#/components/schemas/BankConsentOut'
+                - type: 'null'
+                title: Response Getbankmockconsent
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - connectors
+      summary: Grant Consent
+      operationId: grantBankMockConsent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankConsentRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankConsentOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+    delete:
+      tags:
+      - connectors
+      summary: Revoke Consent
+      operationId: revokeBankMockConsent
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
   /api/v1/connectors/bank-mock/sync:
     post:
       tags:
       - connectors
-      summary: Мок банковского подключения (без реальных банковских данных)
+      summary: 'Мок банка: только синтетические данные'
       operationId: syncBankMock
       requestBody:
         content:
@@ -1097,8 +1169,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
-        '501':
-          description: Контракт зафиксирован, реализация на следующем этапе
+        '403':
+          description: Ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '409':
+          description: Конфликт с уже выполненным запросом
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '503':
+          description: Ошибка
           content:
             application/json:
               schema:
@@ -1521,6 +1605,66 @@ components:
       required:
       - items
       title: AlertsOut
+    BankConsentOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        scopes:
+          items:
+            type: string
+          type: array
+          title: Scopes
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        revoked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Revoked At
+        is_mock:
+          type: boolean
+          const: true
+          title: Is Mock
+          default: true
+      type: object
+      required:
+      - id
+      - scopes
+      - expires_at
+      - revoked_at
+      title: BankConsentOut
+    BankConsentRequest:
+      properties:
+        accepted:
+          type: boolean
+          const: true
+          title: Accepted
+        scopes:
+          items:
+            type: string
+            enum:
+            - accounts
+            - transactions
+            - balances
+          type: array
+          maxItems: 3
+          minItems: 1
+          title: Scopes
+        ttl_hours:
+          type: integer
+          maximum: 24.0
+          minimum: 1.0
+          title: Ttl Hours
+          default: 24
+      type: object
+      required:
+      - accepted
+      - scopes
+      title: BankConsentRequest
     BankMockSyncOut:
       properties:
         status:
@@ -1542,6 +1686,15 @@ components:
         message:
           type: string
           title: Message
+        data_as_of:
+          type: string
+          format: date-time
+          title: Data As Of
+        is_mock:
+          type: boolean
+          const: true
+          title: Is Mock
+          default: true
       type: object
       required:
       - status
@@ -1549,6 +1702,7 @@ components:
       - transactions_new
       - transactions_duplicate
       - message
+      - data_as_of
       title: BankMockSyncOut
     BankMockSyncRequest:
       properties:
@@ -1560,6 +1714,7 @@ components:
           - partial
           - network_error
           - duplicates
+          - delayed
           title: Scenario
           default: ok
       type: object
