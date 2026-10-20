@@ -2,7 +2,7 @@
 
 - **Этап:** 1 (19–22 октября 2026)
 - **Ответственный по 16.1:** C — forecasting/QA
-- **Коммит:** [`19fc710`](https://github.com/stavavokhmianin/financial-brigadir/commit/19fc710) в `step4ik`
+- **Коммит:** [`2ca8139`](https://github.com/stavavokhmianin/financial-brigadir/commit/2ca8139) в `step4ik`
 - **Код:** `packages/synthetic_generator`
 
 ## Что сделано

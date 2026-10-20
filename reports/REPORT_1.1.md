@@ -2,7 +2,7 @@
 
 - **Этап:** 1 (19–22 октября 2026), раздел 16.2 ТЗ
 - **Ответственные по 16.1:** все трое (A — `services/api`, B — `apps/client`, C — `packages/*`, CI, Docker)
-- **Коммит:** [`5f5ad6a`](https://github.com/stavavokhmianin/financial-brigadir/commit/5f5ad6a) в `step4ik`
+- **Коммит:** [`4b06a15`](https://github.com/stavavokhmianin/financial-brigadir/commit/4b06a15) в `step4ik`
 
 ## Что сделано
 

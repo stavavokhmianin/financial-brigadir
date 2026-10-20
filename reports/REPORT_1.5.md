@@ -2,7 +2,7 @@
 
 - **Этап:** 1 (19–22 октября 2026)
 - **Ответственный по 16.1:** B — client/product
-- **Коммит:** [`ee1f324`](https://github.com/stavavokhmianin/financial-brigadir/commit/ee1f324) в `step4ik`
+- **Коммит:** [`11b6e7e`](https://github.com/stavavokhmianin/financial-brigadir/commit/11b6e7e) в `step4ik`
 - **Код:** `apps/client` (Expo SDK 54, Expo Router, TypeScript strict)
 
 ## Что сделано
@@ -66,13 +66,13 @@ cd apps/client && npm install && npx expo start --web
   контракта типах.
 - `expo export --platform web` — сборка web-бандла в CI.
 
-CI, коммит [`b670622`](https://github.com/stavavokhmianin/financial-brigadir/commit/b670622) — все три задачи зелёные:
+CI, коммит [`65fc912`](https://github.com/stavavokhmianin/financial-brigadir/commit/65fc912) — все три задачи зелёные:
 - Client: `tsc` на типах из контракта, node-тесты **8/8**, `expo export --platform web` → `dist-web`.
 - Python: **125 passed** (вместе с миграциями на PostgreSQL 16), ruff и mypy чистые.
 - Compose: Postgres → API → smoke 5/5 (профили, демо-сессия, остаток 55 000 ₽, календарь
   обязательств), код выхода 0.
 
-Первый прогон 1.5 (`ee1f324`) упал на сверке контракта. Python 3.13 (локально) и 3.12 (CI)
+Первый прогон 1.5 (`11b6e7e`) упал на сверке контракта. Python 3.13 (локально) и 3.12 (CI)
 по-разному называют ответ 413, и `openapi.yaml` разошёлся. Теперь описания ошибок заданы
 явно, и контракт не зависит от версии Python.
 

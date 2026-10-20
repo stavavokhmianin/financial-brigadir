@@ -2,7 +2,7 @@
 
 - **Этап:** 1 (19–22 октября 2026)
 - **Ответственный по 16.1:** A — backend/data. Контракт ревьюят B (клиент) и C (расчёт).
-- **Коммит:** [`72be988`](https://github.com/stavavokhmianin/financial-brigadir/commit/72be988) в `step4ik`
+- **Коммит:** [`4cf0e88`](https://github.com/stavavokhmianin/financial-brigadir/commit/4cf0e88) в `step4ik`
 - **Контракт:** `packages/api_contracts/openapi.yaml` (OpenAPI 3.1, около 2 000 строк)
 
 ## Что сделано

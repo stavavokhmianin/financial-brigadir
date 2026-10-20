@@ -2,7 +2,7 @@
 
 - **Этап:** 1 (19–22 октября 2026)
 - **Ответственный по 16.1:** A — backend/data
-- **Коммит:** [`dcfb7f7`](https://github.com/stavavokhmianin/financial-brigadir/commit/dcfb7f7) в `step4ik`
+- **Коммит:** [`f90af11`](https://github.com/stavavokhmianin/financial-brigadir/commit/f90af11) в `step4ik`
 
 ## Что сделано
 
