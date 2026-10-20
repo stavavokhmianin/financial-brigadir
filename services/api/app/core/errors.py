@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -78,3 +79,18 @@ async def _handle_api_error(_: Request, exc: Exception) -> JSONResponse:
 
 def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(APIError, _handle_api_error)
+    app.add_exception_handler(RequestValidationError, _handle_validation_error)
+
+
+async def _handle_validation_error(_: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, RequestValidationError)  # noqa: S101
+    # FastAPI's default response can echo a full CSV, token, or arbitrary input.
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": [
+                {"loc": error["loc"], "type": error["type"], "msg": "Некорректное значение"}
+                for error in exc.errors()
+            ]
+        },
+    )

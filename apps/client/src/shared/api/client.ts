@@ -43,7 +43,7 @@ export class ApiError extends Error {
 type Query = Record<string, string | number | boolean | undefined>;
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   form?: FormData;
   token?: string;
@@ -96,6 +96,11 @@ export interface CsvImportInput {
 }
 
 export const api = {
+  exportProfile: (token: string) => request<Record<string, unknown>>("/api/v1/privacy/export", { token }),
+  logout: (token: string) => request<void>("/api/v1/privacy/logout", { token, method: "POST" }),
+  deleteProfile: (token: string) => request<void>("/api/v1/privacy/profile", {
+    token, method: "DELETE", body: { confirmation: "DELETE" },
+  }),
   listDemoProfiles: () => request<DemoProfile[]>("/api/v1/demo/profiles"),
 
   createDemoSession: (body: DemoSessionCreate) =>

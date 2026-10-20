@@ -30,8 +30,8 @@ class Worker:
         for name, job in self.jobs.items():
             try:
                 job()
-            except Exception:
-                log.exception("job failed: %s", name)
+            except Exception as exc:
+                log.error("job failed: %s (%s)", name, type(exc).__name__)
                 results[name] = False
             else:
                 results[name] = True

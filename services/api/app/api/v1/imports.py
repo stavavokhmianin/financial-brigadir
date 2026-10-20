@@ -108,7 +108,8 @@ def import_csv(
     raw = file.file.read(MAX_BYTES + 1) if file is not None else (content or "").encode("utf-8")
     if len(raw) > MAX_BYTES:
         raise APIError(413, "file_too_large", "Файл больше 2 МБ — разбейте его")
-    digest = fingerprint(raw)
+    # Scope the fingerprint to its destination; the same bytes can belong to two accounts.
+    digest = fingerprint(account.id.encode("utf-8") + b"\x00" + raw)
 
     if mode == "import":
         previous = None

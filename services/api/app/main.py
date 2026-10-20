@@ -7,6 +7,7 @@ from app import __version__
 from app.api.v1 import router as v1_router
 from app.core.config import get_settings
 from app.core.errors import install_error_handlers
+from app.core.limits import IngressLimits
 
 DESCRIPTION = """
 Расчётный API «Финансового бригадира».
@@ -32,10 +33,11 @@ def create_app() -> FastAPI:
         docs_url="/api/v1/docs",
         redoc_url=None,
     )
+    app.add_middleware(IngressLimits)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
-        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
     )
     install_error_handlers(app)

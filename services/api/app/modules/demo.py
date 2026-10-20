@@ -62,7 +62,7 @@ def create_demo_session(
         demo_seed=seed,
         timezone=str(bundle.profile["timezone"]),
         risk_preferences={"reserve_minor": DEFAULT_RESERVE_MINOR, "alpha": DEFAULT_ALPHA},
-        consent_versions={"demo_terms": "2026-10-19"},
+        consent_versions={},
     )
     db.add(user)
     db.flush()

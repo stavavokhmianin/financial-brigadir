@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="simulate" options={{ title: ru.simulate.screenTitle }} />
           <Stack.Screen name="duplicates" options={{ title: ru.duplicates.screenTitle }} />
           <Stack.Screen name="alerts" options={{ title: ru.alerts.screenTitle }} />
+          <Stack.Screen name="privacy" options={{ title: "Приватность и данные" }} />
         </Stack>
       </SessionProvider>
     </SafeAreaProvider>

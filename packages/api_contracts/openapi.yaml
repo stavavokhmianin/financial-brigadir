@@ -1111,6 +1111,75 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
       security:
       - HTTPBearer: []
+  /api/v1/privacy/export:
+    get:
+      tags:
+      - privacy
+      summary: Export
+      operationId: exportProfile
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Exportprofile
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/privacy/logout:
+    post:
+      tags:
+      - privacy
+      summary: Logout
+      operationId: logoutProfile
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/privacy/profile:
+    delete:
+      tags:
+      - privacy
+      summary: Remove
+      operationId: deleteProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteProfileRequest'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
 components:
   schemas:
     AccountCreate:
@@ -1589,6 +1658,16 @@ components:
       - manual
       - bank_mock
       title: DataSourceKind
+    DeleteProfileRequest:
+      properties:
+        confirmation:
+          type: string
+          const: DELETE
+          title: Confirmation
+      type: object
+      required:
+      - confirmation
+      title: DeleteProfileRequest
     DemoProfileOut:
       properties:
         id:

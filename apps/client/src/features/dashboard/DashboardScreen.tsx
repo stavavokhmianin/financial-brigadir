@@ -80,8 +80,7 @@ export function DashboardScreen() {
   }
 
   const switchProfile = () => {
-    setSession(null);
-    router.replace("/");
+    router.push("/privacy");
   };
 
   if (error) {
@@ -254,7 +253,7 @@ export function DashboardScreen() {
         variant="secondary"
         onPress={() => router.push("/import")}
       />
-      <Button label={ru.dashboard.switchProfile} onPress={switchProfile} variant="secondary" />
+      <Button label="Приватность, экспорт и выход" onPress={switchProfile} variant="secondary" />
     </Screen>
   );
 }

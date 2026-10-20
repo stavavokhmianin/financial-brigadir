@@ -10,12 +10,12 @@ from app.core.config import get_settings
 
 def make_engine(url: str) -> Engine:
     if not url.startswith("sqlite"):
-        return create_engine(url, pool_pre_ping=True)
+        return create_engine(url, pool_pre_ping=True, hide_parameters=True)
 
     kwargs: dict[str, Any] = {"connect_args": {"check_same_thread": False}}
     if url in ("sqlite://", "sqlite:///:memory:"):
         kwargs["poolclass"] = StaticPool  # одна in-memory БД на весь engine
-    engine = create_engine(url, **kwargs)
+    engine = create_engine(url, hide_parameters=True, **kwargs)
 
     @event.listens_for(engine, "connect")
     def _enable_fk(dbapi_connection: Any, _record: Any) -> None:
