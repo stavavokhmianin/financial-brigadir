@@ -21,6 +21,8 @@ export type IncomeCreate = Schemas["IncomeCreate"];
 export type TransactionsPage = Schemas["TransactionsPage"];
 export type Forecast = Schemas["ForecastOut"];
 export type ForecastRequest = Schemas["ForecastRequest"];
+export type ScenarioRequest = Schemas["ScenarioRequest"];
+export type ScenarioResult = Schemas["ScenarioOut"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -133,6 +135,9 @@ export const api = {
 
   createForecast: (token: string, body: ForecastRequest) =>
     request<Forecast>("/api/v1/forecasts", { method: "POST", token, body }),
+
+  createScenario: (token: string, body: ScenarioRequest) =>
+    request<ScenarioResult>("/api/v1/scenarios", { method: "POST", token, body }),
 
   importCsv: (token: string, input: CsvImportInput) => {
     // Текст отправляется полем content: так одинаково работает web, Android и iOS

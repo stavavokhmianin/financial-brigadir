@@ -11,13 +11,15 @@ const HEIGHT = 180;
 interface Props {
   points: readonly PointLike[];
   reserveMinor: number;
+  /** Базовый прогноз для сравнения «до/после» (раздел 11.3). */
+  compare?: readonly PointLike[];
 }
 
 /** Коридор p10–p90 по дням, отметка p50 и линия резерва. Без нативных зависимостей. */
-export function ForecastChart({ points, reserveMinor }: Props) {
+export function ForecastChart({ points, reserveMinor, compare }: Props) {
   const palette = usePalette();
   if (points.length === 0) return null;
-  const geometry = chartGeometry(points, reserveMinor, HEIGHT);
+  const geometry = chartGeometry(points, reserveMinor, HEIGHT, compare);
   const first = points[0];
   const last = points[points.length - 1];
   return (
@@ -48,6 +50,11 @@ export function ForecastChart({ points, reserveMinor }: Props) {
                   },
                 ]}
               />
+              {bar.compareMid !== null ? (
+                <View
+                  style={[styles.compare, { top: bar.compareMid - 1, backgroundColor: palette.muted }]}
+                />
+              ) : null}
               <View
                 style={[
                   styles.mid,
@@ -83,6 +90,7 @@ const styles = StyleSheet.create({
   column: { flex: 1, position: "relative" },
   range: { position: "absolute", left: 0, right: 0, borderRadius: 2 },
   mid: { position: "absolute", left: 0, right: 0, height: 4, borderRadius: 2 },
+  compare: { position: "absolute", left: 2, right: 2, height: 2, opacity: 0.8 },
   line: { position: "absolute", left: 0, right: 0, height: 1, opacity: 0.6 },
   reserve: { position: "absolute", left: 0, right: 0, borderTopWidth: 1, borderStyle: "dashed" },
   axis: { flexDirection: "row", justifyContent: "space-between" },

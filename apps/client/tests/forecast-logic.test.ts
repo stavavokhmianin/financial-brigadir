@@ -32,6 +32,16 @@ test("chartGeometry: плоский прогноз не делит на ноль
   assert.ok((geometry.bars[0]?.rangeHeight ?? 0) >= 2);
 });
 
+test("chartGeometry: слой «до» на общей шкале", () => {
+  const after = [point("2026-10-20", 100, 200, 300)];
+  const before = [point("2026-10-20", 1000, 1200, 1300)];
+  const geometry = chartGeometry(after, 0, 100, before);
+  const [bar] = geometry.bars;
+  assert.ok(bar && bar.compareMid !== null && bar.compareMid < bar.mid, "«до» выше на графике");
+  assert.ok(geometry.maxValue > 1200, "шкала учитывает оба сценария");
+  assert.equal(chartGeometry(after, 0, 100).bars[0]?.compareMid, null);
+});
+
 test("riskTone", () => {
   assert.equal(riskTone("high"), "danger");
   assert.equal(riskTone("medium"), "warning");

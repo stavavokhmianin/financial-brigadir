@@ -176,7 +176,18 @@ export function DashboardScreen() {
               {ru.forecast.minimum}: {formatRubApprox(data.forecast.risk.min_balance_minor)} ·{" "}
               {formatDay(data.forecast.risk.min_balance_date, year)}
             </Muted>
-            <Button label={ru.forecast.open} onPress={() => router.push("/forecast")} />
+            {data.forecast.safe_to_spend.available ? (
+              <Muted>
+                {ru.forecast.safeToday} {formatDay(data.forecast.safe_to_spend.date, year)}: до{" "}
+                {formatRubApprox(data.forecast.safe_to_spend.base_minor)}
+              </Muted>
+            ) : null}
+            <Button label={ru.forecast.whatIf} onPress={() => router.push("/simulate")} />
+            <Button
+              label={ru.forecast.open}
+              variant="secondary"
+              onPress={() => router.push("/forecast")}
+            />
           </>
         ) : (
           <Muted>{ru.forecast.error}</Muted>

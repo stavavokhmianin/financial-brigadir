@@ -172,7 +172,8 @@ export function ForecastScreen() {
             <Muted>{t.disclaimer}</Muted>
           </Card>
 
-          <Button label={t.refresh} onPress={() => void load()} loading={loading} />
+          <Button label={t.whatIf} onPress={() => router.push("/simulate")} />
+          <Button label={t.refresh} variant="secondary" onPress={() => void load()} loading={loading} />
           <Button label={t.toCalendar} variant="secondary" onPress={() => router.push("/calendar")} />
         </>
       ) : null}

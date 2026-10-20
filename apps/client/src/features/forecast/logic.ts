@@ -13,6 +13,8 @@ export interface Bar {
   rangeTop: number;
   rangeHeight: number;
   mid: number;
+  /** Отметка базового прогноза «до» сценария (если передан compare). */
+  compareMid: number | null;
   belowReserve: boolean;
 }
 
@@ -29,8 +31,13 @@ export function chartGeometry(
   points: readonly PointLike[],
   reserveMinor: number,
   height: number,
+  compare: readonly PointLike[] = [],
 ): ChartGeometry {
-  const values = points.flatMap((p) => [p.p10_minor, p.p90_minor]).concat(reserveMinor);
+  const values = points
+    .flatMap((p) => [p.p10_minor, p.p90_minor])
+    .concat(compare.map((p) => p.p50_minor))
+    .concat(reserveMinor);
+  const compareByDay = new Map(compare.map((p) => [p.day, p.p50_minor]));
   let minValue = Math.min(...values);
   let maxValue = Math.max(...values);
   if (minValue === maxValue) {
@@ -49,6 +56,7 @@ export function chartGeometry(
       rangeTop: top,
       rangeHeight: Math.max(2, bottom - top),
       mid: toY(p.p50_minor),
+      compareMid: compareByDay.has(p.day) ? toY(compareByDay.get(p.day) ?? 0) : null,
       belowReserve: p.p50_minor < reserveMinor,
     };
   });
