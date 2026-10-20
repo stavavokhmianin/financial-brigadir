@@ -186,6 +186,15 @@ class Transaction(Base):
         ForeignKey("transactions.id", ondelete="SET NULL")
     )
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Вероятный дубль (FR-08): кандидат в оригиналы и причина проверки. После решения
+    # пользователя подтверждённый дубль ссылается на оригинал и не участвует в модели.
+    review_reason: Mapped[str | None] = mapped_column(String(40))
+    duplicate_candidate_id: Mapped[str | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="SET NULL")
+    )
+    duplicate_of_id: Mapped[str | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="SET NULL")
+    )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

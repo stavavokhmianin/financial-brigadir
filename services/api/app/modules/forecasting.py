@@ -123,6 +123,8 @@ def prepare_snapshot(
             Transaction.account_id.in_(account_ids),
             Transaction.occurred_at >= since,
             Transaction.occurred_at <= as_of,
+            # Подтверждённый дубль не учитывается в модели трат (FR-08).
+            Transaction.duplicate_of_id.is_(None),
         )
     ).all()
 

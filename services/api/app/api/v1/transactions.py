@@ -8,9 +8,16 @@ from sqlalchemy import and_, or_, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import APIError, error_responses, not_found
-from app.db.models import Account, Transaction
+from app.db.models import Account, AuditEvent, Transaction
 from app.domain.enums import TxStatus, TxType
-from app.schemas.transactions import TransactionOut, TransactionsPage
+from app.modules.dedup import pending_duplicates, resolve
+from app.schemas.transactions import (
+    DuplicatePair,
+    DuplicateResolution,
+    DuplicatesOut,
+    TransactionOut,
+    TransactionsPage,
+)
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -83,3 +90,57 @@ def list_transactions(
     return TransactionsPage(
         items=[TransactionOut.model_validate(t) for t in items], next_cursor=next_cursor
     )
+
+
+@router.get(
+    "/duplicates",
+    operation_id="listProbableDuplicates",
+    summary="Вероятные дубли, которые нужно подтвердить или отклонить (FR-08)",
+    responses=error_responses(401),
+)
+def list_duplicates(user: CurrentUser, db: DbSession) -> DuplicatesOut:
+    return DuplicatesOut(
+        items=[
+            DuplicatePair(
+                transaction=TransactionOut.model_validate(tx),
+                original=TransactionOut.model_validate(original),
+                reason=tx.review_reason,
+            )
+            for tx, original in pending_duplicates(db, user)
+        ]
+    )
+
+
+@router.post(
+    "/{transaction_id}/duplicate-resolution",
+    operation_id="resolveDuplicate",
+    summary="Решение пользователя: дубль (исключить из модели) или разные операции",
+    responses=error_responses(400, 401, 404),
+)
+def resolve_duplicate(
+    transaction_id: str, body: DuplicateResolution, user: CurrentUser, db: DbSession
+) -> TransactionOut:
+    tx = db.scalar(
+        select(Transaction).where(Transaction.id == transaction_id, Transaction.user_id == user.id)
+    )
+    if tx is None:
+        raise not_found("Операция")
+    if tx.duplicate_candidate_id is None:
+        raise APIError(
+            status.HTTP_400_BAD_REQUEST,
+            "not_a_candidate",
+            "Операция не помечена как вероятный дубль",
+        )
+    resolve(tx, body.decision)
+    db.add(
+        AuditEvent(
+            user_id=user.id,
+            action="duplicate_resolved",
+            object_type="transaction",
+            object_id=tx.id,
+            meta={"decision": body.decision},
+        )
+    )
+    db.commit()
+    db.refresh(tx)
+    return TransactionOut.model_validate(tx)

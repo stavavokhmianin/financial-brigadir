@@ -10,6 +10,7 @@ from app.core.errors import APIError, error_responses, not_found
 from app.db.models import Account, AuditEvent, DataSource, ImportBatch, User
 from app.domain.enums import DataSourceKind, ImportStatus
 from app.domain.ids import new_id
+from app.modules.dedup import detect_duplicates
 from app.modules.ledger import ingest_transactions
 from app.schemas.imports import ImportIssue, ImportResultOut
 
@@ -182,6 +183,7 @@ def import_csv(
     inserted, duplicates = ingest_transactions(
         db, user, source, {account.id: account.id}, parsed.records, import_batch_id=batch.id
     )
+    detect_duplicates(db, user)
     batch.rows_imported = inserted
     batch.rows_duplicate = duplicates
     latest = max(datetime.fromisoformat(r["occurred_at"]) for r in parsed.records)

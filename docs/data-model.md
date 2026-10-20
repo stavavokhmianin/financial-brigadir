@@ -43,6 +43,10 @@ users ─┬─ auth_sessions            (token_hash, expires_at)
   вероятностей, порядок `min ≤ max` и `date_from ≤ date_to`.
 - Время хранится только в UTC: `UTCDateTime` отклоняет naive-значения.
 - `ON DELETE CASCADE` от пользователя: удаление по запросу стирает все персональные данные.
+- Вероятные дубли (FR-08, миграция `0004`): `transactions.duplicate_candidate_id` хранит
+  предполагаемый оригинал, `review_reason` — причину (`same_moment`, `cross_source`), а
+  `duplicate_of_id` — подтверждённое решение пользователя. Подтверждённый дубль остаётся в
+  истории, но в модели трат не участвует.
 
 Тесты: `services/api/tests/test_schema.py`, `services/api/tests/test_migrations.py`.
 Тест миграций проверяет `upgrade → нет расхождений с моделями → downgrade` на SQLite и PostgreSQL.

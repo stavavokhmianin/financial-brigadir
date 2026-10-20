@@ -307,6 +307,79 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/transactions/duplicates:
+    get:
+      tags:
+      - transactions
+      summary: Вероятные дубли, которые нужно подтвердить или отклонить (FR-08)
+      operationId: listProbableDuplicates
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuplicatesOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/transactions/{transaction_id}/duplicate-resolution:
+    post:
+      tags:
+      - transactions
+      summary: 'Решение пользователя: дубль (исключить из модели) или разные операции'
+      operationId: resolveDuplicate
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: transaction_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Transaction Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateResolution'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/obligations:
     get:
       tags:
@@ -1439,6 +1512,48 @@ components:
       - incomes
       - duplicates_skipped
       title: DemoSummary
+    DuplicatePair:
+      properties:
+        transaction:
+          $ref: '#/components/schemas/TransactionOut'
+          description: Предполагаемый дубль
+        original:
+          $ref: '#/components/schemas/TransactionOut'
+        reason:
+          type: string
+          enum:
+          - same_moment
+          - cross_source
+          title: Reason
+      type: object
+      required:
+      - transaction
+      - original
+      - reason
+      title: DuplicatePair
+    DuplicateResolution:
+      properties:
+        decision:
+          type: string
+          enum:
+          - duplicate
+          - not_duplicate
+          title: Decision
+      type: object
+      required:
+      - decision
+      title: DuplicateResolution
+    DuplicatesOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/DuplicatePair'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: DuplicatesOut
     ErrorBody:
       properties:
         code:
@@ -2944,6 +3059,22 @@ components:
         needs_review:
           type: boolean
           title: Needs Review
+        review_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Reason
+        duplicate_candidate_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Duplicate Candidate Id
+        duplicate_of_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Duplicate Of Id
+          description: 'Подтверждённый дубль: исключён из модели'
       type: object
       required:
       - id
@@ -2960,6 +3091,9 @@ components:
       - transfer_group_id
       - related_transaction_id
       - needs_review
+      - review_reason
+      - duplicate_candidate_id
+      - duplicate_of_id
       title: TransactionOut
     TransactionsPage:
       properties:

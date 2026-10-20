@@ -31,6 +31,7 @@ interface DashboardData {
   accounts: AccountsResponse;
   obligations: ObligationsResponse;
   forecast: Forecast | null;
+  duplicates: number;
   from: string;
   to: string;
 }
@@ -51,13 +52,17 @@ export function DashboardScreen() {
     try {
       const from = asOf ? localDate(asOf) : new Date().toISOString().slice(0, 10);
       const to = addDays(from, WINDOW_DAYS);
-      const [accounts, obligations, forecast] = await Promise.all([
+      const [accounts, obligations, forecast, duplicates] = await Promise.all([
         api.listAccounts(token),
         api.listObligations(token, from, to),
         // Прогноз не должен ломать главный экран: без него показываем остальные данные.
         api.createForecast(token, {}).catch(() => null),
+        api
+          .listDuplicates(token)
+          .then((d) => d.items.length)
+          .catch(() => 0),
       ]);
-      setData({ accounts, obligations, forecast, from, to });
+      setData({ accounts, obligations, forecast, duplicates, from, to });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
     }
@@ -135,6 +140,15 @@ export function DashboardScreen() {
             </Text>
           ))}
         </View>
+      ) : null}
+
+      {data.duplicates > 0 ? (
+        <Card title={ru.duplicates.dashboardTitle}>
+          <Muted>
+            {ru.duplicates.title}: {data.duplicates}
+          </Muted>
+          <Button label={ru.duplicates.open} onPress={() => router.push("/duplicates")} />
+        </Card>
       ) : null}
 
       <Card title={ru.dashboard.upcomingTitle}>

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import Field
 
@@ -21,8 +22,25 @@ class TransactionOut(APIModel):
     transfer_group_id: str | None
     related_transaction_id: str | None
     needs_review: bool
+    review_reason: str | None
+    duplicate_candidate_id: str | None
+    duplicate_of_id: str | None = Field(description="Подтверждённый дубль: исключён из модели")
 
 
 class TransactionsPage(APIModel):
     items: list[TransactionOut]
     next_cursor: str | None = Field(description="Передайте в cursor для следующей страницы")
+
+
+class DuplicatePair(APIModel):
+    transaction: TransactionOut = Field(description="Предполагаемый дубль")
+    original: TransactionOut
+    reason: Literal["same_moment", "cross_source"]
+
+
+class DuplicatesOut(APIModel):
+    items: list[DuplicatePair]
+
+
+class DuplicateResolution(APIModel):
+    decision: Literal["duplicate", "not_duplicate"]

@@ -27,6 +27,7 @@ from app.domain.enums import (
     Recurrence,
 )
 from app.domain.ids import new_id
+from app.modules.dedup import detect_duplicates
 from app.modules.ledger import ingest_transactions
 
 DEFAULT_RESERVE_MINOR = 500_000  # 5 000 ₽ — резерв по умолчанию для демо (раздел 9.6)
@@ -104,6 +105,7 @@ def create_demo_session(
     inserted, _ = ingest_transactions(db, user, source, account_ids, bundle.transactions)
     # Повторная выгрузка выписки из профиля проверяет идемпотентность прямо при создании.
     _, duplicates = ingest_transactions(db, user, source, account_ids, bundle.reupload)
+    detect_duplicates(db, user)
 
     for item in bundle.obligations:
         db.add(

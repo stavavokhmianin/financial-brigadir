@@ -23,6 +23,7 @@ export type Forecast = Schemas["ForecastOut"];
 export type ForecastRequest = Schemas["ForecastRequest"];
 export type ScenarioRequest = Schemas["ScenarioRequest"];
 export type ScenarioResult = Schemas["ScenarioOut"];
+export type DuplicatePair = Schemas["DuplicatePair"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -138,6 +139,15 @@ export const api = {
 
   createScenario: (token: string, body: ScenarioRequest) =>
     request<ScenarioResult>("/api/v1/scenarios", { method: "POST", token, body }),
+
+  listDuplicates: (token: string) =>
+    request<Schemas["DuplicatesOut"]>("/api/v1/transactions/duplicates", { token }),
+
+  resolveDuplicate: (token: string, id: string, decision: "duplicate" | "not_duplicate") =>
+    request<Schemas["TransactionOut"]>(
+      `/api/v1/transactions/${encodeURIComponent(id)}/duplicate-resolution`,
+      { method: "POST", token, body: { decision } },
+    ),
 
   importCsv: (token: string, input: CsvImportInput) => {
     // Текст отправляется полем content: так одинаково работает web, Android и iOS

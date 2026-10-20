@@ -2,10 +2,10 @@
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Account, DataSource, User
+from app.db.models import Account, DataSource, Transaction, User
 from app.domain.enums import AccountType, Coverage, DataSourceKind
 from app.schemas.common import DataQuality
 
@@ -50,6 +50,18 @@ def data_quality(db: Session, user: User, now: datetime | None = None) -> DataQu
         notes.append("Подключён один банк: это прогноз по выбранному счёту, а не общий.")
     if history_days < 60:
         notes.append("История короче 60 дней: диапазоны прогноза будут шире.")
+    pending = db.scalar(
+        select(func.count())
+        .select_from(Transaction)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.duplicate_candidate_id.is_not(None),
+            Transaction.duplicate_of_id.is_(None),
+            Transaction.needs_review.is_(True),
+        )
+    )
+    if pending:
+        notes.append(f"Найдены вероятные дубли операций: {pending} — проверьте их.")
     if any(a.type == AccountType.CREDIT_CARD for a in accounts):
         notes.append("Кредитный лимит не считается свободными деньгами.")
 
