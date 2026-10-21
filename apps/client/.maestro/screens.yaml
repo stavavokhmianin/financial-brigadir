@@ -66,10 +66,14 @@ name: Every main screen opens without errors
     visibilityPercentage: 100
 - scroll
 - tapOn: "Загрузить выписку CSV"
-- extendedWaitUntil:
-    visible: "Вставить пример"
+- scrollUntilVisible:
+    element: "Вставить пример"
+    visibilityPercentage: 100
     timeout: 30000
 - tapOn: "Вставить пример"
+- scrollUntilVisible:
+    element: "Проверить"
+    visibilityPercentage: 100
 - tapOn: "Проверить"
 - scrollUntilVisible:
     element: "Импортировать"
