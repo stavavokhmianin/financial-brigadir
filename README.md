@@ -5,6 +5,8 @@
 
 Приватность, экспорт, удаление и сроки хранения: [docs/privacy.md](docs/privacy.md).
 Критерии приёмки: [docs/quality-gates.md](docs/quality-gates.md).
+Android APK и нативный E2E: [docs/mobile-verification.md](docs/mobile-verification.md).
+Возможности Free/Plus: [docs/plans.md](docs/plans.md).
 Плановая экономика: [docs/business-model.md](docs/business-model.md)
 (`python scripts/business_model.py`).
 
