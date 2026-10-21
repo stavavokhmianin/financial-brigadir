@@ -24,7 +24,7 @@ jobs:
     env:
       EXPO_PUBLIC_API_URL: http://127.0.0.1:8000
       EAS_BUILD_PROFILE: preview
-      DATABASE_URL: sqlite:///${{ runner.temp }}/mobile.db
+      DATABASE_URL: sqlite:////tmp/brigadir-mobile-ci.db
       MAESTRO_VERSION: "1.40.3"
       MAESTRO_CLI_NO_ANALYTICS: "1"
       CI: "1"
