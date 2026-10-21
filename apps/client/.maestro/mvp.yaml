@@ -3,13 +3,20 @@ name: Demo purchase, plan preview and bank mock
 ---
 - launchApp:
     clearState: true
-# A cold hosted emulator can show its own System UI ANR during initial boot.
-# Only dismiss that system dialog; application crashes still fail the flow.
-- runFlow:
-    when:
-      visible: "System UI isn't responding"
+# Cold hosted emulators can show OS/launcher ANRs after the app has opened.
+# Wait for either readiness or those exact system dialogs, then retry readiness.
+# An ANR/crash from Financial Brigadir is deliberately not dismissed.
+- repeat:
+    times: 3
     commands:
-      - tapOn: "Wait"
+      - extendedWaitUntil:
+          visible: "(?s).*(Молодой специалист|System UI isn't responding|Pixel Launcher isn't responding).*"
+          timeout: 30000
+      - runFlow:
+          when:
+            visible: "(System UI|Pixel Launcher) isn't responding"
+          commands:
+            - tapOn: "Wait"
 - extendedWaitUntil:
     visible: ".*Молодой специалист.*"
     timeout: 30000
