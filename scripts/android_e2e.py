@@ -9,7 +9,7 @@ from pathlib import Path
 def main() -> None:
     output = Path("artifacts/mobile")
     output.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 — fixed executable and repository-owned test paths
         [  # noqa: S607 — fixed CI tools and test path
             "maestro",
             "test",
@@ -36,7 +36,7 @@ def main() -> None:
             timeout=30,
             check=False,
         )
-        subprocess.run(
+        subprocess.run(  # noqa: S603 — fixed executable and output under artifacts/mobile
             ["adb", "pull", "/sdcard/window.xml", str(output / "failure.xml")],  # noqa: S607
             timeout=30,
             check=False,
