@@ -1,8 +1,7 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
 from app.adapters.synthetic import SyntheticDataAdapter
-from app.api.deps import DbSession
-from app.core.config import get_settings
+from app.api.deps import AppSettings, DbSession, demo_only
 from app.core.errors import APIError, error_responses
 from app.modules.demo import create_demo_session
 from app.modules.quality import data_quality
@@ -14,7 +13,7 @@ from app.schemas.demo import (
     UserOut,
 )
 
-router = APIRouter(prefix="/demo", tags=["demo"])
+router = APIRouter(prefix="/demo", tags=["demo"], dependencies=[Depends(demo_only)])
 adapter = SyntheticDataAdapter()
 
 
@@ -34,7 +33,7 @@ def list_profiles() -> list[DemoProfileOut]:
     status_code=status.HTTP_201_CREATED,
     responses=error_responses(400, 404),
 )
-def create_session(body: DemoSessionCreate, db: DbSession) -> DemoSessionOut:
+def create_session(body: DemoSessionCreate, db: DbSession, settings: AppSettings) -> DemoSessionOut:
     profiles = {p["id"]: p for p in adapter.profiles()}
     if body.profile_id not in profiles:
         raise APIError(status.HTTP_404_NOT_FOUND, "profile_not_found", "Демо-профиль не найден")
@@ -45,7 +44,7 @@ def create_session(body: DemoSessionCreate, db: DbSession) -> DemoSessionOut:
             "Профиль появится после MVP",
         )
     result = create_demo_session(
-        db, adapter, body.profile_id, body.seed, get_settings().demo_session_ttl_hours
+        db, adapter, body.profile_id, body.seed, settings.demo_session_ttl_hours
     )
     return DemoSessionOut(
         access_token=result.token,

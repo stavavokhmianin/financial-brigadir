@@ -103,7 +103,7 @@ export function DashboardScreen() {
     <Screen>
       <Card>
         <View style={styles.row}>
-          <Badge label={session.profile.title} />
+          <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} />
           {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="warning" /> : null}
           <Badge
             label={ru.dashboard.coverage[quality.coverage]}
@@ -178,7 +178,13 @@ export function DashboardScreen() {
       </Card>
 
       <Card title={ru.forecast.dashboardTitle}>
-        {data.forecast ? (
+        {data.accounts.items.length === 0 ? (
+          // Пустой профиль участника пилота: прогноз из нуля рублей только напугает.
+          <>
+            <Muted>{ru.dashboard.noAccounts}</Muted>
+            <Button label={ru.dashboard.addFirst} onPress={() => router.push("/add")} />
+          </>
+        ) : data.forecast ? (
           <>
             <RiskBanner forecast={data.forecast} />
             <Muted>
@@ -250,7 +256,9 @@ export function DashboardScreen() {
         onPress={() => router.push("/import")}
       />
       <Button label={ru.dashboard.plans} onPress={() => router.push("/plans")} variant="secondary" />
-      <Button label={ru.dashboard.bankMock} onPress={() => router.push("/bank")} variant="secondary" />
+      {session.user.is_demo ? (
+        <Button label={ru.dashboard.bankMock} onPress={() => router.push("/bank")} variant="secondary" />
+      ) : null}
       <Button label={ru.dashboard.privacy} onPress={() => router.push("/privacy")} variant="secondary" />
     </Screen>
   );

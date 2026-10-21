@@ -50,6 +50,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthOut'
+  /api/v1/meta:
+    get:
+      tags:
+      - health
+      summary: 'Режим стенда: демо или пилот'
+      operationId: getMeta
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaOut'
+  /api/v1/pilot/sessions:
+    post:
+      tags:
+      - pilot
+      summary: Вход участника пилота по персональному коду
+      operationId: createPilotSession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PilotSignIn'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PilotSessionOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/demo/profiles:
     get:
       tags:
@@ -2756,6 +2812,33 @@ components:
       - items
       - calendar
       title: IncomesOut
+    MetaOut:
+      properties:
+        mode:
+          type: string
+          enum:
+          - demo
+          - pilot
+          title: Mode
+        pilot_terms_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pilot Terms Version
+          description: Версия условий пилота, которую клиент показывает и передаёт при входе
+        demo_available:
+          type: boolean
+          title: Demo Available
+        bank_mock_available:
+          type: boolean
+          title: Bank Mock Available
+      type: object
+      required:
+      - mode
+      - pilot_terms_version
+      - demo_available
+      - bank_mock_available
+      title: MetaOut
     NotificationMode:
       type: string
       enum:
@@ -3121,6 +3204,55 @@ components:
       - items
       - calendar
       title: ObligationsOut
+    PilotSessionOut:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+          description: Показывается один раз; на сервере хранится только хэш
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        user:
+          $ref: '#/components/schemas/UserOut'
+        first_sign_in:
+          type: boolean
+          title: First Sign In
+          description: true — профиль только что создан и пуст
+        data_quality:
+          $ref: '#/components/schemas/DataQuality'
+      type: object
+      required:
+      - access_token
+      - expires_at
+      - user
+      - first_sign_in
+      - data_quality
+      title: PilotSessionOut
+    PilotSignIn:
+      properties:
+        access_code:
+          type: string
+          maxLength: 40
+          minLength: 16
+          title: Access Code
+          examples:
+          - ABCD-EFGH-JKMN-PQRS
+        accepted_terms_version:
+          type: string
+          maxLength: 32
+          title: Accepted Terms Version
+      type: object
+      required:
+      - access_code
+      - accepted_terms_version
+      title: PilotSignIn
     Plan:
       type: string
       enum:
@@ -3757,5 +3889,5 @@ components:
   securitySchemes:
     HTTPBearer:
       type: http
-      description: Токен сессии из POST /api/v1/demo/sessions
+      description: Токен сессии из POST /api/v1/demo/sessions или /api/v1/pilot/sessions
       scheme: bearer

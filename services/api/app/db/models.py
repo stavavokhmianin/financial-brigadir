@@ -145,6 +145,31 @@ class BankConsent(Base):
     source_id: Mapped[str | None] = mapped_column(ForeignKey("data_sources.id"))
 
 
+class PilotAccessCode(Base):
+    """Персональный код участника пилота; хранится только хэш (как у токенов сессии)."""
+
+    __tablename__ = "pilot_access_codes"
+
+    id: Mapped[str] = mapped_column(ID, primary_key=True)
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+
+
+class ErasureRecord(Base):
+    """Факт удаления профиля: только случайный id, без персональных данных."""
+
+    __tablename__ = "erasure_log"
+
+    user_id: Mapped[str] = mapped_column(ID, primary_key=True)
+    erased_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
 class ImportBatch(Base):
     """Версия импорта: повторная загрузка того же файла идемпотентна (7.2)."""
 

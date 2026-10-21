@@ -1,3 +1,3 @@
-import { DemoLaunchScreen } from "@/features/demo/DemoLaunchScreen";
+import { StartScreen } from "@/features/pilot/StartScreen";
 
-export default DemoLaunchScreen;
+export default StartScreen;

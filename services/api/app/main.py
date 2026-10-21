@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.api.v1 import router as v1_router
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.core.limits import IngressLimits
 
@@ -19,8 +19,8 @@ DESCRIPTION = """
 """
 
 
-def create_app() -> FastAPI:
-    settings = get_settings()
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
     logging.basicConfig(
         level=settings.log_level.upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -30,7 +30,8 @@ def create_app() -> FastAPI:
         version=__version__,
         description=DESCRIPTION,
         openapi_url="/api/v1/openapi.json",
-        docs_url="/api/v1/docs",
+        # Swagger UI грузит скрипты с CDN — в изолированном пилотном контуре он не нужен.
+        docs_url="/api/v1/docs" if settings.app_mode == "demo" else None,
         redoc_url=None,
     )
     app.add_middleware(IngressLimits)
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
     )
+    app.state.settings = settings
     install_error_handlers(app)
     app.include_router(v1_router)
     return app

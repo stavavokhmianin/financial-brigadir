@@ -38,3 +38,8 @@ npm-debug.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Pilot stand: secrets, certificates, encrypted backups stay on the host
+infra/pilot/secrets/
+infra/pilot/certs/
+infra/pilot/backups/

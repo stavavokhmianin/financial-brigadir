@@ -4,7 +4,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Response
 from sqlalchemy import update
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AppSettings, CurrentUser, DbSession
 from app.core.errors import error_responses
 from app.db.models import AuditEvent, AuthSession
 from app.modules.privacy import erase_profile, export_profile
@@ -40,6 +40,8 @@ def logout(user: CurrentUser, db: DbSession) -> Response:
 @router.delete(
     "/profile", operation_id="deleteProfile", status_code=204, responses=error_responses(401)
 )
-def remove(body: DeleteProfileRequest, user: CurrentUser, db: DbSession) -> Response:
-    erase_profile(db, user)
+def remove(
+    body: DeleteProfileRequest, user: CurrentUser, db: DbSession, settings: AppSettings
+) -> Response:
+    erase_profile(db, user, settings.erasure_log_path)
     return Response(status_code=204)

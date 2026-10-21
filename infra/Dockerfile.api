@@ -13,6 +13,8 @@ COPY services/api services/api
 RUN pip install ./packages/forecast_core ./packages/synthetic_generator ./services/api
 
 RUN useradd --system --uid 10001 app
+# Том журнала удалений пилота наследует владельца из образа (infra/pilot).
+RUN mkdir -p /var/lib/brigadir/erasures && chown app /var/lib/brigadir/erasures
 USER app
 WORKDIR /srv/services/api
 EXPOSE 8000

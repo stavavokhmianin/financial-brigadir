@@ -1,6 +1,7 @@
 import logging
 import os
 
+from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.modules.privacy import purge_expired_profiles
 from fb_worker.runner import Worker
@@ -12,7 +13,7 @@ def _heartbeat() -> None:
 
 def _retention() -> None:
     with SessionLocal() as db:
-        count = purge_expired_profiles(db)
+        count = purge_expired_profiles(db, log_path=get_settings().erasure_log_path)
     if count:
         logging.getLogger("fb_worker").info("expired profiles removed: %d", count)
 

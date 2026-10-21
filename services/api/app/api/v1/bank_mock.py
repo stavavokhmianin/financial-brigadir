@@ -5,12 +5,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from anyio.from_thread import run as run_on_loop
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy import select
 
 from app.adapters.bank import ConsentToken, SourceAccount, SourceBalance
 from app.adapters.bank_mock import BankAccessError, BankMockConnector, BankNetworkError
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, demo_only
 from app.core.errors import APIError, error_responses
 from app.db.models import Account, AuditEvent, BankConsent, DataSource
 from app.domain.enums import AccountType, DataSourceKind
@@ -25,7 +25,9 @@ from app.schemas.bank_mock import (
     BankMockSyncRequest,
 )
 
-router = APIRouter(prefix="/connectors/bank-mock", tags=["connectors"])
+router = APIRouter(
+    prefix="/connectors/bank-mock", tags=["connectors"], dependencies=[Depends(demo_only)]
+)
 
 
 def _token(consent: BankConsent) -> ConsentToken:

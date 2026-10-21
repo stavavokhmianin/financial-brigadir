@@ -15,6 +15,8 @@ COPY services/worker services/worker
 RUN pip install ./packages/forecast_core ./packages/synthetic_generator ./services/api ./services/worker
 
 RUN useradd --system --uid 10001 app
+# Том журнала удалений пилота наследует владельца из образа (infra/pilot).
+RUN mkdir -p /var/lib/brigadir/erasures && chown app /var/lib/brigadir/erasures
 USER app
 
 CMD ["python", "-m", "fb_worker"]

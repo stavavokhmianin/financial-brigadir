@@ -75,3 +75,56 @@ jobs:
         run: docker compose logs --no-color
       - if: always()
         run: docker compose down -v
+
+  pilot-smoke:
+    name: Пилотный контур — TLS, изоляция, бэкап и удаление
+    runs-on: ubuntu-latest
+    needs: python
+    defaults:
+      run:
+        working-directory: infra/pilot
+    env:
+      PUBLIC_ORIGIN: https://localhost:8443
+    steps:
+      - uses: actions/checkout@v4
+      - name: Секреты и самоподписанный сертификат
+        run: ./init-secrets.sh && ./make-dev-cert.sh
+      - name: docker compose up (пилотный профиль)
+        run: docker compose up -d --build --wait
+      - name: Коды участников
+        run: |
+          docker compose exec -T api python -m app.cli invite --count 2 --days 7 > "$RUNNER_TEMP/codes"
+          for n in 1 2; do
+            code=$(sed -n "${n}p" "$RUNNER_TEMP/codes" | cut -f2)
+            echo "::add-mask::$code"
+            echo "CODE$n=$code" >> "$GITHUB_ENV"
+          done
+      - name: API, web-клиент, заголовки и limiter через TLS-прокси
+        run: python ../../scripts/pilot_smoke.py check "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE1"
+      - name: Наружу опубликован только прокси, у API нет выхода в интернет
+        run: |
+          # «! cmd» не роняет шаг под set -e, поэтому явные проверки.
+          if curl -s --max-time 3 http://localhost:8000/api/v1/health; then
+            echo "FAIL API доступен в обход прокси"; exit 1
+          fi
+          if (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+            echo "FAIL порт PostgreSQL открыт"; exit 1
+          fi
+          docker compose exec -T api python scripts/egress_check.py
+      - name: Бэкап → удаление → восстановление → повторное удаление
+        run: |
+          sleep 61  # окно limiter'а входа после проверки подбора кода
+          python ../../scripts/pilot_smoke.py join "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE2"
+          ./backup.sh "$RUNNER_TEMP/pilot.sql.gz.enc"
+          if gzip -t "$RUNNER_TEMP/pilot.sql.gz.enc" 2>/dev/null; then
+            echo "FAIL бэкап не зашифрован"; exit 1
+          fi
+          python ../../scripts/pilot_smoke.py erase "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE2"
+          ./restore.sh "$RUNNER_TEMP/pilot.sql.gz.enc" | tee "$RUNNER_TEMP/restore.log"
+          grep -q "повторно удалено профилей: 1" "$RUNNER_TEMP/restore.log"
+          python ../../scripts/pilot_smoke.py denied "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE2"
+      - name: Логи при падении
+        if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v

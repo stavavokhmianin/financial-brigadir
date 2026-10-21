@@ -1,6 +1,7 @@
 """Export and erase only the authenticated profile, including derived data."""
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import delete, select
@@ -13,12 +14,14 @@ from app.db.models import (
     AuthSession,
     BankConsent,
     DataSource,
+    ErasureRecord,
     ForecastPoint,
     ForecastRun,
     ImportBatch,
     IncomeEvent,
     NotificationSettings,
     Obligation,
+    PilotAccessCode,
     Scenario,
     Transaction,
     User,
@@ -65,7 +68,7 @@ def export_profile(db: Session, user: User) -> dict[str, Any]:
     return result
 
 
-def erase_profile(db: Session, user: User) -> None:
+def erase_profile(db: Session, user: User, log_path: str | None = None) -> None:
     # Explicit dependency order also works with SQLite FK enforcement enabled.
     db.execute(
         delete(ForecastPoint).where(
@@ -86,13 +89,40 @@ def erase_profile(db: Session, user: User) -> None:
         NotificationSettings,
         AuditEvent,
         AuthSession,
+        PilotAccessCode,
     ):
         db.execute(delete(model).where(model.user_id == user.id))
     db.execute(delete(User).where(User.id == user.id))
+    db.merge(ErasureRecord(user_id=user.id, erased_at=datetime.now(UTC)))
     db.commit()
+    if log_path:
+        # Файл живёт вне БД и вне бэкапа: восстановленная копия не «забудет» удаление.
+        with Path(log_path).open("a", encoding="utf-8") as log:
+            log.write(user.id + "\n")
 
 
-def purge_expired_profiles(db: Session, now: datetime | None = None) -> int:
+def reapply_erasures(db: Session, log_path: str | None = None) -> int:
+    """После восстановления бэкапа удаляет профили, стёртые после его создания."""
+    erased = set(db.scalars(select(ErasureRecord.user_id)))
+    if log_path and Path(log_path).exists():
+        erased |= {
+            line.strip()
+            for line in Path(log_path).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+    users = list(db.scalars(select(User).where(User.id.in_(erased)))) if erased else []
+    for user in users:
+        erase_profile(db, user)
+    # Восстановленный журнал в БД мог отстать от файла — дополняем его.
+    for user_id in erased:
+        db.merge(ErasureRecord(user_id=user_id))
+    db.commit()
+    return len(users)
+
+
+def purge_expired_profiles(
+    db: Session, now: datetime | None = None, log_path: str | None = None
+) -> int:
     """Delete up to 100 abandoned demo profiles per worker tick after seven days."""
     now = now or datetime.now(UTC)
     active = select(AuthSession.user_id).where(
@@ -110,5 +140,5 @@ def purge_expired_profiles(db: Session, now: datetime | None = None) -> int:
         )
     )
     for user in users:
-        erase_profile(db, user)
+        erase_profile(db, user, log_path)
     return len(users)

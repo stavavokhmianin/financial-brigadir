@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.limits import IngressLimits
 from app.db.base import Base
-from app.db.models import AuthSession, User
+from app.db.models import AuthSession, ErasureRecord, User
 from app.main import create_app
 from app.modules.privacy import purge_expired_profiles
 
@@ -49,8 +49,11 @@ def test_export_and_delete_include_derived_data_and_isolate_users(
     assert client.get("/api/v1/accounts", headers=bob).status_code == 200
     with db_session_factory() as db:
         assert db.get(User, uid) is None
+        # erasure_log намеренно хранит только случайный id — чтобы повторить удаление
+        # после восстановления бэкапа; данных профиля в нём нет.
+        assert db.get(ErasureRecord, uid) is not None
         for table in Base.metadata.tables.values():
-            if "user_id" in table.c:
+            if "user_id" in table.c and table.name != "erasure_log":
                 assert (
                     db.scalar(select(func.count()).select_from(table).where(table.c.user_id == uid))
                     == 0
@@ -64,7 +67,8 @@ def test_export_and_delete_include_derived_data_and_isolate_users(
     )
     with db_session_factory() as db:
         for table in Base.metadata.tables.values():
-            assert db.scalar(select(func.count()).select_from(table)) == 0, table.name
+            if table.name != "erasure_log":
+                assert db.scalar(select(func.count()).select_from(table)) == 0, table.name
 
 
 def test_logout_revokes_and_private_actions_require_auth(client: TestClient) -> None:

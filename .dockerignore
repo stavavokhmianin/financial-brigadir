@@ -1,0 +1,17 @@
+# Контекст сборки — весь репозиторий; в образы не попадают зависимости, сборки и секреты.
+.git
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.hypothesis
+apps/client/dist-web
+apps/client/.expo
+apps/client/android
+apps/client/ios
+infra/pilot/secrets
+infra/pilot/certs
+infra/pilot/backups
+**/*.db
+.env

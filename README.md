@@ -27,7 +27,8 @@ services/worker/             простой фоновый воркер
 packages/forecast_core/      расчётное ядро: чистый Python
 packages/synthetic_generator/  воспроизводимые демо-профили
 packages/api_contracts/      openapi.yaml — контракт клиента и сервера
-infra/                       Dockerfile'ы и compose
+infra/                       Dockerfile'ы и compose (демо)
+infra/pilot/                 пилотный/on-prem-контур: TLS-прокси, изоляция, бэкапы
 docs/ADR/                    архитектурные решения
 ```
 
@@ -62,6 +63,17 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+### Пилотный контур
+
+```bash
+cd infra/pilot && ./init-secrets.sh && ./make-dev-cert.sh
+PUBLIC_ORIGIN=https://localhost:8443 docker compose up -d --build --wait
+docker compose exec api python -m app.cli invite --count 5
+```
+
+Вход по коду участника, только TLS, API без выхода в интернет, зашифрованные бэкапы с повтором
+удалений. Подробно — `docs/pilot.md`.
+
 ## Демо (раздел 16.4)
 
 Сценарий выступления, тайминги и план Б — `docs/demo-script.md`.
@@ -81,7 +93,8 @@ cd apps/client && npm run typecheck && npm test
 ```
 
 CI (`.github/workflows/ci.yml`) прогоняет то же самое, собирает web-бандл клиента и
-запускает `docker compose` со smoke-тестом.
+запускает `docker compose` со smoke-тестом демо и отдельно — пилотный контур
+(`pilot-smoke`: TLS, изоляция сети, limiter, бэкап → удаление → восстановление).
 
 ## Команда (раздел 16.1 ТЗ)
 

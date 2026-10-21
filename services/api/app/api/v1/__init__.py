@@ -9,8 +9,10 @@ from app.api.v1 import (
     health,
     imports,
     incomes,
+    meta,
     notifications,
     obligations,
+    pilot,
     plans,
     privacy,
     transactions,
@@ -18,6 +20,8 @@ from app.api.v1 import (
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(health.router)
+router.include_router(meta.router)
+router.include_router(pilot.router)
 router.include_router(demo.router)
 router.include_router(accounts.router)
 router.include_router(transactions.router)
