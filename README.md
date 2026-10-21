@@ -81,7 +81,10 @@ docker compose exec api python -m app.cli invite --count 5
 ```bash
 python scripts/demo_walkthrough.py --api http://localhost:8000   # против стенда
 python scripts/demo_walkthrough.py --offline                     # План Б: без сети и Docker
+python scripts/record_demo.py --web http://127.0.0.1:8081        # видео-страховка (Playwright)
 ```
+
+Презентация для защиты — `docs/pitch/deck.md` (Marp), план развития — `docs/roadmap.md`.
 
 ## Проверки
 

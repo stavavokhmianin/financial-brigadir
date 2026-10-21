@@ -1,0 +1,66 @@
+name: Demo video (16.4)
+
+# Видео-страховка демо: web-клиент проходит сценарий 16.4 с субтитрами шагов.
+# Артефакт — demo-16-4.webm и кадры ключевых шагов для презентации.
+on:
+  push:
+    branches: [step4ik]
+    paths:
+      - "apps/client/**"
+      - "scripts/record_demo.py"
+      - ".github/workflows/demo-video.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-video-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EXPO_PUBLIC_API_URL: http://127.0.0.1:8000
+      DATABASE_URL: sqlite:///./demo.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "**/pyproject.toml"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Зависимости
+        run: |
+          pip install -r requirements-dev.txt playwright==1.64.0
+          python -m playwright install --with-deps chromium
+          cd apps/client && npm install --no-audit --no-fund
+      - name: Web-сборка клиента
+        working-directory: apps/client
+        run: npx expo export --platform web --output-dir dist-web
+      - name: API (демо) и статический сервер
+        run: |
+          cd services/api && alembic upgrade head
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &
+          cd ../.. && nohup python -m http.server 8081 --bind 127.0.0.1 \
+            --directory apps/client/dist-web > "$RUNNER_TEMP/web.log" 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/api/v1/health/ready && break
+            sleep 1
+          done
+      - name: Запись
+        run: python scripts/record_demo.py --web http://127.0.0.1:8081 --out artifacts/demo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demo-video
+          path: artifacts/demo
+          retention-days: 30
+      - name: Логи API при падении
+        if: failure()
+        run: cat "$RUNNER_TEMP/api.log"

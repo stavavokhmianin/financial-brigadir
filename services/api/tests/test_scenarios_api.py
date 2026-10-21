@@ -59,7 +59,7 @@ def test_purchase_scenario_compares_before_and_after(
     assert data["result"]["scenario_risk"] >= 0.5
     text = data["explanation"]
     assert text.startswith("Если 20 октября купить «Телефон» за 12 000 ₽")
-    assert "можно потратить до" in text
+    assert "резерв сохранится при покупке" in text and "без риска" not in text.lower()
     stored = client.get(f"/api/v1/forecasts/{data['result']['forecast_id']}", headers=headers)
     assert stored.json()["scenario"]["amount_minor"] == 1_200_000
 

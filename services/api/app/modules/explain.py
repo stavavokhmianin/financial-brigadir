@@ -119,7 +119,8 @@ def explain_comparison(
             else "в плохом сценарии лучше ничего не тратить"
         )
         parts.append(
-            f"Без риска для резерва {day_text(safe.day)} можно потратить до "
+            # Не «без риска»: модель — оценка, а не гарантия (ADR-0006).
+            f"По расчёту резерв сохранится при покупке {day_text(safe.day)} до "
             f"{rub(safe.base_minor)} ({careful})."
         )
     else:
