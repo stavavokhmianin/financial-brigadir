@@ -4,8 +4,10 @@ name: Every main screen opens without errors
 # Продолжение mvp.yaml: приложение уже на экране учебного банка.
 # Каждый экран должен открыться, дождаться данных и не показать ошибку загрузки.
 - back
-- extendedWaitUntil:
-    visible: "Свободные средства"
+# Главный экран сохраняет прокрутку: возвращаемся к началу.
+- scrollUntilVisible:
+    element: "Свободные средства"
+    direction: UP
     timeout: 30000
 
 # Прогноз
