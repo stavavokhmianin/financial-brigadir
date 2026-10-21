@@ -3,6 +3,13 @@ name: Demo purchase, plan preview and bank mock
 ---
 - launchApp:
     clearState: true
+# A cold hosted emulator can show its own System UI ANR during initial boot.
+# Only dismiss that system dialog; application crashes still fail the flow.
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible: ".*Молодой специалист.*"
     timeout: 30000
