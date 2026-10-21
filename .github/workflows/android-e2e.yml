@@ -7,7 +7,6 @@ on:
       - "apps/client/**"
       - "services/api/**"
       - "packages/**"
-      - ".github/workflows/android-e2e.yml"
   workflow_dispatch:
     inputs:
       apk_run_id:
@@ -128,8 +127,11 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_6
+          disk-size: 4096M
+          ram-size: 2048M
+          emulator-boot-timeout: 180
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-metrics -noaudio -no-boot-anim -camera-back none
           script: |
             mkdir -p artifacts/mobile
             adb install -r artifacts/apk/app-release.apk
