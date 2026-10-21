@@ -4,6 +4,9 @@
 Код живёт в ветке `step4ik`, отчёты по этапам — в `master/reports`.
 
 Приватность, экспорт, удаление и сроки хранения: [docs/privacy.md](docs/privacy.md).
+Критерии приёмки: [docs/quality-gates.md](docs/quality-gates.md).
+Плановая экономика: [docs/business-model.md](docs/business-model.md)
+(`python scripts/business_model.py`).
 
 > Продукт не банк и не проводит платежи. Прогнозы — модельные оценки, а не гарантированный остаток.
 
