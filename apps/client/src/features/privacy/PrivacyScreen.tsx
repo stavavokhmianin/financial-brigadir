@@ -2,7 +2,7 @@ import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import { Platform, Share, View } from "react-native";
 
-import { api } from "@/shared/api/client";
+import { api, ApiError } from "@/shared/api/client";
 import { useSession } from "@/shared/session";
 import { Button, Card, Field, Muted, Screen } from "@/shared/ui/components";
 
@@ -40,7 +40,13 @@ export function PrivacyScreen() {
 
   async function finish(remove: boolean) {
     if (remove) await api.deleteProfile(token);
-    else await api.logout(token);
+    else {
+      try { await api.logout(token); }
+      catch (error) {
+        // An expired/revoked session is already inactive on the server.
+        if (!(error instanceof ApiError) || error.status !== 401) throw error;
+      }
+    }
     setSession(null);
     router.dismissAll();
     router.replace("/");
