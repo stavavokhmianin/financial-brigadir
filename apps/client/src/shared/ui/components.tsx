@@ -9,6 +9,7 @@ import {
   View,
   type KeyboardTypeOptions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { space, usePalette } from "./theme";
 
@@ -110,10 +111,13 @@ export function Choice<T extends string>({ label, options, value, onChange }: Ch
 
 export function Screen({ children }: { children: ReactNode }) {
   const palette = usePalette();
+  // Android 15+ и SDK 54 рисуют edge-to-edge: без отступа последняя кнопка уходит
+  // под системную панель навигации.
+  const { bottom } = useSafeAreaInsets();
   return (
     <ScrollView
       style={{ backgroundColor: palette.background }}
-      contentContainerStyle={styles.screen}
+      contentContainerStyle={[styles.screen, { paddingBottom: space.lg + bottom }]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.column}>{children}</View>

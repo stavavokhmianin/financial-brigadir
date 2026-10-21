@@ -53,8 +53,9 @@ name: Demo purchase, plan preview and bank mock
 - takeScreenshot: artifacts/mobile/02-purchase-risk
 - back
 - scrollUntilVisible:
-    element: "Free и Plus"
-    centerElement: true
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
 - tapOn: "Free и Plus"
 - scrollUntilVisible:
     element: "Проверить Free в демо"
@@ -72,8 +73,9 @@ name: Demo purchase, plan preview and bank mock
 - takeScreenshot: artifacts/mobile/03-plan-preview
 - back
 - scrollUntilVisible:
-    element: "Учебный банк \\(мок\\)"
-    centerElement: true
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
 - tapOn: "Учебный банк \\(мок\\)"
 - tapOn: "Разрешить чтение синтетики на 24 часа"
 - assertVisible: "Отозвать доступ"
