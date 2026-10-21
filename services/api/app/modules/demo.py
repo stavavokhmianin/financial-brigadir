@@ -23,6 +23,7 @@ from app.domain.enums import (
     IncomeKind,
     ObligationKind,
     ObligationStatus,
+    Plan,
     Priority,
     Recurrence,
 )
@@ -58,6 +59,7 @@ def create_demo_session(
     user = User(
         id=new_id("usr"),
         is_demo=True,
+        plan=Plan.PLUS,  # Full demo by default; Free can be previewed without billing.
         demo_profile=profile_id,
         demo_seed=seed,
         timezone=str(bundle.profile["timezone"]),

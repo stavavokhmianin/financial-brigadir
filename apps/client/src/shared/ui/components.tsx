@@ -13,6 +13,7 @@ import {
 import { space, usePalette } from "./theme";
 
 interface FieldProps {
+  testID?: string;
   label: string;
   value: string;
   onChangeText: (value: string) => void;
@@ -30,6 +31,7 @@ export function Field(props: FieldProps) {
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { color: palette.text }]}>{props.label}</Text>
       <TextInput
+        testID={props.testID}
         accessibilityLabel={props.label}
         value={props.value}
         onChangeText={props.onChangeText}
@@ -134,6 +136,7 @@ export function Card({ title, children }: { title?: string; children: ReactNode 
 }
 
 interface ButtonProps {
+  testID?: string;
   label: string;
   onPress: () => void;
   loading?: boolean;
@@ -141,12 +144,13 @@ interface ButtonProps {
   variant?: "primary" | "secondary";
 }
 
-export function Button({ label, onPress, loading, disabled, variant = "primary" }: ButtonProps) {
+export function Button({ label, onPress, loading, disabled, testID, variant = "primary" }: ButtonProps) {
   const palette = usePalette();
   const primary = variant === "primary";
   const inactive = Boolean(disabled || loading);
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: inactive, busy: Boolean(loading) }}

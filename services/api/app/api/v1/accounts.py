@@ -9,6 +9,7 @@ from app.core.errors import APIError, error_responses, not_found
 from app.db.models import Account, AuditEvent, DataSource, User
 from app.domain.enums import AccountType, DataSourceKind
 from app.domain.ids import new_id
+from app.modules.plans import ensure_account_capacity, lock_profile
 from app.modules.quality import data_quality
 from app.schemas.accounts import AccountCreate, AccountOut, AccountPatch, AccountsOut
 from forecast_core import AccountSnapshot, liquid_balance_minor
@@ -35,7 +36,7 @@ def _snapshot(account: Account) -> AccountSnapshot:
     "",
     operation_id="listAccounts",
     summary="Счета пользователя, свободные средства и свежесть источников",
-    responses=error_responses(401),
+    responses=error_responses(401, 403),
 )
 def list_accounts(user: CurrentUser, db: DbSession) -> AccountsOut:
     accounts = db.scalars(
@@ -71,9 +72,11 @@ def _manual_source(db: DbSession, user: User) -> DataSource:
     operation_id="createAccount",
     summary="Ручное создание счёта и стартового остатка (FR-03)",
     status_code=status.HTTP_201_CREATED,
-    responses=error_responses(401),
+    responses=error_responses(401, 403),
 )
 def create_account(body: AccountCreate, user: CurrentUser, db: DbSession) -> AccountOut:
+    user = lock_profile(db, user)
+    ensure_account_capacity(db, user)
     now = datetime.now(UTC)
     source = _manual_source(db, user)
     source.data_as_of = now

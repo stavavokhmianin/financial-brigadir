@@ -1,0 +1,82 @@
+appId: ru.brigadir.app
+name: Demo purchase, plan preview and bank mock
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Запустить демо"
+    timeout: 30000
+- tapOn: "Запустить демо"
+- extendedWaitUntil:
+    visible: "Свободные средства"
+    timeout: 30000
+- takeScreenshot: artifacts/mobile/01-dashboard
+- scrollUntilVisible:
+    element: "Что если купить\\?"
+    direction: DOWN
+- tapOn: "Что если купить\\?"
+- extendedWaitUntil:
+    visible:
+      id: "purchase-amount"
+    timeout: 30000
+- tapOn:
+    id: "purchase-amount"
+- inputText: "12000"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "calculate-scenario"
+- tapOn:
+    id: "calculate-scenario"
+- scrollUntilVisible:
+    element:
+      id: "risk-high"
+    timeout: 30000
+- assertVisible:
+    id: "risk-high"
+- takeScreenshot: artifacts/mobile/02-purchase-risk
+- back
+- scrollUntilVisible:
+    element: "Free и Plus"
+- tapOn: "Free и Plus"
+- scrollUntilVisible:
+    element: "Проверить Free в демо"
+- tapOn: "Проверить Free в демо"
+- scrollUntilVisible:
+    element: "Демо: Free"
+    direction: UP
+- assertVisible: "Демо: Free"
+- scrollUntilVisible:
+    element: "Проверить Plus в демо"
+- tapOn: "Проверить Plus в демо"
+- scrollUntilVisible:
+    element: "Демо: Plus"
+    direction: UP
+- takeScreenshot: artifacts/mobile/03-plan-preview
+- back
+- scrollUntilVisible:
+    element: "Учебный банк \\(мок\\)"
+- tapOn: "Учебный банк \\(мок\\)"
+- tapOn: "Разрешить чтение синтетики на 24 часа"
+- assertVisible: "Отозвать доступ"
+- scrollUntilVisible:
+    element: "Синхронизировать учебный счёт"
+- tapOn: "Синхронизировать учебный счёт"
+- scrollUntilVisible:
+    element: ".*Новых операций: [1-9][0-9]*.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Синхронизировать учебный счёт"
+    direction: UP
+- tapOn: "Синхронизировать учебный счёт"
+- scrollUntilVisible:
+    element: ".*Новых операций: 0;.*"
+    timeout: 30000
+- takeScreenshot: artifacts/mobile/04-bank-replay
+- scrollUntilVisible:
+    element: "Отозвать доступ"
+    direction: UP
+- tapOn: "Отозвать доступ"
+- scrollUntilVisible:
+    element: ".*Доступ отозван.*"
+- takeScreenshot: artifacts/mobile/05-consent-revoked

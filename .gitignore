@@ -27,6 +27,9 @@ dist-android/
 dist-ios/
 web-build/
 apps/client/src/shared/api/schema.d.ts
+apps/client/android/
+apps/client/ios/
+artifacts/
 *.tsbuildinfo
 npm-debug.log*
 

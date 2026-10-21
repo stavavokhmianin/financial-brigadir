@@ -253,6 +253,7 @@ export function DashboardScreen() {
         variant="secondary"
         onPress={() => router.push("/import")}
       />
+      <Button label="Free и Plus" onPress={() => router.push("/plans")} variant="secondary" />
       <Button label="Учебный банк (мок)" onPress={() => router.push("/bank")} variant="secondary" />
       <Button label="Приватность, экспорт и выход" onPress={switchProfile} variant="secondary" />
     </Screen>

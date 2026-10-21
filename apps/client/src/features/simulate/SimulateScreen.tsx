@@ -162,6 +162,7 @@ export function SimulateScreen() {
         )}
         <Field
           label={t.amount}
+          testID="purchase-amount"
           value={amount}
           onChangeText={setAmount}
           keyboardType="decimal-pad"
@@ -170,7 +171,7 @@ export function SimulateScreen() {
         />
         <Field label={t.label} value={label} onChangeText={setLabel} placeholder={t.defaultLabel} />
         <Field label={t.date} value={date} onChangeText={setDate} error={errors.date} />
-        {salaryId ? (
+        {salaryId && session.user.plan === "plus" ? (
           <Choice
             label={t.delay}
             value={delay}
@@ -180,8 +181,8 @@ export function SimulateScreen() {
               label: value === "0" ? t.onTime : `${t.later} ${value} ${t.days}`,
             }))}
           />
-        ) : null}
-        <Button label={t.calculate} onPress={() => void simulate()} loading={busy} />
+        ) : salaryId ? <Muted>Задержка дохода и комбинации сценариев доступны в Plus. Режим можно проверить в разделе «Free и Plus».</Muted> : null}
+        <Button testID="calculate-scenario" label={t.calculate} onPress={() => void simulate()} loading={busy} />
         <Muted>{t.noPayment}</Muted>
       </Card>
 

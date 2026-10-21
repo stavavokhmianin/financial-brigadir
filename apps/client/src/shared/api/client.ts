@@ -96,6 +96,10 @@ export interface CsvImportInput {
 }
 
 export const api = {
+  getPlans: (token: string) => request<Schemas["PlansOut"]>("/api/v1/plans", { token }),
+  previewDemoPlan: (token: string, plan: "free" | "plus") => request<Schemas["PlansOut"]>("/api/v1/plans/demo-preview", {
+    token, method: "PATCH", body: { plan },
+  }),
   bankConsent: (token: string) => request<Schemas["BankConsentOut"] | null>("/api/v1/connectors/bank-mock/consent", { token }),
   grantBankConsent: (token: string) => request<Schemas["BankConsentOut"]>("/api/v1/connectors/bank-mock/consent", {
     token, method: "POST", body: { accepted: true, scopes: ["accounts", "balances", "transactions"], ttl_hours: 24 },

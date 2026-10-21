@@ -32,6 +32,7 @@ export function RiskBanner({ forecast }: { forecast: Forecast }) {
   return (
     <View
       accessibilityRole="alert"
+      testID={`risk-${forecast.risk_level}`}
       style={[styles.banner, { borderColor: color, backgroundColor: palette.card }]}
     >
       <Text style={[styles.bannerTitle, { color }]}>{t.level[forecast.risk_level]}</Text>

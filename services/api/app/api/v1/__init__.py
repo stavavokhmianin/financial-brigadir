@@ -11,6 +11,7 @@ from app.api.v1 import (
     notifications,
     obligations,
     planned,
+    plans,
     privacy,
     transactions,
 )
@@ -28,3 +29,4 @@ router.include_router(forecasts.router)
 router.include_router(alerts.router)
 router.include_router(planned.router)
 router.include_router(privacy.router)
+router.include_router(plans.router)

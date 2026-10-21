@@ -16,6 +16,7 @@ from app.domain.enums import AccountType, DataSourceKind
 from app.domain.ids import new_id
 from app.modules.dedup import detect_duplicates
 from app.modules.ledger import ingest_transactions
+from app.modules.plans import ensure_account_capacity, lock_profile
 from app.schemas.planned import (
     BankConsentOut,
     BankConsentRequest,
@@ -81,6 +82,7 @@ async def revoke_consent(user: CurrentUser, db: DbSession) -> Response:
 async def sync_bank_mock(
     body: BankMockSyncRequest, user: CurrentUser, db: DbSession
 ) -> BankMockSyncOut:
+    user = lock_profile(db, user)
     # PostgreSQL serializes sync/revoke/renew on the same consent row.
     consent = db.scalar(select(BankConsent).where(BankConsent.user_id == user.id).with_for_update())
     if consent is None or consent.revoked_at is not None:
@@ -125,6 +127,19 @@ async def sync_bank_mock(
     source = db.get(DataSource, consent.source_id) if consent.source_id else None
     if source and source.data_as_of and connector.as_of < source.data_as_of:
         raise APIError(409, "stale_bank_snapshot", "Ответ банка старее уже сохранённых данных.")
+    existing_ids = (
+        set(
+            db.scalars(
+                select(Account.external_id).where(
+                    Account.user_id == user.id,
+                    Account.source_id == source.id,
+                )
+            )
+        )
+        if source
+        else set()
+    )
+    ensure_account_capacity(db, user, sum(a.external_id not in existing_ids for a in accounts))
     if source is None:
         source = DataSource(
             id=new_id("src"),

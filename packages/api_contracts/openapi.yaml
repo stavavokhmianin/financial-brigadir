@@ -122,6 +122,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
+        '403':
+          description: Ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
       security:
       - HTTPBearer: []
     post:
@@ -144,6 +150,12 @@ paths:
                 $ref: '#/components/schemas/AccountOut'
         '401':
           description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '403':
+          description: Ошибка
           content:
             application/json:
               schema:
@@ -863,6 +875,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorOut'
+        '403':
+          description: Ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
         '404':
           description: Объект не найден
           content:
@@ -942,6 +960,12 @@ paths:
                 $ref: '#/components/schemas/ErrorOut'
         '401':
           description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '403':
+          description: Ошибка
           content:
             application/json:
               schema:
@@ -1252,6 +1276,66 @@ paths:
           description: Successful Response
         '401':
           description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/plans:
+    get:
+      tags:
+      - plans
+      summary: Get Plans
+      operationId: getPlans
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlansOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/plans/demo-preview:
+    patch:
+      tags:
+      - plans
+      summary: Preview Plan
+      operationId: previewDemoPlan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanPreviewRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlansOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '403':
+          description: Ошибка
           content:
             application/json:
               schema:
@@ -3044,6 +3128,68 @@ components:
       - plus
       title: Plan
       description: Логическое разделение функций Free/Plus (FR-28).
+    PlanPreviewRequest:
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+      additionalProperties: false
+      type: object
+      required:
+      - plan
+      title: PlanPreviewRequest
+    PlanSpec:
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+        max_new_accounts:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max New Accounts
+        max_horizon_days:
+          type: integer
+          title: Max Horizon Days
+        advanced_scenarios:
+          type: boolean
+          title: Advanced Scenarios
+      type: object
+      required:
+      - plan
+      - max_new_accounts
+      - max_horizon_days
+      - advanced_scenarios
+      title: PlanSpec
+    PlansOut:
+      properties:
+        current_plan:
+          $ref: '#/components/schemas/Plan'
+        demo_preview:
+          type: boolean
+          title: Demo Preview
+        billing_enabled:
+          type: boolean
+          const: false
+          title: Billing Enabled
+          default: false
+        account_count:
+          type: integer
+          title: Account Count
+        existing_accounts_over_limit:
+          type: boolean
+          title: Existing Accounts Over Limit
+        plans:
+          items:
+            $ref: '#/components/schemas/PlanSpec'
+          type: array
+          title: Plans
+      type: object
+      required:
+      - current_plan
+      - demo_preview
+      - account_count
+      - existing_accounts_over_limit
+      - plans
+      title: PlansOut
     Priority:
       type: string
       enum:
