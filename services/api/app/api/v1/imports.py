@@ -168,6 +168,9 @@ def import_csv(
             details={"issues": [i.model_dump() for i in _issues(parsed)]},
         )
     source = _csv_source(db, user, account)
+    # An invalid subset is a gap, not a complete statement. Keep the flag until
+    # completeness can be independently established; another file alone cannot prove it.
+    source.is_partial = source.is_partial or parsed.rows_rejected > 0
     batch = ImportBatch(
         id=new_id("imp"),
         user_id=user.id,

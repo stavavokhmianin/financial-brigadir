@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
-import { Platform, Share, Text } from "react-native";
+import { Platform, Share, View } from "react-native";
 
 import { api } from "@/shared/api/client";
 import { useSession } from "@/shared/session";
@@ -42,6 +42,7 @@ export function PrivacyScreen() {
     if (remove) await api.deleteProfile(token);
     else await api.logout(token);
     setSession(null);
+    router.dismissAll();
     router.replace("/");
   }
 
@@ -58,6 +59,6 @@ export function PrivacyScreen() {
       <Button label="Удалить все мои данные" disabled={busy || confirmation !== "УДАЛИТЬ"} onPress={() => void run(() => finish(true))} />
     </Card>
     <Button label="Выйти и отозвать сессии" variant="secondary" disabled={busy} onPress={() => void run(() => finish(false))} />
-    {message ? <Text accessibilityRole="alert">{message}</Text> : null}
+    {message ? <View accessibilityRole="alert"><Muted>{message}</Muted></View> : null}
   </Screen>;
 }

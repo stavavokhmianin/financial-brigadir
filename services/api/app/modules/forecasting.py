@@ -76,7 +76,7 @@ def _as_of(db: Session, user: User) -> tuple[datetime, datetime, bool]:
     quality = data_quality(db, user)
     data_as_of = quality.data_as_of or datetime.now(UTC)
     # Демо-профиль заморожен на дате выгрузки, реальный пользователь считает «от сейчас».
-    as_of = data_as_of if user.is_demo else datetime.now(UTC)
+    as_of = data_as_of if quality.is_demo else datetime.now(UTC)
     return as_of, data_as_of, quality.stale
 
 
