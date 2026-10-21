@@ -54,6 +54,7 @@ name: Demo purchase, plan preview and bank mock
 - back
 - scrollUntilVisible:
     element: "Free и Plus"
+    centerElement: true
 - tapOn: "Free и Plus"
 - scrollUntilVisible:
     element: "Проверить Free в демо"
@@ -72,6 +73,7 @@ name: Demo purchase, plan preview and bank mock
 - back
 - scrollUntilVisible:
     element: "Учебный банк \\(мок\\)"
+    centerElement: true
 - tapOn: "Учебный банк \\(мок\\)"
 - tapOn: "Разрешить чтение синтетики на 24 часа"
 - assertVisible: "Отозвать доступ"

@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { apiUrl } from "../config";
 import type { components } from "./schema";
 
 // Типы генерируются из packages/api_contracts/openapi.yaml (npm run gen:api).
@@ -58,7 +58,7 @@ function buildUrl(path: string, query?: Query): string {
   const params = Object.entries(query ?? {})
     .filter((entry): entry is [string, string | number | boolean] => entry[1] !== undefined)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
-  return `${API_URL}${path}${params.length ? `?${params.join("&")}` : ""}`;
+  return `${apiUrl()}${path}${params.length ? `?${params.join("&")}` : ""}`;
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {

@@ -16,7 +16,19 @@ export const ru = {
     empty: "Профилей пока нет.",
     afterMvp: "после MVP",
     selected: "выбран",
-    serverHint: "Запустите API: docker compose up --build (адрес задаётся EXPO_PUBLIC_API_URL).",
+    serverHint: "Запустите API: docker compose up --build. Адрес сервера можно сменить на стартовом экране.",
+  },
+  server: {
+    title: "Адрес сервера",
+    lead: "Приложение не достучалось до API. Укажите адрес компьютера или стенда, где он запущен.",
+    deviceHint:
+      "Сейчас указан адрес самого телефона. Если API запущен на ноутбуке, введите его адрес в Wi-Fi-сети, например http://192.168.1.5:8000 — телефон и ноутбук должны быть в одной сети.",
+    label: "Адрес API",
+    hint: "На ноутбуке: docker compose up --build, затем ipconfig (Windows) или ip addr (Linux/macOS), чтобы узнать адрес.",
+    invalid: "Нужен адрес вида http://192.168.1.5:8000",
+    connect: "Подключиться",
+    unavailable: "Нет связи с API",
+    unknown: "Неизвестная ошибка.",
   },
   pilot: {
     loading: "Подключаемся к стенду…",
