@@ -39,15 +39,6 @@ def not_found(what: str) -> APIError:
     return APIError(status.HTTP_404_NOT_FOUND, "not_found", f"{what} не найден")
 
 
-def not_implemented(stage: str) -> APIError:
-    return APIError(
-        status.HTTP_501_NOT_IMPLEMENTED,
-        "not_implemented",
-        f"Контракт зафиксирован, реализация — {stage}",
-        details={"planned_stage": stage},
-    )
-
-
 # Описания задаются явно: фразы http.HTTPStatus различаются между версиями Python
 # (413 в 3.13 — «Content Too Large»), а контракт не должен от этого зависеть.
 ERROR_DESCRIPTIONS = {
@@ -56,7 +47,6 @@ ERROR_DESCRIPTIONS = {
     404: "Объект не найден",
     409: "Конфликт с уже выполненным запросом",
     413: "Файл слишком большой",
-    501: "Контракт зафиксирован, реализация на следующем этапе",
 }
 
 

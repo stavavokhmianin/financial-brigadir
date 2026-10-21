@@ -3,10 +3,12 @@ name: Android APK and device E2E
 on:
   push:
     branches: [step4ik]
+    # Эмулятор дорогой по минутам Actions: на push — только при изменении клиента
+    # и самой проверки. Изменения API покрывает основной CI, вручную — workflow_dispatch.
     paths:
       - "apps/client/**"
-      - "services/api/**"
-      - "packages/**"
+      - ".github/workflows/android-e2e.yml"
+      - "scripts/android_e2e.py"
   workflow_dispatch:
     inputs:
       apk_run_id:

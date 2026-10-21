@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     accounts,
     alerts,
+    bank_mock,
     demo,
     forecasts,
     health,
@@ -10,7 +11,6 @@ from app.api.v1 import (
     incomes,
     notifications,
     obligations,
-    planned,
     plans,
     privacy,
     transactions,
@@ -27,6 +27,6 @@ router.include_router(imports.router)
 router.include_router(incomes.router)
 router.include_router(forecasts.router)
 router.include_router(alerts.router)
-router.include_router(planned.router)
+router.include_router(bank_mock.router)
 router.include_router(privacy.router)
 router.include_router(plans.router)

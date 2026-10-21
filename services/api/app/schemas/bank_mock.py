@@ -1,8 +1,4 @@
-"""Контракты эндпоинтов следующих этапов (раздел 22.2).
-
-Схемы зафиксированы сейчас, чтобы клиент (B) и расчётный модуль (C) работали
-параллельно. Обработчики отвечают ``501`` до реализации на своём этапе.
-"""
+"""Контракты мока банковского подключения (22.4): согласие и синхронизация."""
 
 from datetime import datetime
 from typing import Literal
@@ -11,8 +7,6 @@ from pydantic import Field
 
 from app.adapters.bank_mock import MockScenario
 from app.schemas.common import APIModel
-
-# --- Мок банковского подключения (22.4) ---
 
 
 class BankMockSyncRequest(APIModel):

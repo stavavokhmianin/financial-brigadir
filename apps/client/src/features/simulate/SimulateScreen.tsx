@@ -181,7 +181,7 @@ export function SimulateScreen() {
               label: value === "0" ? t.onTime : `${t.later} ${value} ${t.days}`,
             }))}
           />
-        ) : salaryId ? <Muted>Задержка дохода и комбинации сценариев доступны в Plus. Режим можно проверить в разделе «Free и Plus».</Muted> : null}
+        ) : salaryId ? <Muted>{t.plusOnly}</Muted> : null}
         <Button testID="calculate-scenario" label={t.calculate} onPress={() => void simulate()} loading={busy} />
         <Muted>{t.noPayment}</Muted>
       </Card>

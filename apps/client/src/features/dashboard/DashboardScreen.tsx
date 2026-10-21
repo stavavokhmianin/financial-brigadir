@@ -79,15 +79,11 @@ export function DashboardScreen() {
     return <Redirect href="/" />;
   }
 
-  const switchProfile = () => {
-    router.push("/privacy");
-  };
-
   if (error) {
     return (
       <Screen>
         <ErrorState title={ru.dashboard.loadError} message={error} onRetry={() => void load()} />
-        <Button label={ru.dashboard.switchProfile} onPress={switchProfile} variant="secondary" />
+        <Button label={ru.dashboard.privacy} onPress={() => router.push("/privacy")} variant="secondary" />
       </Screen>
     );
   }
@@ -253,9 +249,9 @@ export function DashboardScreen() {
         variant="secondary"
         onPress={() => router.push("/import")}
       />
-      <Button label="Free и Plus" onPress={() => router.push("/plans")} variant="secondary" />
-      <Button label="Учебный банк (мок)" onPress={() => router.push("/bank")} variant="secondary" />
-      <Button label="Приватность, экспорт и выход" onPress={switchProfile} variant="secondary" />
+      <Button label={ru.dashboard.plans} onPress={() => router.push("/plans")} variant="secondary" />
+      <Button label={ru.dashboard.bankMock} onPress={() => router.push("/bank")} variant="secondary" />
+      <Button label={ru.dashboard.privacy} onPress={() => router.push("/privacy")} variant="secondary" />
     </Screen>
   );
 }
