@@ -123,16 +123,16 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Run MVP on Android 34
+      - name: Run MVP on Android 30 (AOSP)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 30
           arch: x86_64
-          target: google_apis
-          profile: pixel_6
+          target: default
+          profile: pixel_2
           disk-size: 4096M
-          ram-size: 3072M
-          cores: 4
+          ram-size: 2048M
+          cores: 2
           emulator-boot-timeout: 180
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-metrics -noaudio -no-boot-anim -camera-back none
