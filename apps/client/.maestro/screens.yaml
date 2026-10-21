@@ -96,9 +96,9 @@ name: Every main screen opens without errors
     end: "50%, 50%"
 - tapOn: "Импортировать"
 - scrollUntilVisible:
-    element: "(Выписка загружена|Эта выписка уже загружена)"
+    element: "Выписка загружена"
     timeout: 30000
-- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи|Импорт не выполнен).*"
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи|Импорт не выполнен|уже загружена).*"
 - takeScreenshot: artifacts/mobile/10-import
 - back
 

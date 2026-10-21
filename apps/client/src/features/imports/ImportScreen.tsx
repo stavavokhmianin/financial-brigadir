@@ -84,8 +84,13 @@ export function ImportScreen() {
     }
   };
 
+  // После успешного импорта кнопка неактивна: повторное касание отправило бы тот же файл
+  // ещё раз и показало бы «уже загружена» поверх результата.
   const canImport =
-    preview !== null && previewedContent === content && preview.rows_total > preview.rows_rejected;
+    preview !== null &&
+    previewedContent === content &&
+    preview.rows_total > preview.rows_rejected &&
+    result === null;
 
   return (
     <Screen>
@@ -179,10 +184,17 @@ export function ImportScreen() {
 
       {result ? (
         <Card title={result.already_imported ? ru.imports.alreadyTitle : ru.imports.doneTitle}>
-          <Muted>
-            {ru.imports.imported}: {result.rows_imported} · {ru.imports.duplicates}:{" "}
-            {result.rows_duplicate} · {ru.imports.rejected}: {result.rows_rejected}
-          </Muted>
+          {result.already_imported ? (
+            // Сервер вернул итог прошлой загрузки этого же файла: новых операций нет.
+            <Muted>
+              {ru.imports.alreadyLead} {result.rows_imported}.
+            </Muted>
+          ) : (
+            <Muted>
+              {ru.imports.imported}: {result.rows_imported} · {ru.imports.duplicates}:{" "}
+              {result.rows_duplicate} · {ru.imports.rejected}: {result.rows_rejected}
+            </Muted>
+          )}
           <Button label={ru.imports.toDashboard} onPress={() => router.replace("/dashboard")} />
         </Card>
       ) : null}

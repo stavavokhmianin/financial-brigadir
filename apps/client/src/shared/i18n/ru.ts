@@ -108,6 +108,7 @@ export const ru = {
     row: "Строка",
     doneTitle: "Выписка загружена",
     alreadyTitle: "Эта выписка уже загружена",
+    alreadyLead: "Новых операций нет: этот файл уже загружался, тогда добавлено",
     imported: "Добавлено",
     duplicates: "уже было",
     toDashboard: "На главную",

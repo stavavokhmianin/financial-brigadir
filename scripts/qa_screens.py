@@ -119,8 +119,10 @@ def profile_pass(run: Run, profile: str) -> None:
             timeout=15_000
         )
         run.tap("Импортировать")
-        done = page.get_by_text(re.compile("Выписка загружена|Эта выписка уже загружена"))
-        expect(done.filter(visible=True).first).to_be_visible(timeout=15_000)
+        # Профиль новый: первая загрузка обязана быть именно загрузкой, а не «уже было».
+        done = page.get_by_text("Выписка загружена", exact=True).filter(visible=True).first
+        expect(done).to_be_visible(timeout=15_000)
+        expect(page.get_by_text("Эта выписка уже загружена")).to_have_count(0)
 
     def plans() -> None:
         run.tap("Проверить Free в демо")
