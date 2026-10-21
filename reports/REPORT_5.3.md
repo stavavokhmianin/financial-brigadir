@@ -2,6 +2,9 @@
 
 Дата: 21.10.2026. Основание: 13.2–13.4, 19, 26.1 ТЗ.
 Код: [`c7201df`](https://github.com/stavavokhmianin/financial-brigadir/commit/c7201df), `step4ik`.
+Дополнение: [`2e738bc`](https://github.com/stavavokhmianin/financial-brigadir/commit/2e738bc)
+позволяет выйти из уже истёкшей/отозванной сессии; сетевой сбой по-прежнему не
+маскируется успешным серверным выходом. TypeScript проверен повторно.
 
 ## Изменения
 
