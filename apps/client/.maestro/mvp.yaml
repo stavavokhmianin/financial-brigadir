@@ -64,15 +64,16 @@ name: Demo purchase, plan preview and bank mock
 - scrollUntilVisible:
     element: "Синхронизировать учебный счёт"
 - tapOn: "Синхронизировать учебный счёт"
+- takeScreenshot: artifacts/mobile/03b-bank-after-sync
 - scrollUntilVisible:
-    element: ".*Новых операций: [1-9][0-9]*.*"
+    element: "(?s).*Новых операций: [1-9][0-9]*.*"
     timeout: 30000
 - scrollUntilVisible:
     element: "Синхронизировать учебный счёт"
     direction: UP
 - tapOn: "Синхронизировать учебный счёт"
 - scrollUntilVisible:
-    element: ".*Новых операций: 0;.*"
+    element: "(?s).*Новых операций: 0;.*"
     timeout: 30000
 - takeScreenshot: artifacts/mobile/04-bank-replay
 - scrollUntilVisible:
@@ -80,5 +81,5 @@ name: Demo purchase, plan preview and bank mock
     direction: UP
 - tapOn: "Отозвать доступ"
 - scrollUntilVisible:
-    element: ".*Доступ отозван.*"
+    element: "(?s).*Доступ отозван.*"
 - takeScreenshot: artifacts/mobile/05-consent-revoked

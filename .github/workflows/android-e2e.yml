@@ -136,7 +136,7 @@ jobs:
             mkdir -p artifacts/mobile
             adb install -r artifacts/apk/app-release.apk
             adb reverse tcp:8000 tcp:8000
-            maestro test apps/client/.maestro/mvp.yaml --format junit --output artifacts/mobile/results.xml --debug-output artifacts/mobile/debug
+            python scripts/android_e2e.py
       - name: Save E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -145,3 +145,4 @@ jobs:
           path: artifacts/mobile
           if-no-files-found: warn
           retention-days: 14
+          include-hidden-files: true
