@@ -22,6 +22,10 @@ name: Demo purchase, plan preview and bank mock
     timeout: 30000
 - scrollUntilVisible:
     element: "Запустить демо"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Запустить демо"
 - extendedWaitUntil:
     visible: "Свободные средства"
@@ -30,6 +34,10 @@ name: Demo purchase, plan preview and bank mock
 - scrollUntilVisible:
     element: "Что если купить\\?"
     direction: DOWN
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Что если купить\\?"
 - extendedWaitUntil:
     visible:
@@ -42,6 +50,10 @@ name: Demo purchase, plan preview and bank mock
 - scrollUntilVisible:
     element:
       id: "calculate-scenario"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn:
     id: "calculate-scenario"
 - scrollUntilVisible:
@@ -59,6 +71,10 @@ name: Demo purchase, plan preview and bank mock
 - tapOn: "Free и Plus"
 - scrollUntilVisible:
     element: "Проверить Free в демо"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Проверить Free в демо"
 - scrollUntilVisible:
     element: "Демо: Free"
@@ -66,6 +82,10 @@ name: Demo purchase, plan preview and bank mock
 - assertVisible: "Демо: Free"
 - scrollUntilVisible:
     element: "Проверить Plus в демо"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Проверить Plus в демо"
 - scrollUntilVisible:
     element: "Демо: Plus"
@@ -81,6 +101,10 @@ name: Demo purchase, plan preview and bank mock
 - assertVisible: "Отозвать доступ"
 - scrollUntilVisible:
     element: "Синхронизировать учебный счёт"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Синхронизировать учебный счёт"
 - takeScreenshot: artifacts/mobile/03b-bank-after-sync
 - scrollUntilVisible:

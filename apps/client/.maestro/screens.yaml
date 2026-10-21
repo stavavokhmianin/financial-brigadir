@@ -13,6 +13,10 @@ name: Every main screen opens without errors
 # Прогноз
 - scrollUntilVisible:
     element: "Открыть прогноз"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Открыть прогноз"
 - scrollUntilVisible:
     element: "Остаток по дням"
@@ -70,14 +74,26 @@ name: Every main screen opens without errors
     element: "Вставить пример"
     visibilityPercentage: 100
     timeout: 30000
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Вставить пример"
 - scrollUntilVisible:
     element: "Проверить"
     visibilityPercentage: 100
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Проверить"
 - scrollUntilVisible:
     element: "Импортировать"
     timeout: 30000
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
 - tapOn: "Импортировать"
 - scrollUntilVisible:
     element: "(Выписка загружена|Эта выписка уже загружена)"
