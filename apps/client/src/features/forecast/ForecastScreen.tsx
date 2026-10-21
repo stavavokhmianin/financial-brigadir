@@ -19,13 +19,46 @@ import {
 import { space, usePalette } from "@/shared/ui/theme";
 
 import { ForecastChart } from "./ForecastChart";
-import { keyDays, riskTone } from "./logic";
+import { keyDays, riskScale, riskShift, riskTone } from "./logic";
 
 const t = ru.forecast;
 const RESERVES = ["0", "500000", "1000000", "2000000"] as const;
 type ReserveOption = (typeof RESERVES)[number];
 
-export function RiskBanner({ forecast }: { forecast: Forecast }) {
+/** Шкала «низкий / средний / высокий»; previous — уровень до сценария. */
+export function RiskScale({ level, previous }: { level: string; previous?: string | null }) {
+  const palette = usePalette();
+  const steps = riskScale(level, previous);
+  const current = t.scale[level as keyof typeof t.scale] ?? level;
+  const label = previous
+    ? `${t.scaleTitle}: ${t.scale[previous as keyof typeof t.scale] ?? previous} → ${current}`
+    : `${t.scaleTitle}: ${current}`;
+  return (
+    <View accessible accessibilityLabel={label} testID={`risk-scale-${level}`} style={styles.scale}>
+      {steps.map((step) => {
+        const tone = riskTone(step.level);
+        const color = tone === "danger" ? palette.danger : tone === "warning" ? palette.warning : palette.ok;
+        return (
+          <View
+            key={step.level}
+            style={[
+              styles.scaleStep,
+              { borderColor: color, borderStyle: step.previous ? "dashed" : "solid" },
+              step.active ? { backgroundColor: color } : null,
+            ]}
+          >
+            <Text style={[styles.scaleText, { color: step.active ? palette.card : palette.text }]}>
+              {t.scale[step.level]}
+            </Text>
+            {step.previous ? <Text style={[styles.scaleWas, { color: palette.muted }]}>{t.scaleWas}</Text> : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+export function RiskBanner({ forecast, previous }: { forecast: Forecast; previous?: string | null }) {
   const palette = usePalette();
   const tone = riskTone(forecast.risk_level);
   const color = tone === "danger" ? palette.danger : tone === "warning" ? palette.warning : palette.ok;
@@ -36,6 +69,11 @@ export function RiskBanner({ forecast }: { forecast: Forecast }) {
       style={[styles.banner, { borderColor: color, backgroundColor: palette.card }]}
     >
       <Text style={[styles.bannerTitle, { color }]}>{t.level[forecast.risk_level]}</Text>
+      <RiskScale level={forecast.risk_level} previous={previous} />
+      <Muted>
+        {previous ? `${t.scaleShift[riskShift(previous, forecast.risk_level)]}. ` : ""}
+        {t.scaleHint[forecast.risk_level]}
+      </Muted>
       <Text style={[styles.bannerText, { color: palette.text }]}>
         {forecast.risk.explanation}
       </Text>
@@ -186,6 +224,10 @@ const styles = StyleSheet.create({
   banner: { borderWidth: 2, borderRadius: 14, padding: space.lg, gap: space.sm },
   bannerTitle: { fontSize: 18, fontWeight: "700" },
   bannerText: { fontSize: 15, lineHeight: 22 },
+  scale: { flexDirection: "row", gap: space.xs },
+  scaleStep: { flex: 1, borderWidth: 2, borderRadius: 8, paddingVertical: space.xs, alignItems: "center" },
+  scaleText: { fontSize: 13, fontWeight: "600" },
+  scaleWas: { fontSize: 11 },
   legend: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
   line: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
   lineMain: { flex: 1, gap: 2 },

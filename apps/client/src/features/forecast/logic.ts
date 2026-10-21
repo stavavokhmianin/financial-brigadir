@@ -89,3 +89,29 @@ export function keyDays<T extends PointLike & { inflow_minor: number; outflow_mi
   );
   return picked.slice(0, limit);
 }
+
+/** Качественная шкала риска (ADR-0006): проценты в интерфейсе не показываются. */
+export const RISK_LEVELS = ["low", "medium", "high"] as const;
+export type RiskLevel = (typeof RISK_LEVELS)[number];
+
+export interface ScaleStep {
+  level: RiskLevel;
+  active: boolean;
+  /** Уровень до сценария — для отметки «было» в симуляторе. */
+  previous: boolean;
+}
+
+export function riskScale(level: string, previous?: string | null): ScaleStep[] {
+  return RISK_LEVELS.map((step) => ({
+    level: step,
+    active: step === level,
+    previous: previous != null && previous !== level && step === previous,
+  }));
+}
+
+/** Направление изменения уровня: выше, ниже или без изменений. */
+export function riskShift(before: string, after: string): "up" | "down" | "same" {
+  const rank = (level: string) => RISK_LEVELS.indexOf(level as RiskLevel);
+  const delta = rank(after) - rank(before);
+  return delta > 0 ? "up" : delta < 0 ? "down" : "same";
+}

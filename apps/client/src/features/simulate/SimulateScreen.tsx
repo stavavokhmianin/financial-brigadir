@@ -33,7 +33,7 @@ function messageOf(error: unknown): string {
 
 function cell(row: ComparisonRow, value: string | number | null, year: number): string {
   if (value === null) return "—";
-  if (row.kind === "level") return ru.forecast.level[value as keyof typeof ru.forecast.level];
+  if (row.kind === "level") return ru.forecast.scale[value as keyof typeof ru.forecast.scale];
   if (row.kind === "date") return formatDay(String(value), year);
   if (row.kind === "days") return String(value);
   return formatRubApprox(Number(value));
@@ -190,7 +190,7 @@ export function SimulateScreen() {
 
       {result ? (
         <>
-          <RiskBanner forecast={result.result} />
+          <RiskBanner forecast={result.result} previous={result.risk_level_before} />
           <Card title={t.compareTitle}>
             <Muted>{result.explanation}</Muted>
             <View style={styles.tableHead}>
