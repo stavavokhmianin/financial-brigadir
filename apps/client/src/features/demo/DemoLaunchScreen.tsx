@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api, ApiError, type DemoProfile } from "@/shared/api/client";
@@ -23,7 +23,7 @@ function messageOf(error: unknown): string {
   return error instanceof ApiError ? error.message : "Неизвестная ошибка.";
 }
 
-export function DemoLaunchScreen() {
+export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   const router = useRouter();
   const palette = usePalette();
   const { setSession } = useSession();
@@ -63,6 +63,7 @@ export function DemoLaunchScreen() {
 
   return (
     <Screen>
+      {notice}
       <View style={styles.hero}>
         <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
           {ru.demo.title}

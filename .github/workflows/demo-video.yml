@@ -1,13 +1,15 @@
-name: Demo video (16.4)
+name: Demo video and web QA
 
 # Видео-страховка демо: web-клиент проходит сценарий 16.4 с субтитрами шагов.
 # Артефакт — demo-16-4.webm и кадры ключевых шагов для презентации.
+# Затем обход всех экранов четырёх профилей: ни один не должен показать ошибку.
 on:
   push:
     branches: [step4ik]
     paths:
       - "apps/client/**"
       - "scripts/record_demo.py"
+      - "scripts/qa_screens.py"
       - ".github/workflows/demo-video.yml"
   workflow_dispatch:
 
@@ -55,12 +57,20 @@ jobs:
           done
       - name: Запись
         run: python scripts/record_demo.py --web http://127.0.0.1:8081 --out artifacts/demo
+      - name: Обход всех экранов
+        run: python scripts/qa_screens.py --web http://127.0.0.1:8081 --out artifacts/qa
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: demo-video
           path: artifacts/demo
           retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-qa-screens
+          path: artifacts/qa
+          retention-days: 14
       - name: Логи API при падении
         if: failure()
         run: cat "$RUNNER_TEMP/api.log"

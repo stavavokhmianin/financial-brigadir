@@ -54,6 +54,18 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+// Без таймаута запрос к недостижимому адресу (телефон в другой сети) висит минутами.
+const TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+type SessionExpiredListener = () => void;
+let onSessionExpired: SessionExpiredListener | null = null;
+
+/** Сессия истекла или отозвана на сервере: приложение возвращается на старт. */
+export function setSessionExpiredListener(listener: SessionExpiredListener | null): void {
+  onSessionExpired = listener;
+}
+
 function buildUrl(path: string, query?: Query): string {
   const params = Object.entries(query ?? {})
     .filter((entry): entry is [string, string | number | boolean] => entry[1] !== undefined)
@@ -66,16 +78,26 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
 
+  const timeout = options.form ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
   let response: Response;
   try {
     response = await fetch(buildUrl(path, options.query), {
       method: options.method ?? "GET",
       headers,
       body: options.form ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
+      signal: controller.signal,
     });
   } catch {
-    throw new ApiError(0, "network", "Сервер недоступен. Проверьте, что API запущен.");
+    throw controller.signal.aborted
+      ? new ApiError(0, "timeout", `Сервер не ответил за ${timeout / 1000} с. Проверьте адрес и сеть.`)
+      : new ApiError(0, "network", "Сервер недоступен. Проверьте, что API запущен.");
+  } finally {
+    clearTimeout(timer);
   }
+
+  if (response.status === 401 && options.token) onSessionExpired?.();
 
   const payload: unknown = await response.json().catch(() => null);
   if (response.ok) {

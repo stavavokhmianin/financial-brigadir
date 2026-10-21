@@ -1,0 +1,91 @@
+appId: ru.brigadir.app
+name: Every main screen opens without errors
+---
+# Продолжение mvp.yaml: приложение уже на экране учебного банка.
+# Каждый экран должен открыться, дождаться данных и не показать ошибку загрузки.
+- back
+- extendedWaitUntil:
+    visible: "Свободные средства"
+    timeout: 30000
+
+# Прогноз
+- scrollUntilVisible:
+    element: "Открыть прогноз"
+- tapOn: "Открыть прогноз"
+- scrollUntilVisible:
+    element: "Остаток по дням"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/06-forecast
+- back
+
+# Нижние кнопки главного экрана: сначала до конца страницы (см. mvp.yaml).
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Календарь платежей"
+- extendedWaitUntil:
+    visible: "Прошедшие операции.*"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/07-calendar
+- back
+
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Предупреждения"
+- scrollUntilVisible:
+    element: "Настройки"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/08-alerts
+- back
+
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Добавить обязательство, доход или счёт"
+- extendedWaitUntil:
+    visible: "Что добавить\\?"
+    timeout: 30000
+- tapOn: "Доход"
+- tapOn: "Счёт"
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/09-add
+- back
+
+# Импорт CSV — основной путь участника пилота.
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Загрузить выписку CSV"
+- extendedWaitUntil:
+    visible: "Вставить пример"
+    timeout: 30000
+- tapOn: "Вставить пример"
+- tapOn: "Проверить"
+- scrollUntilVisible:
+    element: "Импортировать"
+    timeout: 30000
+- tapOn: "Импортировать"
+- scrollUntilVisible:
+    element: "(Выписка загружена|Эта выписка уже загружена)"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи|Импорт не выполнен).*"
+- takeScreenshot: artifacts/mobile/10-import
+- back
+
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Приватность, экспорт и выход"
+- scrollUntilVisible:
+    element: "Удалить профиль"
+    timeout: 30000
+- takeScreenshot: artifacts/mobile/11-privacy

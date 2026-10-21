@@ -101,3 +101,4 @@ name: Demo purchase, plan preview and bank mock
 - scrollUntilVisible:
     element: "(?s).*Доступ отозван.*"
 - takeScreenshot: artifacts/mobile/05-consent-revoked
+- runFlow: screens.yaml

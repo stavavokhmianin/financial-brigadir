@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api, ApiError } from "@/shared/api/client";
@@ -12,7 +12,13 @@ import { canSubmit } from "./logic";
 
 const t = ru.pilot;
 
-export function PilotSignInScreen({ termsVersion }: { termsVersion: string }) {
+export function PilotSignInScreen({
+  termsVersion,
+  notice,
+}: {
+  termsVersion: string;
+  notice?: ReactNode;
+}) {
   const router = useRouter();
   const palette = usePalette();
   const { setSession } = useSession();
@@ -42,6 +48,7 @@ export function PilotSignInScreen({ termsVersion }: { termsVersion: string }) {
 
   return (
     <Screen>
+      {notice}
       <View style={styles.hero}>
         <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
           {ru.demo.title}

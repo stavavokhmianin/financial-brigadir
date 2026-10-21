@@ -171,7 +171,7 @@ function ObligationForm({ token, today, accounts, onDone }: FormProps) {
         label={t.dueDate}
         value={due}
         onChangeText={setDue}
-        placeholder="25.10.2026"
+        placeholder="ДД.ММ или ДД.ММ.ГГГГ"
         error={errors.due}
       />
       <Choice
@@ -268,14 +268,14 @@ function IncomeForm({ token, today, onDone }: FormProps) {
         label={t.incomeFrom}
         value={from}
         onChangeText={setFrom}
-        placeholder="25.10.2026"
+        placeholder="ДД.ММ или ДД.ММ.ГГГГ"
         error={errors.from}
       />
       <Field
         label={t.incomeTo}
         value={to}
         onChangeText={setTo}
-        placeholder="28.10.2026"
+        placeholder="ДД.ММ или ДД.ММ.ГГГГ"
         hint={t.incomeToHint}
         error={errors.to}
       />

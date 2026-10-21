@@ -125,6 +125,16 @@ export function Screen({ children }: { children: ReactNode }) {
   );
 }
 
+/** Заметная строка-пояснение над содержимым экрана (не ошибка запроса). */
+export function Notice({ text }: { text: string }) {
+  const palette = usePalette();
+  return (
+    <View accessibilityRole="alert" style={[styles.notice, { backgroundColor: palette.warningBg }]}>
+      <Text style={{ color: palette.warning, fontSize: 15, lineHeight: 21 }}>{text}</Text>
+    </View>
+  );
+}
+
 export function Card({ title, children }: { title?: string; children: ReactNode }) {
   const palette = usePalette();
   return (
@@ -226,6 +236,7 @@ export function Muted({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  notice: { borderRadius: 12, padding: space.md },
   screen: { padding: space.lg, alignItems: "center" },
   column: { width: "100%", maxWidth: 720, gap: space.lg },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: space.lg, gap: space.md },
