@@ -109,6 +109,8 @@ jobs:
           done
       - name: API, web-клиент, заголовки и limiter через TLS-прокси
         run: python ../../scripts/pilot_smoke.py check "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE1"
+      - name: Отчёт «прогноз против факта» строится на PostgreSQL
+        run: docker compose exec -T api python -m app.cli pilot-report | grep -q "Проверка прогноза на данных пилота"
       - name: Наружу опубликован только прокси, у API нет выхода в интернет
         run: |
           # «! cmd» не роняет шаг под set -e, поэтому явные проверки.

@@ -3,18 +3,21 @@
 - ``invite --count 5 --days 30`` — выдать персональные коды участников;
 - ``list-codes`` — коды без секретов: id, срок, отзыв, привязан ли профиль;
 - ``revoke-code <id>`` — отозвать код, новые входы по нему невозможны;
-- ``reapply-erasures`` — после восстановления бэкапа снова удалить стёртые профили.
+- ``reapply-erasures`` — после восстановления бэкапа снова удалить стёртые профили;
+- ``pilot-report [--out файл]`` — точность прогноза против факта, только агрегаты.
 """
 
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.db.models import PilotAccessCode
 from app.db.session import SessionLocal
+from app.modules.evaluation import collect, render
 from app.modules.pilot import issue_codes, revoke_code
 from app.modules.privacy import reapply_erasures
 
@@ -29,6 +32,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     revoke = commands.add_parser("revoke-code", help="отозвать код по id")
     revoke.add_argument("code_id")
     commands.add_parser("reapply-erasures", help="повторить удаления после восстановления")
+    report = commands.add_parser("pilot-report", help="прогноз против факта на данных пилота")
+    report.add_argument("--out", help="записать Markdown в файл вместо вывода")
+    report.add_argument("--include-demo", action="store_true", help="учитывать демо-профили")
     args = parser.parse_args(argv)
 
     with SessionLocal() as db:
@@ -46,6 +52,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print("код не найден или уже отозван", file=sys.stderr)
                 return 1
             print("отозван")
+        elif args.command == "pilot-report":
+            text = render(collect(db, include_demo=args.include_demo))
+            if args.out:
+                Path(args.out).write_text(text, encoding="utf-8")
+                print(f"отчёт: {args.out}")
+            else:
+                print(text, end="")
         else:
             count = reapply_erasures(db, get_settings().erasure_log_path)
             print(f"повторно удалено профилей: {count}")

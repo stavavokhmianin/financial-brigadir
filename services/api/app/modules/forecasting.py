@@ -5,7 +5,7 @@
 версией модели и отпечатком входа — расчёт воспроизводим.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -50,7 +50,7 @@ from forecast_core import (
     ObligationEvent,
     snapshot_fingerprint,
 )
-from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult
+from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
 from forecast_core.probabilistic import run_monte_carlo
 from forecast_core.scenarios import compare, safe_to_spend
 from forecast_core.types import IncomeShift, ScenarioExpense
@@ -335,6 +335,12 @@ def build_output(
     )
 
 
+def _calendar_reference(snapshot: ForecastInputSnapshot) -> dict[str, Any]:
+    """Календарная модель A на том же входе: без истории трат и без сценария."""
+    calendar = run_baseline(replace(snapshot, history=(), extra_expenses=(), income_shifts=()))
+    return {"calendar": {p.day.isoformat(): p.p50_minor for p in calendar.points}}
+
+
 def _store(
     db: Session,
     user: User,
@@ -359,6 +365,7 @@ def _store(
         quality_flags={"flags": output.quality.flags, "confidence": output.quality.confidence},
         scenario={"events": [e.model_dump(mode="json") for e in events]} if events else None,
         result=output.model_dump(mode="json"),
+        reference=None if events else _calendar_reference(prepared.snapshot),
         idempotency_key=idempotency_key,
         created_at=created_at,
     )

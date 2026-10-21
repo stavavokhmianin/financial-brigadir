@@ -352,6 +352,9 @@ class ForecastRun(Base):
     # Применённый сценарий (покупка, сдвиг дохода) и итог расчёта для GET /forecasts/{id}.
     scenario: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # Пути эталонных моделей для проверки прогноза на реальных данных пилота:
+    # {"calendar": {"2026-12-01": остаток, ...}} — модель A из бэктеста.
+    reference: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     idempotency_key: Mapped[str | None] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
