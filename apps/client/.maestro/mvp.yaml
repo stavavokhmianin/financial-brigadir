@@ -4,8 +4,10 @@ name: Demo purchase, plan preview and bank mock
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "Запустить демо"
+    visible: ".*Молодой специалист.*"
     timeout: 30000
+- scrollUntilVisible:
+    element: "Запустить демо"
 - tapOn: "Запустить демо"
 - extendedWaitUntil:
     visible: "Свободные средства"

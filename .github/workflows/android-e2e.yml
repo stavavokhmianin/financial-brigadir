@@ -9,25 +9,30 @@ on:
       - "packages/**"
       - ".github/workflows/android-e2e.yml"
   workflow_dispatch:
+    inputs:
+      apk_run_id:
+        description: "Optional prior run with an APK from unchanged client sources"
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: android-e2e-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  EXPO_PUBLIC_API_URL: http://127.0.0.1:8000
+  EAS_BUILD_PROFILE: preview
+  CI: "1"
+
 jobs:
-  android:
+  build:
+    if: ${{ !inputs.apk_run_id }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      EXPO_PUBLIC_API_URL: http://127.0.0.1:8000
-      EAS_BUILD_PROFILE: preview
-      DATABASE_URL: sqlite:////tmp/brigadir-mobile-ci.db
-      MAESTRO_VERSION: "1.40.3"
-      MAESTRO_CLI_NO_ANALYTICS: "1"
-      CI: "1"
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,12 +44,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: "**/pyproject.toml"
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       - name: Dependencies and native Android project
         working-directory: apps/client
         run: |
@@ -60,6 +62,45 @@ jobs:
           path: apps/client/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+  emulator:
+    needs: build
+    if: ${{ always() && (needs.build.result == 'success' || (needs.build.result == 'skipped' && inputs.apk_run_id != '')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: sqlite:////tmp/brigadir-mobile-ci.db
+      MAESTRO_VERSION: "1.40.3"
+      MAESTRO_CLI_NO_ANALYTICS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "**/pyproject.toml"
+      - name: Verify reused APK matches current client sources
+        if: ${{ inputs.apk_run_id != '' }}
+        env:
+          APK_RUN_ID: ${{ inputs.apk_run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$APK_RUN_ID" =~ ^[0-9]+$ ]]
+          APK_SOURCE_SHA=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$APK_RUN_ID" --jq .head_sha)
+          git diff --exit-code "$APK_SOURCE_SHA" HEAD -- apps/client ':(exclude)apps/client/.maestro/**'
+      - name: Download built APK
+        uses: actions/download-artifact@v4
+        with:
+          name: financial-brigadir-preview-apk
+          path: artifacts/apk
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.apk_run_id || github.run_id }}
       - name: Start isolated API with synthetic data
         run: |
           pip install -r requirements-dev.txt
@@ -91,7 +132,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             mkdir -p artifacts/mobile
-            adb install -r apps/client/android/app/build/outputs/apk/release/app-release.apk
+            adb install -r artifacts/apk/app-release.apk
             adb reverse tcp:8000 tcp:8000
             maestro test apps/client/.maestro/mvp.yaml --format junit --output artifacts/mobile/results.xml --debug-output artifacts/mobile/debug
       - name: Save E2E evidence
