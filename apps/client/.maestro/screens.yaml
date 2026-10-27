@@ -1,0 +1,113 @@
+appId: ru.brigadir.app
+name: Every main screen opens without errors
+---
+# Продолжение mvp.yaml: приложение уже на экране учебного банка.
+# Каждый экран должен открыться, дождаться данных и не показать ошибку загрузки.
+- back
+# Главный экран сохраняет прокрутку: возвращаемся к началу.
+- scrollUntilVisible:
+    element: "Свободные средства"
+    direction: UP
+    timeout: 30000
+
+# Прогноз
+- scrollUntilVisible:
+    element: "Открыть прогноз"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Открыть прогноз"
+- scrollUntilVisible:
+    element: "Остаток по дням"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/06-forecast
+- back
+
+# Нижние кнопки главного экрана: сначала до конца страницы (см. mvp.yaml).
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Календарь платежей"
+- extendedWaitUntil:
+    visible: "Прошедшие операции.*"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/07-calendar
+- back
+
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Предупреждения"
+- scrollUntilVisible:
+    element: "Настройки"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/08-alerts
+- back
+
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Добавить обязательство, доход или счёт"
+- extendedWaitUntil:
+    visible: "Что добавить\\?"
+    timeout: 30000
+- tapOn: "Доход"
+- tapOn: "Счёт"
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/09-add
+- back
+
+# Импорт CSV — основной путь участника пилота.
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Загрузить выписку CSV"
+- scrollUntilVisible:
+    element: "Вставить пример"
+    visibilityPercentage: 100
+    timeout: 30000
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Вставить пример"
+- scrollUntilVisible:
+    element: "Проверить"
+    visibilityPercentage: 100
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Проверить"
+- scrollUntilVisible:
+    element: "Импортировать"
+    timeout: 30000
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Импортировать"
+- scrollUntilVisible:
+    element: "Выписка загружена"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи|Импорт не выполнен|уже загружена).*"
+- takeScreenshot: artifacts/mobile/10-import
+- back
+
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Приватность, экспорт и выход"
+- scrollUntilVisible:
+    element: "Удалить профиль"
+    timeout: 30000
+- takeScreenshot: artifacts/mobile/11-privacy

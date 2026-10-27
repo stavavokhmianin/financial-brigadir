@@ -1,0 +1,3 @@
+# Точка входа для `docker compose up --build` из корня репозитория.
+include:
+  - infra/compose.yaml

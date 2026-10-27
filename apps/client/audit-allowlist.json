@@ -1,0 +1,22 @@
+{
+  "comment": "Принятые находки npm audit уровня high/critical. Любая новая — красный CI (scripts/npm_audit_gate.py). Пересматривать при обновлении Expo SDK и не реже раза в месяц.",
+  "review_by": "2026-11-30",
+  "advisories": {
+    "GHSA-vfj7-8cjw-p6xm": {
+      "package": "braces",
+      "reason": "Только сборка: micromatch в Metro/Jest разбирает шаблоны из конфигурации репозитория, а не ввод пользователя. Исправленной версии нет."
+    },
+    "GHSA-86w9-cpqp-85rv": {
+      "package": "node-forge",
+      "reason": "Только инструменты Expo CLI (сертификаты подписи обновлений, dev-сервер); в приложение и web-бандл не попадает. Исправленной версии нет."
+    },
+    "GHSA-w3rx-r6r6-pgpr": {
+      "package": "image-size",
+      "reason": "Только сборка: Metro читает размеры собственных иконок из assets/. Исправление — мажорная 2.x, Metro SDK 54 требует 1.x."
+    },
+    "GHSA-5p2g-fcmc-qvqq": {
+      "package": "image-size",
+      "reason": "То же: собственные PNG при сборке, форматы JXL/HEIF в проекте не используются."
+    }
+  }
+}

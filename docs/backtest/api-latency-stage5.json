@@ -1,0 +1,46 @@
+{
+  "measured_at": "2026-10-21T10:41:45.406113+00:00",
+  "environment": {
+    "system": "Windows",
+    "python": "3.12.14"
+  },
+  "synthetic_only": true,
+  "additional_csv_rows": 10000,
+  "demo_forecast": {
+    "samples": 3,
+    "seconds": [
+      0.0503,
+      0.0498,
+      0.0502
+    ],
+    "median_seconds": 0.0502,
+    "max_seconds": 0.0503,
+    "limit_seconds": 2,
+    "passed": true
+  },
+  "forecast_after_import": {
+    "samples": 3,
+    "seconds": [
+      0.1769,
+      0.176,
+      0.1793
+    ],
+    "median_seconds": 0.1769,
+    "max_seconds": 0.1793,
+    "limit_seconds": 3,
+    "passed": true
+  },
+  "scenario_after_import": {
+    "samples": 3,
+    "seconds": [
+      0.4853,
+      0.4848,
+      0.4733
+    ],
+    "median_seconds": 0.4848,
+    "max_seconds": 0.4853,
+    "limit_seconds": 3,
+    "passed": true
+  },
+  "scope": "sequential local latency smoke; not a concurrency/p95 benchmark"
+}

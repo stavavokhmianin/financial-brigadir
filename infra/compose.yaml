@@ -1,0 +1,57 @@
+name: financial-brigadir
+
+x-db-url: &db-url postgresql+psycopg://${POSTGRES_USER:-brigadir}:${POSTGRES_PASSWORD:-brigadir}@db:5432/${POSTGRES_DB:-brigadir}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-brigadir}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-brigadir}
+      POSTGRES_DB: ${POSTGRES_DB:-brigadir}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    environment:
+      DATABASE_URL: *db-url
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://127.0.0.1:8081}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+    environment:
+      DATABASE_URL: *db-url
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Одноразовый smoke-тест: проверяет API и создание демо-профиля из seed.
+  smoke:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    command: ["python", "scripts/smoke.py", "http://api:8000"]
+    restart: "no"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

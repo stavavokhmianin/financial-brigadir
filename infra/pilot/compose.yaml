@@ -1,0 +1,112 @@
+# Пилотный / on-prem-профиль (раздел 16.2, спринт 3; раздел 25).
+#
+#   cd infra/pilot && ./init-secrets.sh && ./make-dev-cert.sh
+#   PUBLIC_ORIGIN=https://localhost:8443 docker compose up -d --build --wait
+#
+# Отличия от демо-стенда (infra/compose.yaml):
+# - APP_MODE=pilot: демо-профили и учебный банк выключены, вход по коду участника;
+# - наружу опубликован только TLS-прокси; API, воркер и БД — во внутренней сети
+#   без выхода в интернет (internal: true);
+# - секреты — файлами (docker secrets), а не переменными окружения;
+# - журнал удалений на отдельном томе: после восстановления бэкапа удаления повторяются.
+name: brigadir-pilot
+
+x-app-env: &app-env
+  APP_MODE: pilot
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  CORS_ORIGINS: ${PUBLIC_ORIGIN:?укажите PUBLIC_ORIGIN, например https://localhost:8443}
+  PILOT_TERMS_VERSION: ${PILOT_TERMS_VERSION:-pilot-2026-12}
+  PILOT_SESSION_TTL_HOURS: ${PILOT_SESSION_TTL_HOURS:-168}
+  ERASURE_LOG_PATH: /var/lib/brigadir/erasures/erasures.log
+
+secrets:
+  db_password:
+    file: ./secrets/db_password
+  database_url:
+    file: ./secrets/database_url
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: brigadir
+      POSTGRES_DB: brigadir
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brigadir -d brigadir"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.api
+    environment: *app-env
+    secrets: [database_url]
+    # За прокси: реальный IP клиента берётся из X-Forwarded-For только потому, что API
+    # недоступен ни из какой сети, кроме внутренней. Docs/Swagger в пилоте выключены.
+    command:
+      - sh
+      - -c
+      - >-
+        alembic upgrade head &&
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+        --proxy-headers --forwarded-allow-ips='*' --no-server-header
+    volumes:
+      - erasures:/var/lib/brigadir/erasures
+    networks: [backend]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.worker
+    environment: *app-env
+    secrets: [database_url]
+    volumes:
+      - erasures:/var/lib/brigadir/erasures
+    networks: [backend]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  proxy:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.web
+      args:
+        PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+    ports:
+      - "${HTTPS_PORT:-8443}:8443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    networks: [backend, edge]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --no-check-certificate -O /dev/null https://127.0.0.1:8443/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+networks:
+  # Без маршрута наружу: API, воркер и БД не могут обратиться в интернет.
+  backend:
+    internal: true
+  edge: {}
+
+volumes:
+  pgdata:
+  erasures:

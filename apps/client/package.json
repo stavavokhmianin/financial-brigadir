@@ -1,0 +1,40 @@
+{
+  "name": "@financial-brigadir/client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "gen:api": "openapi-typescript ../../packages/api_contracts/openapi.yaml -o src/shared/api/schema.d.ts --default-non-nullable false",
+    "postinstall": "npm run gen:api",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --test \"tests/**/*.test.ts\"",
+    "build:web": "expo export --platform web --output-dir dist-web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "expo": "~54.0.0",
+    "expo-build-properties": "~1.0.10",
+    "expo-constants": "~18.0.0",
+    "expo-linking": "~8.0.0",
+    "expo-router": "~6.0.0",
+    "expo-status-bar": "~3.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "openapi-typescript": "^7.4.0",
+    "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.31"
+  }
+}

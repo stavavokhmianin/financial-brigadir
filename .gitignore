@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Local data and secrets
+.env
+*.db
+*.sqlite3
+/data/
+
+# Node / Expo
+node_modules/
+.expo/
+dist-web/
+dist-android/
+dist-ios/
+web-build/
+apps/client/src/shared/api/schema.d.ts
+apps/client/android/
+apps/client/ios/
+artifacts/
+*.tsbuildinfo
+npm-debug.log*
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Pilot stand: secrets, certificates, encrypted backups stay on the host
+infra/pilot/secrets/
+infra/pilot/certs/
+infra/pilot/backups/

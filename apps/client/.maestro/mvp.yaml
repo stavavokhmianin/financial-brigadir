@@ -1,0 +1,128 @@
+appId: ru.brigadir.app
+name: Demo purchase, plan preview and bank mock
+---
+- launchApp:
+    clearState: true
+# Cold hosted emulators can show OS/launcher ANRs after the app has opened.
+# Wait for either readiness or those exact system dialogs, then retry readiness.
+# An ANR/crash from Financial Brigadir is deliberately not dismissed.
+- repeat:
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "(?s).*(Молодой специалист|System UI isn't responding|Pixel Launcher isn't responding).*"
+          timeout: 30000
+      - runFlow:
+          when:
+            visible: "(System UI|Pixel Launcher) isn't responding"
+          commands:
+            - tapOn: "Wait"
+- extendedWaitUntil:
+    visible: ".*Молодой специалист.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Запустить демо"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Запустить демо"
+- extendedWaitUntil:
+    visible: "Свободные средства"
+    timeout: 30000
+- takeScreenshot: artifacts/mobile/01-dashboard
+- scrollUntilVisible:
+    element: "Что если купить\\?"
+    direction: DOWN
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Что если купить\\?"
+- extendedWaitUntil:
+    visible:
+      id: "purchase-amount"
+    timeout: 30000
+- tapOn:
+    id: "purchase-amount"
+- inputText: "12000"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "calculate-scenario"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn:
+    id: "calculate-scenario"
+- scrollUntilVisible:
+    element:
+      id: "risk-high"
+    timeout: 30000
+- assertVisible:
+    id: "risk-high"
+- takeScreenshot: artifacts/mobile/02-purchase-risk
+- back
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Free и Plus"
+- scrollUntilVisible:
+    element: "Проверить Free в демо"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Проверить Free в демо"
+- scrollUntilVisible:
+    element: "Демо: Free"
+    direction: UP
+- assertVisible: "Демо: Free"
+- scrollUntilVisible:
+    element: "Проверить Plus в демо"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Проверить Plus в демо"
+- scrollUntilVisible:
+    element: "Демо: Plus"
+    direction: UP
+- takeScreenshot: artifacts/mobile/03-plan-preview
+- back
+- scrollUntilVisible:
+    element: "Приватность, экспорт и выход"
+    visibilityPercentage: 100
+- scroll
+- tapOn: "Учебный банк \\(мок\\)"
+- tapOn: "Разрешить чтение синтетики на 24 часа"
+- assertVisible: "Отозвать доступ"
+- scrollUntilVisible:
+    element: "Синхронизировать учебный счёт"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Синхронизировать учебный счёт"
+- takeScreenshot: artifacts/mobile/03b-bank-after-sync
+- scrollUntilVisible:
+    element: "(?s).*Новых операций: [1-9][0-9]*.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Синхронизировать учебный счёт"
+    direction: UP
+- tapOn: "Синхронизировать учебный счёт"
+- scrollUntilVisible:
+    element: "(?s).*Новых операций: 0;.*"
+    timeout: 30000
+- takeScreenshot: artifacts/mobile/04-bank-replay
+- scrollUntilVisible:
+    element: "Отозвать доступ"
+    direction: UP
+- tapOn: "Отозвать доступ"
+- scrollUntilVisible:
+    element: "(?s).*Доступ отозван.*"
+- takeScreenshot: artifacts/mobile/05-consent-revoked
+- runFlow: screens.yaml

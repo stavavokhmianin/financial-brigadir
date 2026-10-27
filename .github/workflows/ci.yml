@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [master, step4ik, main, "feat/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python — lint, typecheck, unit + integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: brigadir
+          POSTGRES_PASSWORD: brigadir
+          POSTGRES_DB: brigadir_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U brigadir"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://brigadir:brigadir@localhost:5432/brigadir_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "**/pyproject.toml"
+      - run: pip install -r requirements-dev.txt
+      - name: Ruff (в том числе правила безопасности S/bandit)
+        run: ruff check . && ruff format --check .
+      - name: Аудит Python-зависимостей (раздел 25)
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit --skip-editable --progress-spinner off
+      - name: Mypy
+        run: mypy packages/forecast_core/src packages/synthetic_generator/src services/api/app services/worker/fb_worker
+      - name: Pytest (SQLite + PostgreSQL)
+        run: pytest
+      - name: Бэктест базового прогноза (раздел 15.2)
+        run: python scripts/backtest_baseline.py --seeds 10 --out "$RUNNER_TEMP/backtest.md"
+
+  client:
+    name: Client — typecheck, unit, web build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Аудит npm (новые high/critical — красный CI)
+        run: |
+          npm audit --json > "$RUNNER_TEMP/npm-audit.json" || true
+          python3 ../../scripts/npm_audit_gate.py audit-allowlist.json < "$RUNNER_TEMP/npm-audit.json"
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:web
+      - name: Мобильные бандлы (Hermes) Android и iOS
+        run: npx expo export --platform android --output-dir dist-android && npx expo export --platform ios --output-dir dist-ios
+
+  compose-smoke:
+    name: Docker Compose — сборка и smoke-тест
+    runs-on: ubuntu-latest
+    needs: python
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker compose up (до завершения smoke)
+        run: docker compose up --build --abort-on-container-exit --exit-code-from smoke
+      - name: Логи при падении
+        if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v
+
+  pilot-smoke:
+    name: Пилотный контур — TLS, изоляция, бэкап и удаление
+    runs-on: ubuntu-latest
+    needs: python
+    defaults:
+      run:
+        working-directory: infra/pilot
+    env:
+      PUBLIC_ORIGIN: https://localhost:8443
+    steps:
+      - uses: actions/checkout@v4
+      - name: Секреты и самоподписанный сертификат
+        run: ./init-secrets.sh && ./make-dev-cert.sh
+      - name: docker compose up (пилотный профиль)
+        run: docker compose up -d --build --wait
+      - name: Коды участников
+        run: |
+          docker compose exec -T api python -m app.cli invite --count 2 --days 7 > "$RUNNER_TEMP/codes"
+          for n in 1 2; do
+            code=$(sed -n "${n}p" "$RUNNER_TEMP/codes" | cut -f2)
+            echo "::add-mask::$code"
+            echo "CODE$n=$code" >> "$GITHUB_ENV"
+          done
+      - name: API, web-клиент, заголовки и limiter через TLS-прокси
+        run: python ../../scripts/pilot_smoke.py check "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE1"
+      - name: Отчёт «прогноз против факта» строится на PostgreSQL
+        run: docker compose exec -T api python -m app.cli pilot-report | grep -q "Проверка прогноза на данных пилота"
+      - name: Наружу опубликован только прокси, у API нет выхода в интернет
+        run: |
+          # «! cmd» не роняет шаг под set -e, поэтому явные проверки.
+          if curl -s --max-time 3 http://localhost:8000/api/v1/health; then
+            echo "FAIL API доступен в обход прокси"; exit 1
+          fi
+          if (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+            echo "FAIL порт PostgreSQL открыт"; exit 1
+          fi
+          docker compose exec -T api python scripts/egress_check.py
+      - name: Бэкап → удаление → восстановление → повторное удаление
+        run: |
+          sleep 61  # окно limiter'а входа после проверки подбора кода
+          python ../../scripts/pilot_smoke.py join "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE2"
+          ./backup.sh "$RUNNER_TEMP/pilot.sql.gz.enc"
+          if gzip -t "$RUNNER_TEMP/pilot.sql.gz.enc" 2>/dev/null; then
+            echo "FAIL бэкап не зашифрован"; exit 1
+          fi
+          python ../../scripts/pilot_smoke.py erase "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE2"
+          ./restore.sh "$RUNNER_TEMP/pilot.sql.gz.enc" | tee "$RUNNER_TEMP/restore.log"
+          grep -q "повторно удалено профилей: 1" "$RUNNER_TEMP/restore.log"
+          python ../../scripts/pilot_smoke.py denied "$PUBLIC_ORIGIN" --ca certs/tls.crt --code "$CODE2"
+      - name: Логи при падении
+        if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v
