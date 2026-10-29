@@ -24,7 +24,7 @@ import {
 } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
 
-import { quietPresetOf, QUIET_PRESETS, type QuietPreset } from "./logic";
+import { groupHidden, QUIET_PRESETS, quietPresetOf, timesLabel, type QuietPreset } from "./logic";
 
 const t = ru.alerts;
 type Mode = "quiet" | "smart" | "active";
@@ -144,15 +144,18 @@ export function AlertsScreen() {
       {hidden.length > 0 ? (
         <Card title={t.hiddenTitle}>
           <Muted>{t.hiddenLead}</Muted>
-          {hidden.slice(0, 10).map((alert) => (
-            <View key={alert.id} style={styles.hidden}>
-              <Text style={{ color: palette.text }}>
-                {alert.action === "defer" ? t.deferred : t.suppressed}
-                {alert.risk_date ? ` · ${t.riskOn} ${formatDay(alert.risk_date)}` : ""}
-              </Text>
-              <Muted>{alert.reason_text}</Muted>
-            </View>
-          ))}
+          {groupHidden(hidden)
+            .slice(0, 10)
+            .map(({ first: alert, count }) => (
+              <View key={alert.id} style={styles.hidden}>
+                <Text style={{ color: palette.text }}>
+                  {alert.action === "defer" ? t.deferred : t.suppressed}
+                  {count > 1 ? ` ${timesLabel(count)}` : ""}
+                  {alert.risk_date ? ` · ${t.riskOn} ${formatDay(alert.risk_date)}` : ""}
+                </Text>
+                <Muted>{alert.reason_text}</Muted>
+              </View>
+            ))}
         </Card>
       ) : null}
 

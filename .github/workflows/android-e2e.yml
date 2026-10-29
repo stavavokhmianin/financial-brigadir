@@ -62,7 +62,7 @@ jobs:
           name: financial-brigadir-preview-apk
           path: apps/client/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
 
   emulator:
     needs: build

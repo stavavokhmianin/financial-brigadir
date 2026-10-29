@@ -150,7 +150,7 @@ CI на каждый push поднимает контур с нуля и про�
 | 16–29.11 | приватность и удаление, мок банка с согласиями, Free/Plus, критерии качества, Android APK с E2E на эмуляторе |
 | 30.11–08.12 | шкала риска, пилотный/on-prem-контур, аудит зависимостей, видео демо в CI |
 
-267 Python-тестов и 29 клиентских; в CI — 4 задачи, Android E2E и запись видео демо.
+272 Python-теста и 34 клиентских; в CI — 4 задачи, Android E2E с обходом экранов, web-обход всех экранов и запись видео демо.
 
 ---
 
@@ -183,6 +183,6 @@ CI на каждый push поднимает контур с нуля и про�
 
 [S1] Russian Field, 2026 · [S3] НАФИ, 2023 · [S6] Grubb et al., J. of Finance, 2025 · [S7] Дзен-мани · [S8] CoinKeeper · [S9] Rocket Money — полный список в разделе 27 ТЗ.
 
-Код и отчёты: репозиторий проекта, ветка `step4ik`. Бэктест — `docs/backtest/baseline.md`, пилот — `docs/pilot.md`, план — `docs/roadmap.md`.
+Код и отчёты: репозиторий проекта, ветка `master`. Бэктест — `docs/backtest/baseline.md`, пилот — `docs/pilot.md`, план — `docs/roadmap.md`.
 
-<!-- Экспорт: npx @marp-team/marp-cli docs/pitch/deck.md --pptx (или --pdf) -->
+<!-- Экспорт: артефакт pitch-deck в workflow «Demo video and web QA»; локально — npx @marp-team/marp-cli@4.5.1 --allow-local-files docs/pitch/deck.md --pptx (или --pdf) -->
