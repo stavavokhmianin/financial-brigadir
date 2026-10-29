@@ -23,7 +23,7 @@ def _forecast(client: TestClient, headers: dict[str, str], **body: Any) -> dict[
 
 def test_demo_forecast_matches_golden_story(client: TestClient, headers: dict[str, str]) -> None:
     data = _forecast(client, headers)
-    assert data["model_version"] == "mc-0.1"
+    assert data["model_version"] == "mc-0.2"
     assert data["today"] == "2026-10-19"
     assert data["start_balance_minor"] == 5_500_000
     assert data["reserve_minor"] == 500_000

@@ -13,8 +13,9 @@
 Оценивается ``p_gap = 1/K · Σ 1{min_t (B_t,k − R_t) < 0}`` и вероятность по каждому
 дню. Это **модельная** оценка: калибровка проверяется на скрытом будущем
 генератора (``scripts/backtest_baseline.py``), на реальных данных — отдельно.
-Результат воспроизводим: генератор случайных чисел детерминирован по ``seed``,
-а сценарии считаются на тех же случайных числах, что и база.
+Результат воспроизводим: генераторы случайных чисел детерминированы по ``seed``
+и стабильным идентификаторам событий. Поэтому база и сценарий используют одни
+и те же случайные траектории даже при сдвиге события за границу горизонта.
 """
 
 import random
@@ -33,12 +34,16 @@ from forecast_core.baseline import (
 )
 from forecast_core.types import ForecastInputSnapshot, ObligationStatus
 
-MODEL_VERSION = "mc-0.1"
+MODEL_VERSION = "mc-0.2"
 DEFAULT_SIMULATIONS = 1000
 ON_TIME_SHARE = 0.6  # допущение; уточняется по истории поступлений
 INFERRED_INCLUSION = 0.9
 HIGH_PROBABILITY = 0.5
 MEDIUM_PROBABILITY = 0.1
+
+
+def _rng(seed: int, simulation: int, scope: str, identity: str) -> random.Random:
+    return random.Random(f"mc:{seed}:{simulation}:{scope}:{identity}")  # noqa: S311
 
 
 def run_monte_carlo(
@@ -53,7 +58,6 @@ def run_monte_carlo(
         fallback = run_baseline(snapshot)
         return replace(fallback, flags=(*fallback.flags, "simulation_skipped"))
 
-    rng = random.Random(f"mc:{seed}")  # noqa: S311 — моделирование, не криптография
     pools: list[list[int]] = [[] for _ in range(7)]
     for day, total in spending.daily_history:
         pools[day.weekday()].append(total)
@@ -70,15 +74,22 @@ def run_monte_carlo(
     gaps = 0
     weekdays = [day.weekday() for day in plan.days]
 
-    for _ in range(simulations):
+    for simulation in range(simulations):
         flow = [0] * horizon
         for hit in plan.obligations:
+            rng = _rng(seed, simulation, "obligation", f"{hit.source_id}:{hit.day.isoformat()}")
             if hit.status == ObligationStatus.INFERRED and rng.random() > INFERRED_INCLUSION:
                 continue
             low = min(hit.low_minor, hit.amount_minor)
             high = max(hit.high_minor, hit.amount_minor)
             flow[plan.index[hit.day]] -= rng.randint(low, high) if high > low else hit.amount_minor
         for income in plan.incomes:
+            rng = _rng(
+                seed,
+                simulation,
+                "income",
+                f"{income.source_id}:{income.source_day.isoformat()}",
+            )
             if rng.random() >= income.probability:
                 continue
             spread = (income.last - income.first).days
@@ -95,6 +106,7 @@ def run_monte_carlo(
         breached = False
         path: list[int] = []
         for i in range(horizon):
+            rng = _rng(seed, simulation, "spending", plan.days[i].isoformat())
             balance += flow[i] - rng.choice(pools[weekdays[i]])
             if large and rng.random() < large_rate:
                 balance -= rng.choice(large)

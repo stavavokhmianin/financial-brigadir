@@ -514,6 +514,18 @@ paths:
       operationId: createObligation
       security:
       - HTTPBearer: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          description: Повтор запроса с тем же ключом вернёт то же обязательство
+          title: Idempotency-Key
+        description: Повтор запроса с тем же ключом вернёт то же обязательство
       requestBody:
         required: true
         content:
@@ -527,6 +539,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ObligationOut'
+        '200':
+          description: Повтор по Idempotency-Key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObligationOut'
         '401':
           description: Нужна авторизация
           content:
@@ -535,6 +553,12 @@ paths:
                 $ref: '#/components/schemas/ErrorOut'
         '404':
           description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '409':
+          description: Конфликт с уже выполненным запросом
           content:
             application/json:
               schema:
@@ -3504,7 +3528,7 @@ components:
             format: date
           - type: 'null'
           title: Date
-          description: Для expense; по умолчанию — сегодня
+          description: Для expense; по умолчанию — первый день прогноза
         label:
           anyOf:
           - type: string

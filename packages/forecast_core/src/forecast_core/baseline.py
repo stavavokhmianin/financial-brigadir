@@ -15,7 +15,7 @@
 
 import math
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from statistics import mean, median
 from typing import Literal
@@ -28,7 +28,6 @@ from forecast_core.types import (
     Coverage,
     ForecastInputSnapshot,
     HistoricalTransaction,
-    IncomeExpectation,
     ObligationStatus,
     TxStatus,
     TxType,
@@ -227,24 +226,9 @@ def build_spending_model(
     )
 
 
-def _shifted(
-    incomes: Iterable[IncomeExpectation], snapshot: ForecastInputSnapshot
-) -> list[IncomeExpectation]:
-    shifts = {s.income_id: s.shift_days for s in snapshot.income_shifts}
-    result = []
-    for income in incomes:
-        days = shifts.get(income.id, 0)
-        if days:
-            delta = timedelta(days=days)
-            income = replace(
-                income, date_from=income.date_from + delta, date_to=income.date_to + delta
-            )
-        result.append(income)
-    return result
-
-
 @dataclass(frozen=True, slots=True)
 class ObligationHit:
+    source_id: str
     day: date
     amount_minor: int  # базовая сумма (с учётом трат по кредитке)
     low_minor: int
@@ -256,6 +240,8 @@ class ObligationHit:
 
 @dataclass(frozen=True, slots=True)
 class IncomeHit:
+    source_id: str
+    source_day: date  # дата в исходном расписании, до сценарного сдвига
     first: date  # самая ранняя дата окна
     last: date  # самая поздняя дата окна
     min_minor: int
@@ -323,6 +309,7 @@ def prepare_plan(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
                     flags.append("card_spending_accrual")
             obligations.append(
                 ObligationHit(
+                    obligation.id,
                     day,
                     amount,
                     low,
@@ -334,11 +321,16 @@ def prepare_plan(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
             )
 
     incomes: list[IncomeHit] = []
-    for income in _shifted(snapshot.incomes, snapshot):
+    shifts = {shift.income_id: shift.shift_days for shift in snapshot.income_shifts}
+    for income in snapshot.incomes:
+        shift = timedelta(days=shifts.get(income.id, 0))
+        shifted_from = income.date_from + shift
         spread = income.date_to - income.date_from
-        for first in occurrences(income.date_from, income.recurrence, today - spread, end):
+        for first in occurrences(shifted_from, income.recurrence, today - spread, end):
             incomes.append(
                 IncomeHit(
+                    income.id,
+                    first - shift,
                     first,
                     first + spread,
                     income.amount_min_minor,

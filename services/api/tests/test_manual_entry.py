@@ -94,6 +94,29 @@ def test_obligation_patch_validation(
     assert client.patch(url, headers=stranger, json={"status": "canceled"}).status_code == 404
 
 
+def test_create_obligation_is_idempotent(client: TestClient, headers: dict[str, str]) -> None:
+    body = {
+        "title": "План: ноутбук",
+        "amount_minor": 12_000_00,
+        "due_date": "2026-10-25",
+        "priority": "normal",
+        "movable": True,
+    }
+    keyed = {**headers, "Idempotency-Key": "scenario-plan-1"}
+    first = client.post("/api/v1/obligations", headers=keyed, json=body)
+    replay = client.post("/api/v1/obligations", headers=keyed, json=body)
+    assert (first.status_code, replay.status_code) == (201, 200)
+    assert first.json()["id"] == replay.json()["id"]
+
+    conflict = client.post(
+        "/api/v1/obligations",
+        headers=keyed,
+        json={**body, "amount_minor": 13_000_00},
+    )
+    assert conflict.status_code == 409
+    assert conflict.json()["error"]["code"] == "idempotency_conflict"
+
+
 # --- доходы -----------------------------------------------------------------------
 
 

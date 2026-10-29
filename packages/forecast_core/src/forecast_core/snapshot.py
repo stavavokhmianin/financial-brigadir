@@ -28,5 +28,12 @@ def snapshot_fingerprint(snapshot: ForecastInputSnapshot) -> str:
     raw = dataclasses.asdict(snapshot)
     for key in ("accounts", "obligations", "incomes", "history"):
         raw[key] = sorted(raw[key], key=lambda item: str(item["id"]))
+    raw["extra_expenses"] = sorted(
+        raw["extra_expenses"],
+        key=lambda item: (item["day"], item["amount_minor"], item["label"]),
+    )
+    raw["income_shifts"] = sorted(
+        raw["income_shifts"], key=lambda item: (item["income_id"], item["shift_days"])
+    )
     canonical = json.dumps(raw, default=_default, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

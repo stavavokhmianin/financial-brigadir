@@ -19,6 +19,7 @@ from forecast_core import (
     parse_rub_to_minor,
     snapshot_fingerprint,
 )
+from forecast_core.types import IncomeShift, ScenarioExpense
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "forecast_core"
 FORBIDDEN_ROOTS = {"fastapi", "sqlalchemy", "alembic", "pydantic", "starlette", "app", "openai"}
@@ -123,3 +124,11 @@ def test_fingerprint_is_order_independent_and_sensitive() -> None:
     s2 = ForecastInputSnapshot(AS_OF, "Europe/Moscow", 30, 500_000, (b, a), (rent,))
     assert snapshot_fingerprint(s1) == snapshot_fingerprint(s2)
     assert snapshot_fingerprint(s1) != snapshot_fingerprint(replace(s1, reserve_minor=0))
+
+    first = ScenarioExpense(date(2026, 10, 20), 100, "A")
+    second = ScenarioExpense(date(2026, 10, 21), 200, "B")
+    shift_a = IncomeShift("salary", 2)
+    shift_b = IncomeShift("bonus", -1)
+    scenario_a = replace(s1, extra_expenses=(first, second), income_shifts=(shift_a, shift_b))
+    scenario_b = replace(s1, extra_expenses=(second, first), income_shifts=(shift_b, shift_a))
+    assert snapshot_fingerprint(scenario_a) == snapshot_fingerprint(scenario_b)

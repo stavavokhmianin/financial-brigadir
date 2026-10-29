@@ -1,7 +1,9 @@
 from datetime import date, timedelta
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Header, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
@@ -21,10 +23,49 @@ from forecast_core.calendar import occurrences
 router = APIRouter(prefix="/obligations", tags=["obligations"])
 
 MAX_WINDOW_DAYS = 366
+IdempotencyKey = Annotated[
+    str | None,
+    Header(
+        alias="Idempotency-Key",
+        max_length=80,
+        description="Повтор запроса с тем же ключом вернёт то же обязательство",
+    ),
+]
 
 
 def _out(obligation: Obligation) -> ObligationOut:
     return ObligationOut.model_validate(obligation)
+
+
+def _same_create(obligation: Obligation, body: ObligationCreate) -> bool:
+    return all(
+        (
+            obligation.title == body.title,
+            obligation.kind == body.kind,
+            obligation.amount_minor == body.amount_minor,
+            obligation.amount_min_minor == body.amount_min_minor,
+            obligation.amount_max_minor == body.amount_max_minor,
+            obligation.due_date == body.due_date,
+            obligation.recurrence == body.recurrence,
+            obligation.recurrence_day == body.recurrence_day,
+            obligation.account_id == body.account_id,
+            obligation.priority == body.priority,
+            obligation.movable == body.movable,
+        )
+    )
+
+
+def _replay_or_conflict(
+    obligation: Obligation, body: ObligationCreate, response: Response
+) -> ObligationOut:
+    if not _same_create(obligation, body):
+        raise APIError(
+            status.HTTP_409_CONFLICT,
+            "idempotency_conflict",
+            "Этот Idempotency-Key уже использован для другого платежа",
+        )
+    response.status_code = status.HTTP_200_OK
+    return _out(obligation)
 
 
 @router.get(
@@ -77,9 +118,27 @@ def list_obligations(
     operation_id="createObligation",
     summary="Ручное обязательство (FR-03): подтверждено пользователем",
     status_code=status.HTTP_201_CREATED,
-    responses=error_responses(401, 404),
+    responses={
+        200: {"model": ObligationOut, "description": "Повтор по Idempotency-Key"},
+        **error_responses(401, 404, 409),
+    },
 )
-def create_obligation(body: ObligationCreate, user: CurrentUser, db: DbSession) -> ObligationOut:
+def create_obligation(
+    body: ObligationCreate,
+    response: Response,
+    user: CurrentUser,
+    db: DbSession,
+    idempotency_key: IdempotencyKey = None,
+) -> ObligationOut:
+    if idempotency_key:
+        existing = db.scalar(
+            select(Obligation).where(
+                Obligation.user_id == user.id,
+                Obligation.idempotency_key == idempotency_key,
+            )
+        )
+        if existing is not None:
+            return _replay_or_conflict(existing, body, response)
     if body.account_id is not None:
         owned = db.scalar(
             select(Account.id).where(Account.id == body.account_id, Account.user_id == user.id)
@@ -102,6 +161,7 @@ def create_obligation(body: ObligationCreate, user: CurrentUser, db: DbSession) 
         status=ObligationStatus.CONFIRMED,
         confidence=1.0,
         movable=body.movable,
+        idempotency_key=idempotency_key,
     )
     db.add(obligation)
     db.add(
@@ -112,7 +172,20 @@ def create_obligation(body: ObligationCreate, user: CurrentUser, db: DbSession) 
             object_id=obligation.id,
         )
     )
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if idempotency_key:
+            existing = db.scalar(
+                select(Obligation).where(
+                    Obligation.user_id == user.id,
+                    Obligation.idempotency_key == idempotency_key,
+                )
+            )
+            if existing is not None:
+                return _replay_or_conflict(existing, body, response)
+        raise
     db.refresh(obligation)
     return _out(obligation)
 

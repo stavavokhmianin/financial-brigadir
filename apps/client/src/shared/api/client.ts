@@ -163,8 +163,13 @@ export const api = {
   createAccount: (token: string, body: AccountCreate) =>
     request<Account>("/api/v1/accounts", { method: "POST", token, body }),
 
-  createObligation: (token: string, body: ObligationCreate) =>
-    request<Obligation>("/api/v1/obligations", { method: "POST", token, body }),
+  createObligation: (token: string, body: ObligationCreate, idempotencyKey?: string) =>
+    request<Obligation>("/api/v1/obligations", {
+      method: "POST",
+      token,
+      body,
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+    }),
 
   updateObligation: (token: string, id: string, body: ObligationPatch) =>
     request<Obligation>(`/api/v1/obligations/${encodeURIComponent(id)}`, {

@@ -22,7 +22,9 @@ class ScenarioEvent(APIModel):
 
     type: Literal["expense", "income_shift"]
     amount_minor: PositiveMinor | None = Field(default=None, description="Для expense")
-    date: dt.date | None = Field(default=None, description="Для expense; по умолчанию — сегодня")
+    date: dt.date | None = Field(
+        default=None, description="Для expense; по умолчанию — первый день прогноза"
+    )
     label: str | None = Field(default=None, max_length=80)
     shift_days: int | None = Field(default=None, ge=-31, le=31, description="Для income_shift")
     target_id: str | None = Field(default=None, description="id дохода для income_shift")

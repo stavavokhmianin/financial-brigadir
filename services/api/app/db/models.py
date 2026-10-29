@@ -244,6 +244,7 @@ class Obligation(Base):
 
     __tablename__ = "obligations"
     __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_obligations_user_idempotency_key"),
         CheckConstraint("amount_minor > 0", name="amount_positive"),
         CheckConstraint(
             "amount_min_minor IS NULL OR amount_max_minor IS NULL "
@@ -282,6 +283,7 @@ class Obligation(Base):
     )
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     movable: Mapped[bool] = mapped_column(Boolean, default=False)
+    idempotency_key: Mapped[str | None] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 

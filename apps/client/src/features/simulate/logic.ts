@@ -12,6 +12,28 @@ export interface SimulationInput {
   delayDays: number;
 }
 
+export interface ScenarioDateRange {
+  min: string;
+  max: string;
+}
+
+function shiftIsoDate(iso: string, days: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, (day ?? 1) + days))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** Покупка должна попадать в фактически отображаемые дни прогноза. */
+export function scenarioDateRange(today: string, horizonDays: number): ScenarioDateRange {
+  return { min: shiftIsoDate(today, 1), max: shiftIsoDate(today, horizonDays) };
+}
+
+export function isScenarioDateAllowed(date: string, today: string, horizonDays: number): boolean {
+  const range = scenarioDateRange(today, horizonDays);
+  return date >= range.min && date <= range.max;
+}
+
 /** События для POST /scenarios; пусто — считать нечего. */
 export function buildEvents(input: SimulationInput): ScenarioEventInput[] {
   const events: ScenarioEventInput[] = [];

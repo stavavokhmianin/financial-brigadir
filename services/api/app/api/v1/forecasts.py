@@ -49,7 +49,7 @@ def post_forecast(
     try:
         output, created = create_forecast(db, user, body, idempotency_key)
     except ForecastInputError as exc:
-        raise APIError(status.HTTP_404_NOT_FOUND, exc.code, exc.message) from exc
+        raise APIError(exc.status_code, exc.code, exc.message) from exc
     if not created:
         response.status_code = status.HTTP_200_OK
     return output
@@ -89,4 +89,4 @@ def post_scenario(body: ScenarioRequest, user: CurrentUser, db: DbSession) -> Sc
     try:
         return create_scenario(db, user, body)
     except ForecastInputError as exc:
-        raise APIError(status.HTTP_404_NOT_FOUND, exc.code, exc.message) from exc
+        raise APIError(exc.status_code, exc.code, exc.message) from exc

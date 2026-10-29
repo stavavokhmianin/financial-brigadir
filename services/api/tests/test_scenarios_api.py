@@ -114,3 +114,34 @@ def test_scenario_errors(client: TestClient, headers: dict[str, str]) -> None:
     other = client.post("/api/v1/demo/sessions", json={"profile_id": "two_banks"}).json()
     foreign = {"Authorization": f"Bearer {other['access_token']}"}
     assert _scenario(client, foreign, base["forecast_id"], PURCHASE).status_code == 404
+
+
+@pytest.mark.parametrize("day", ["2026-10-19", "2026-11-19", "2027-12-31"])
+def test_purchase_date_must_be_inside_forecast_horizon(
+    client: TestClient, headers: dict[str, str], day: str
+) -> None:
+    base = _base(client, headers)
+    response = _scenario(
+        client,
+        headers,
+        base["forecast_id"],
+        {"type": "expense", "amount_minor": 99_999_900, "date": day},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "scenario_date_out_of_range"
+
+
+def test_purchase_without_date_uses_first_forecast_day(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    base = _base(client, headers)
+    response = _scenario(
+        client,
+        headers,
+        base["forecast_id"],
+        {"type": "expense", "amount_minor": 100_000},
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+    assert data["result"]["scenario"]["date"] is None
+    assert data["min_balance_delta_minor"] == -100_000

@@ -1,8 +1,14 @@
 import { Redirect, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { api, ApiError, type Forecast, type ScenarioResult } from "@/shared/api/client";
+import {
+  api,
+  ApiError,
+  type Forecast,
+  type IncomesResponse,
+  type ScenarioResult,
+} from "@/shared/api/client";
 import { addDays, formatDay, formatRubApprox } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { formatDateInput, parseDateInput, parseRubInput } from "@/shared/input";
@@ -22,11 +28,25 @@ import { Text } from "@/shared/ui/text";
 
 import { ForecastChart } from "../forecast/ForecastChart";
 import { RiskBanner } from "../forecast/ForecastScreen";
-import { buildEvents, comparisonRows, type ComparisonRow } from "./logic";
+import {
+  buildEvents,
+  comparisonRows,
+  isScenarioDateAllowed,
+  scenarioDateRange,
+  type ComparisonRow,
+} from "./logic";
 
 const t = ru.simulate;
 const DELAYS = ["0", "2", "5"] as const;
 type Delay = (typeof DELAYS)[number];
+type Income = IncomesResponse["items"][number];
+
+interface SubmittedPurchase {
+  amountMinor: number;
+  date: string;
+  label: string;
+  idempotencyKey: string;
+}
 
 function messageOf(error: unknown): string {
   return error instanceof ApiError ? error.message : "Неизвестная ошибка.";
@@ -47,28 +67,46 @@ export function SimulateScreen() {
   const token = session?.access_token;
   const [base, setBase] = useState<Forecast | null>(null);
   const [salaryId, setSalaryId] = useState<string | null>(null);
+  const [incomes, setIncomes] = useState<Income[]>([]);
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [date, setDate] = useState("");
   const [delay, setDelay] = useState<Delay>("0");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ScenarioResult | null>(null);
+  const [submittedPurchase, setSubmittedPurchase] = useState<SubmittedPurchase | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const inputRevision = useRef(0);
 
   useEffect(() => {
     if (!token) return;
+    let active = true;
+    setBase(null);
+    setFailure(null);
+    setResult(null);
+    setSubmittedPurchase(null);
+    setSaved(null);
     // Нужен только список доходов (items), календарь здесь не используется.
     Promise.all([api.createForecast(token, {}), api.listIncomes(token, "2000-01-01", "2000-01-02")])
       .then(([forecast, incomes]) => {
+        if (!active) return;
         setBase(forecast);
         setDate(formatDateInput(addDays(forecast.today, 1)));
+        setIncomes(incomes.items);
         const salary = incomes.items.find((i) => i.kind === "salary") ?? incomes.items[0];
         setSalaryId(salary?.id ?? null);
       })
-      .catch((err: unknown) => setFailure(messageOf(err)));
-  }, [token]);
+      .catch((err: unknown) => {
+        if (active) setFailure(messageOf(err));
+      });
+    return () => {
+      active = false;
+    };
+  }, [token, reload]);
 
   if (!session || !token) {
     return <Redirect href="/" />;
@@ -76,20 +114,43 @@ export function SimulateScreen() {
   if (!base) {
     return (
       <Screen>
-        {failure ? <ErrorState title={t.error} message={failure} /> : <LoadingState label={t.loading} />}
+        {failure ? (
+          <ErrorState
+            title={t.error}
+            message={failure}
+            onRetry={() => setReload((value) => value + 1)}
+          />
+        ) : (
+          <LoadingState label={t.loading} />
+        )}
       </Screen>
     );
   }
 
   const year = Number(base.today.slice(0, 4));
   const safe = base.safe_to_spend;
+  const dateRange = scenarioDateRange(base.today, base.horizon_days);
+
+  const invalidateResult = () => {
+    inputRevision.current += 1;
+    setResult(null);
+    setSubmittedPurchase(null);
+    setSaved(null);
+  };
 
   const simulate = async () => {
+    const revision = inputRevision.current;
     const parsedAmount = amount.trim() ? parseRubInput(amount) : null;
     const parsedDate = parseDateInput(date, base.today);
     const next: Record<string, string> = {};
     if (parsedAmount && !parsedAmount.ok) next.amount = parsedAmount.error;
     if (!parsedDate.ok) next.date = parsedDate.error;
+    if (
+      parsedDate.ok &&
+      !isScenarioDateAllowed(parsedDate.value, base.today, base.horizon_days)
+    ) {
+      next.date = `${t.dateRange} ${formatDay(dateRange.min, year)} — ${formatDay(dateRange.max, year)}`;
+    }
     setErrors(next);
     if (Object.keys(next).length > 0 || !parsedDate.ok) return;
     const events = buildEvents({
@@ -106,8 +167,23 @@ export function SimulateScreen() {
     setBusy(true);
     setFailure(null);
     setSaved(null);
+    setResult(null);
+    setSubmittedPurchase(null);
     try {
-      setResult(await api.createScenario(token, { base_forecast_id: base.forecast_id, events }));
+      const nextResult = await api.createScenario(token, {
+        base_forecast_id: base.forecast_id,
+        events,
+      });
+      if (revision !== inputRevision.current) return;
+      setResult(nextResult);
+      if (parsedAmount?.ok) {
+        setSubmittedPurchase({
+          amountMinor: parsedAmount.value,
+          date: parsedDate.value,
+          label: label.trim() || t.defaultLabel,
+          idempotencyKey: `scenario-plan-${nextResult.scenario_id}`,
+        });
+      }
     } catch (err) {
       setFailure(messageOf(err));
     } finally {
@@ -116,22 +192,28 @@ export function SimulateScreen() {
   };
 
   const saveAsPlan = async () => {
-    const parsedAmount = parseRubInput(amount);
-    const parsedDate = parseDateInput(date, base.today);
-    if (!parsedAmount.ok || !parsedDate.ok) return;
+    if (!submittedPurchase || saving || saved) return;
+    setSaving(true);
+    setFailure(null);
     try {
-      await api.createObligation(token, {
-        title: `${t.planPrefix}: ${label.trim() || t.defaultLabel}`,
-        kind: "manual",
-        amount_minor: parsedAmount.value,
-        due_date: parsedDate.value,
-        recurrence: "none",
-        priority: "normal",
-        movable: true,
-      });
+      await api.createObligation(
+        token,
+        {
+          title: `${t.planPrefix}: ${submittedPurchase.label}`,
+          kind: "manual",
+          amount_minor: submittedPurchase.amountMinor,
+          due_date: submittedPurchase.date,
+          recurrence: "none",
+          priority: "normal",
+          movable: true,
+        },
+        submittedPurchase.idempotencyKey,
+      );
       setSaved(t.saved);
     } catch (err) {
       setFailure(messageOf(err));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -141,6 +223,7 @@ export function SimulateScreen() {
     setLabel("");
     setDelay("0");
     setSaved(null);
+    setSubmittedPurchase(null);
   };
 
   return (
@@ -167,23 +250,59 @@ export function SimulateScreen() {
           label={t.amount}
           testID="purchase-amount"
           value={amount}
-          onChangeText={setAmount}
+          onChangeText={(value) => {
+            setAmount(value);
+            invalidateResult();
+          }}
           keyboardType="decimal-pad"
           placeholder="12 000"
           error={errors.amount}
         />
-        <Field label={t.label} value={label} onChangeText={setLabel} placeholder={t.defaultLabel} />
-        <Field label={t.date} value={date} onChangeText={setDate} error={errors.date} />
+        <Field
+          label={t.label}
+          value={label}
+          onChangeText={(value) => {
+            setLabel(value);
+            invalidateResult();
+          }}
+          placeholder={t.defaultLabel}
+        />
+        <Field
+          label={t.date}
+          value={date}
+          onChangeText={(value) => {
+            setDate(value);
+            invalidateResult();
+          }}
+          error={errors.date}
+          hint={`${t.dateRange} ${formatDay(dateRange.min, year)} — ${formatDay(dateRange.max, year)}`}
+        />
         {salaryId && session.user.plan === "plus" ? (
-          <Choice
-            label={t.delay}
-            value={delay}
-            onChange={setDelay}
-            options={DELAYS.map((value) => ({
-              value,
-              label: value === "0" ? t.onTime : `${t.later} ${value} ${t.days}`,
-            }))}
-          />
+          <>
+            {incomes.length > 1 ? (
+              <Choice
+                label={t.delayIncome}
+                value={salaryId}
+                onChange={(value) => {
+                  setSalaryId(value);
+                  invalidateResult();
+                }}
+                options={incomes.map((income) => ({ value: income.id, label: income.title }))}
+              />
+            ) : null}
+            <Choice
+              label={t.delay}
+              value={delay}
+              onChange={(value) => {
+                setDelay(value);
+                invalidateResult();
+              }}
+              options={DELAYS.map((value) => ({
+                value,
+                label: value === "0" ? t.onTime : `${t.later} ${value} ${t.days}`,
+              }))}
+            />
+          </>
         ) : salaryId ? <Muted>{t.plusOnly}</Muted> : null}
         <Button testID="calculate-scenario" label={t.calculate} onPress={() => void simulate()} loading={busy} />
         <Muted>{t.noPayment}</Muted>
@@ -228,8 +347,13 @@ export function SimulateScreen() {
             />
             <Muted>{t.chartHint}</Muted>
           </Card>
-          {amount.trim() ? (
-            <Button label={t.saveAsPlan} onPress={() => void saveAsPlan()} disabled={saved !== null} />
+          {submittedPurchase ? (
+            <Button
+              label={t.saveAsPlan}
+              onPress={() => void saveAsPlan()}
+              loading={saving}
+              disabled={saved !== null}
+            />
           ) : null}
           {saved ? <Text style={{ color: palette.ok }}>{saved}</Text> : null}
           <Button label={t.discard} variant="secondary" onPress={discard} />

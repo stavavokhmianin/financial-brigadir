@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildEvents, comparisonRows } from "../src/features/simulate/logic.ts";
+import {
+  buildEvents,
+  comparisonRows,
+  isScenarioDateAllowed,
+  scenarioDateRange,
+} from "../src/features/simulate/logic.ts";
 
 test("buildEvents: покупка, задержка зарплаты и их комбинация", () => {
   const base = { amountMinor: null, date: "2026-10-20", label: "", salaryId: "inc_1", delayDays: 0 };
@@ -46,4 +51,15 @@ test("comparisonRows: что изменилось и стало ли хуже", 
     result: { risk: { min_balance_minor: 10, pessimistic_min_minor: 5 } },
   });
   assert.ok(same.every((r) => !r.changed && !r.worse));
+});
+
+test("scenarioDateRange: сценарий ограничен отображаемым горизонтом", () => {
+  assert.deepEqual(scenarioDateRange("2026-10-19", 30), {
+    min: "2026-10-20",
+    max: "2026-11-18",
+  });
+  assert.equal(isScenarioDateAllowed("2026-10-19", "2026-10-19", 30), false);
+  assert.equal(isScenarioDateAllowed("2026-10-20", "2026-10-19", 30), true);
+  assert.equal(isScenarioDateAllowed("2026-11-18", "2026-10-19", 30), true);
+  assert.equal(isScenarioDateAllowed("2026-11-19", "2026-10-19", 30), false);
 });

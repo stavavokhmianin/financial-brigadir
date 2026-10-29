@@ -59,10 +59,11 @@ DEFAULT_RESERVE_MINOR = 500_000
 
 
 class ForecastInputError(ValueError):
-    def __init__(self, code: str, message: str) -> None:
+    def __init__(self, code: str, message: str, status_code: int = 404) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
+        self.status_code = status_code
 
 
 @dataclass(frozen=True)
@@ -137,11 +138,18 @@ def prepare_snapshot(
     shifts: list[IncomeShift] = []
     today = as_of.astimezone(ZoneInfo(user.timezone)).date()
     income_ids = {i.id for i in incomes}
+    scenario_start = today + timedelta(days=1)
+    scenario_end = today + timedelta(days=request.horizon_days)
     for event in events:
         if event.type == "expense" and event.amount_minor:
-            extra.append(
-                ScenarioExpense(event.date or today, event.amount_minor, event.label or "Покупка")
-            )
+            event_day = event.date or scenario_start
+            if not scenario_start <= event_day <= scenario_end:
+                raise ForecastInputError(
+                    "scenario_date_out_of_range",
+                    "Дата покупки должна попадать в горизонт прогноза",
+                    status_code=400,
+                )
+            extra.append(ScenarioExpense(event_day, event.amount_minor, event.label or "Покупка"))
         elif event.type == "income_shift":
             if event.target_id not in income_ids:
                 raise ForecastInputError("income_not_found", "Доход для сдвига не найден")
@@ -359,7 +367,7 @@ def _store(
         horizon_days=prepared.snapshot.horizon_days,
         reserve_minor=prepared.snapshot.reserve_minor,
         model_version=result.model_version,
-        seed=None,
+        seed=0,
         input_snapshot=_compact_input(prepared.snapshot),
         input_fingerprint=snapshot_fingerprint(prepared.snapshot),
         quality_flags={"flags": output.quality.flags, "confidence": output.quality.confidence},

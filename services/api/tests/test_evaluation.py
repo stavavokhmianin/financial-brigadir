@@ -32,7 +32,7 @@ def _run(
         as_of=moment,
         horizon_days=30,
         reserve_minor=RESERVE,
-        model_version="mc-0.1",
+        model_version="mc-0.2",
         input_snapshot={
             "timezone": "Europe/Moscow",
             "accounts": [

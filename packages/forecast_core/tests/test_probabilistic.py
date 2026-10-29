@@ -6,11 +6,12 @@ from datetime import date, timedelta
 
 import pytest
 
+from forecast_core import IncomeExpectation
 from forecast_core.probabilistic import MODEL_VERSION, run_monte_carlo
 from forecast_core.scenarios import compare, safe_to_spend
 from forecast_core.types import IncomeShift, ScenarioExpense, TxType
 
-from .test_baseline import RUB, _account, _snapshot, _tx
+from .test_baseline import RUB, SALARY, _account, _snapshot, _tx
 
 
 def _noisy(days: int = 60) -> tuple:  # type: ignore[type-arg]
@@ -59,6 +60,45 @@ def test_purchase_and_salary_delay_raise_probability() -> None:
     assert comparison.delta_risk is not None and comparison.delta_risk > 0
     # Общие случайные числа: покупка сдвигает квантили ровно на свою сумму.
     assert comparison.min_balance_delta_minor == -8_000 * RUB
+
+
+def test_zero_probability_income_does_not_change_other_random_paths() -> None:
+    """Добавление или сдвиг невозможного дохода не должно менять траты и квантили."""
+    impossible = IncomeExpectation(
+        "never",
+        "card",
+        date(2026, 11, 9),
+        date(2026, 11, 9),
+        1_000 * RUB,
+        1_000 * RUB,
+        0.0,
+        False,
+        "none",
+        "Невозможный доход",
+    )
+    snapshot = _snap(incomes=(impossible,))
+    base = run_monte_carlo(snapshot)
+    shifted = run_monte_carlo(replace(snapshot, income_shifts=(IncomeShift("never", 5),)))
+    assert shifted.points == base.points
+    assert shifted.gap_probability == base.gap_probability
+
+
+def test_simulation_is_independent_of_input_order() -> None:
+    bonus = IncomeExpectation(
+        "bonus",
+        "card",
+        date(2026, 10, 23),
+        date(2026, 10, 25),
+        2_000 * RUB,
+        5_000 * RUB,
+        0.4,
+        False,
+        "none",
+        "Премия",
+    )
+    snapshot = _snap(incomes=(SALARY, bonus))
+    reordered = replace(snapshot, incomes=(bonus, SALARY))
+    assert run_monte_carlo(snapshot) == run_monte_carlo(reordered)
 
 
 def test_safe_amount_is_exact_boundary_of_formula_9_4() -> None:
