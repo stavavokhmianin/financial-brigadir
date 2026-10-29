@@ -3,6 +3,8 @@
 Прогноз личных денежных потоков и вероятности кассового разрыва (ТЗ v2.0, 19.10.2026).
 Код живёт в ветке `step4ik`, отчёты по этапам — в `master/reports`.
 
+**Демо-стенд:** https://5-35-98-96.sslip.io — выкатка `infra/stand/deploy.sh`, устройство и эксплуатация: [docs/stand.md](docs/stand.md).
+
 Приватность, экспорт, удаление и сроки хранения: [docs/privacy.md](docs/privacy.md).
 Критерии приёмки: [docs/quality-gates.md](docs/quality-gates.md).
 Android APK и нативный E2E: [docs/mobile-verification.md](docs/mobile-verification.md).

@@ -1,0 +1,62 @@
+name: Stand APK
+
+# APK для телефонов, сразу смотрящий на публичный демо-стенд (infra/stand):
+# установить и открыть — вводить адрес сервера не нужно.
+on:
+  workflow_dispatch:
+    inputs:
+      stand_url:
+        description: "Адрес стенда"
+        required: false
+        default: "https://5-35-98-96.sslip.io"
+  push:
+    branches: [master]
+    paths:
+      - "apps/client/**"
+      - ".github/workflows/stand-apk.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stand-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      EXPO_PUBLIC_API_URL: ${{ inputs.stand_url || 'https://5-35-98-96.sslip.io' }}
+      EAS_BUILD_PROFILE: preview
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/client/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+      - name: Dependencies and native Android project
+        working-directory: apps/client
+        run: |
+          npm ci --no-audit --no-fund
+          npx expo prebuild --platform android --no-install
+      - name: Assemble APK for phones (ARM64)
+        working-directory: apps/client/android
+        run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --max-workers=2
+      - name: Stand is reachable
+        run: curl -fsS "$EXPO_PUBLIC_API_URL/api/v1/health/ready"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: financial-brigadir-stand-apk
+          path: apps/client/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 90
