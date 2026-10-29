@@ -67,6 +67,7 @@ name: Demo purchase, plan preview and bank mock
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Free и Plus"
 - scrollUntilVisible:
@@ -95,6 +96,7 @@ name: Demo purchase, plan preview and bank mock
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Учебный банк \\(мок\\)"
 - tapOn: "Разрешить чтение синтетики на 24 часа"

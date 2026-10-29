@@ -32,3 +32,17 @@ test("chartPaths: линия сравнения, когда передан пр�
   const paths = chartPaths(chartGeometry(points, 500, 100, compare), 200);
   assert.ok(paths.compare?.startsWith("M0.0,"));
 });
+
+test("smoothPath: монотонная кривая не выходит за значения соседних точек", () => {
+  const xs = [0, 10, 20, 30, 40, 50];
+  const ys = [40, 90, 100, 20, 60, 55];
+  const nums = [...smoothPath(xs, ys).matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[2]));
+  // Точки пути: старт, затем тройки (две контрольные и конец сегмента).
+  for (let i = 0; i < xs.length - 1; i += 1) {
+    const lo = Math.min(ys[i] ?? 0, ys[i + 1] ?? 0) - 1e-6;
+    const hi = Math.max(ys[i] ?? 0, ys[i + 1] ?? 0) + 1e-6;
+    for (const yc of nums.slice(1 + i * 3, 1 + i * 3 + 2)) {
+      assert.ok(yc >= lo && yc <= hi, `сегмент ${i}: ${yc} вне [${lo}, ${hi}]`);
+    }
+  }
+});

@@ -130,22 +130,42 @@ export interface ChartPaths {
 
 const point = (x: number, y: number) => `${x.toFixed(1)},${y.toFixed(1)}`;
 
-/** Catmull-Rom → кубические Безье: плавная линия, проходящая через все точки. */
+const sign = (v: number) => (v < 0 ? -1 : 1);
+
+/** Наклон в средней точке (Fritsch–Carlson, как curveMonotoneX в d3): без выбросов. */
+function slope3(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number): number {
+  const h0 = x1 - x0;
+  const h1 = x2 - x1;
+  const s0 = h0 ? (y1 - y0) / h0 : 0;
+  const s1 = h1 ? (y2 - y1) / h1 : 0;
+  const p = h0 + h1 ? (s0 * h1 + s1 * h0) / (h0 + h1) : 0;
+  return (sign(s0) + sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(p)) || 0;
+}
+
+/**
+ * Монотонная кубическая кривая через все точки. В отличие от Catmull-Rom она не
+ * «проскакивает» за соседние значения: график не рисует остаток ниже реального минимума.
+ */
 export function smoothPath(xs: readonly number[], ys: readonly number[]): string {
-  if (xs.length === 0) return "";
-  let d = `M${point(xs[0] ?? 0, ys[0] ?? 0)}`;
-  for (let i = 0; i < xs.length - 1; i += 1) {
-    const x0 = xs[i - 1] ?? xs[i] ?? 0;
-    const y0 = ys[i - 1] ?? ys[i] ?? 0;
-    const x1 = xs[i] ?? 0;
-    const y1 = ys[i] ?? 0;
-    const x2 = xs[i + 1] ?? x1;
-    const y2 = ys[i + 1] ?? y1;
-    const x3 = xs[i + 2] ?? x2;
-    const y3 = ys[i + 2] ?? y2;
-    const c1 = point(x1 + (x2 - x0) / 6, y1 + (y2 - y0) / 6);
-    const c2 = point(x2 - (x3 - x1) / 6, y2 - (y3 - y1) / 6);
-    d += ` C${c1} ${c2} ${point(x2, y2)}`;
+  const n = xs.length;
+  if (n === 0) return "";
+  const x = (i: number) => xs[i] ?? 0;
+  const y = (i: number) => ys[i] ?? 0;
+  let d = `M${point(x(0), y(0))}`;
+  if (n === 1) return d;
+  const t: number[] = [];
+  for (let i = 1; i < n - 1; i += 1) t[i] = slope3(x(i - 1), y(i - 1), x(i), y(i), x(i + 1), y(i + 1));
+  const edge = (i0: number, i1: number, inner: number) => {
+    const h = x(i1) - x(i0);
+    return h ? (3 * (y(i1) - y(i0))) / h / 2 - inner / 2 : inner;
+  };
+  t[0] = n > 2 ? edge(0, 1, t[1] ?? 0) : (y(1) - y(0)) / (x(1) - x(0) || 1);
+  t[n - 1] = n > 2 ? edge(n - 2, n - 1, t[n - 2] ?? 0) : (t[0] ?? 0);
+  for (let i = 0; i < n - 1; i += 1) {
+    const dx = (x(i + 1) - x(i)) / 3;
+    const c1 = point(x(i) + dx, y(i) + dx * (t[i] ?? 0));
+    const c2 = point(x(i + 1) - dx, y(i + 1) - dx * (t[i + 1] ?? 0));
+    d += ` C${c1} ${c2} ${point(x(i + 1), y(i + 1))}`;
   }
   return d;
 }

@@ -315,7 +315,12 @@ export function ActionTile({ label, icon, onPress, hint, testID }: TileProps) {
       <View style={[styles.tileIcon, { backgroundColor: palette.accentSoft }]}>
         <Icon name={icon} color={palette.accent} size={20} />
       </View>
-      <Text style={[styles.tileLabel, { color: palette.text }]}>{label}</Text>
+      <Text
+        android_hyphenationFrequency="none"
+        style={[styles.tileLabel, { color: palette.text }]}
+      >
+        {label}
+      </Text>
       {hint ? <Text style={[styles.tileHint, { color: palette.muted }]}>{hint}</Text> : null}
     </Pressable>
   );
@@ -444,12 +449,12 @@ const styles = StyleSheet.create({
     flexBasis: "45%",
     minHeight: 112,
     borderRadius: radius.lg,
-    padding: space.lg,
+    padding: space.md + 2,
     gap: space.sm,
     borderWidth: StyleSheet.hairlineWidth,
   },
   tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  tileLabel: { fontSize: 15, fontWeight: "700", lineHeight: 20 },
+  tileLabel: { fontSize: 14, fontWeight: "700", lineHeight: 19 },
   tileHint: { fontSize: 12, lineHeight: 16 },
   stat: { flex: 1, borderRadius: radius.md, padding: space.md, gap: 2 },
   statLabel: { fontSize: 12, fontWeight: "600" },

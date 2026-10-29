@@ -2,7 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 
-import { formatDay, formatRub, formatRubApprox } from "@/shared/format";
+import { formatDay, formatRub } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { Text } from "@/shared/ui/text";
 import { space, usePalette } from "@/shared/ui/theme";
@@ -19,8 +19,8 @@ interface Props {
 }
 
 /**
- * Коридор p10–p90 с градиентом, сглаженная линия p50, зона ниже резерва и отметка
- * минимума. Ширина берётся из раскладки — график тянется на всю карточку.
+ * Коридор p10–p90 с градиентом, сглаженная линия p50, зона ниже резерва и точка
+ * минимума (значение — в показателях под графиком). Ширина берётся из раскладки — график тянется на всю карточку.
  */
 export function ForecastChart({ points, reserveMinor, compare, compact }: Props) {
   const palette = usePalette();
@@ -32,12 +32,9 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
   const first = points[0];
   const last = points[points.length - 1];
   const min = paths ? geometry.bars[paths.minIndex] : undefined;
-  const minPoint = paths ? points[paths.minIndex] : undefined;
   const minX = paths ? (paths.xs[paths.minIndex] ?? 0) : 0;
   const minBelow = min?.belowReserve ?? false;
   const reserveY = Math.max(0, Math.min(height, geometry.reserveY));
-  // Подпись минимума не должна вылезать за края графика.
-  const labelLeft = Math.max(0, Math.min(width - 120, minX - 60));
 
   return (
     <View
@@ -119,31 +116,6 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
             ) : null}
           </Svg>
         ) : null}
-        {!compact && min && minPoint ? (
-          <View
-            pointerEvents="none"
-            style={[
-              styles.minLabel,
-              {
-                left: labelLeft,
-                // Точка в нижней половине — подпись над ней, иначе под ней.
-                top:
-                  min.mid > height / 2
-                    ? Math.max(0, min.mid - 58)
-                    : Math.min(height - 44, min.mid + 14),
-                backgroundColor: palette.card,
-                borderColor: minBelow ? palette.danger : palette.border,
-              },
-            ]}
-          >
-            <Text style={[styles.minValue, { color: minBelow ? palette.danger : palette.text }]}>
-              {formatRubApprox(minPoint.p50_minor)}
-            </Text>
-            <Text style={[styles.minDay, { color: palette.muted }]}>
-              {ru.forecast.minimum} · {formatDay(minPoint.day)}
-            </Text>
-          </View>
-        ) : null}
       </View>
       <View style={styles.axis}>
         <Text style={[styles.axisText, { color: palette.muted }]}>
@@ -176,15 +148,4 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   reserveDash: { width: 14, borderTopWidth: 1.5, borderStyle: "dashed" },
-  minLabel: {
-    position: "absolute",
-    width: 120,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignItems: "center",
-  },
-  minValue: { fontSize: 13, fontWeight: "800" },
-  minDay: { fontSize: 11, fontWeight: "600" },
 });
