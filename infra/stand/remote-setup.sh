@@ -71,12 +71,13 @@ STAND_HOST="$HOST" caddy validate --config /etc/caddy/Caddyfile --adapter caddyf
 systemctl restart caddy.service
 
 echo "== http → https"
-if [ -d /etc/nginx/conf.d ] && command -v nginx >/dev/null 2>&1; then
-  sed "s/STAND_HOST/$HOST/" "$HERE/nginx-redirect.conf" > /etc/nginx/conf.d/brigadir-redirect.conf
+rm -f /etc/nginx/conf.d/brigadir-redirect.conf  # прежнее место, забирало сайт по умолчанию
+if [ -d /etc/nginx/vhosts-includes ] && command -v nginx >/dev/null 2>&1; then
+  sed "s/STAND_HOST/$HOST/g" "$HERE/nginx-redirect.conf" > /etc/nginx/vhosts-includes/brigadir-redirect.conf
   if nginx -t -q 2>/dev/null; then
     systemctl reload nginx
   else
-    rm -f /etc/nginx/conf.d/brigadir-redirect.conf
+    rm -f /etc/nginx/vhosts-includes/brigadir-redirect.conf
     echo "nginx отверг редирект, пропускаю" >&2
   fi
 fi
@@ -90,6 +91,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 curl -fsS http://127.0.0.1:8010/api/v1/health/ready
+echo
 
 echo "== старые релизы"
 ls -1dt /opt/brigadir/releases/* | tail -n +4 | xargs -r rm -rf
