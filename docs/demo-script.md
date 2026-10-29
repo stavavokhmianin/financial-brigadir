@@ -17,6 +17,10 @@
 
 **Перед показом**
 
+- [ ] Основной вариант без ноутбука-сервера — публичный стенд https://5-35-98-96.sslip.io
+      (web) и APK из артефакта `financial-brigadir-stand-apk` (телефон). Проверка стенда:
+      `python scripts/demo_walkthrough.py --api https://5-35-98-96.sslip.io`. Локальный
+      `docker compose` ниже — запасной вариант, если нет интернета.
 - [ ] `docker compose up --build` — smoke-тест в логах зелёный (`ok …` в сервисе `smoke`).
 - [ ] Клиент: `cd apps/client && npm install && npx expo start --web`. Телефон: APK из артефакта,
       на стартовом экране «Адрес сервера» — адрес ноутбука в той же Wi-Fi, например

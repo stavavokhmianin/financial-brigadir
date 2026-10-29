@@ -1,0 +1,33 @@
+[Unit]
+Description=Financial Brigadir API (demo stand)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=brigadir
+Group=brigadir
+EnvironmentFile=/etc/brigadir/api.env
+WorkingDirectory=/opt/brigadir/current/services/api
+ExecStartPre=/opt/brigadir/venv/bin/alembic upgrade head
+# Один процесс: SQLite и 1 ГБ памяти на сервере. Реальный IP клиента — от Caddy.
+ExecStart=/opt/brigadir/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010 \
+  --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-server-header --no-access-log
+Restart=always
+RestartSec=3
+MemoryMax=350M
+
+# Песочница: писать можно только в данные стенда.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/brigadir
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
