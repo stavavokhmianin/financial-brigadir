@@ -23,6 +23,8 @@ if [ -n "$missing" ]; then
   # shellcheck disable=SC2086
   apt-get install -y -qq -o Dpkg::Options::=--force-confold $missing
 fi
+# Каталог создан до пакета, то есть root-ом: без этого Caddy не может писать журнал.
+chown caddy:caddy /var/log/caddy
 
 echo "== пользователь и каталоги"
 id brigadir >/dev/null 2>&1 ||
@@ -67,6 +69,17 @@ systemctl restart brigadir-api.service
 systemctl start brigadir-maintenance.timer
 STAND_HOST="$HOST" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
 systemctl restart caddy.service
+
+echo "== http → https"
+if [ -d /etc/nginx/conf.d ] && command -v nginx >/dev/null 2>&1; then
+  sed "s/STAND_HOST/$HOST/" "$HERE/nginx-redirect.conf" > /etc/nginx/conf.d/brigadir-redirect.conf
+  if nginx -t -q 2>/dev/null; then
+    systemctl reload nginx
+  else
+    rm -f /etc/nginx/conf.d/brigadir-redirect.conf
+    echo "nginx отверг редирект, пропускаю" >&2
+  fi
+fi
 
 echo "== проверка API"
 for _ in $(seq 1 30); do

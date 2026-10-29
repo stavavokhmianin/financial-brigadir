@@ -1,0 +1,30 @@
+name: Stand health
+
+# Демо-стенд жив: API, web и редирект с http. Упавший плановый запуск GitHub присылает
+# письмом владельцу репозитория.
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      STAND: https://5-35-98-96.sslip.io
+    steps:
+      - name: API
+        run: curl -fsS --retry 3 --retry-delay 10 "$STAND/api/v1/health/ready"
+      - name: Web
+        run: curl -fsS --retry 3 --retry-delay 10 -o /dev/null "$STAND/"
+      - name: Редирект с http
+        run: |
+          location=$(curl -sS -o /dev/null -w "%{redirect_url}" "http://${STAND#https://}/")
+          test "$location" = "$STAND/"
+      - name: Сертификат действует ещё 14 дней
+        run: |
+          echo | openssl s_client -connect "${STAND#https://}:443" -servername "${STAND#https://}" 2>/dev/null |
+            openssl x509 -noout -checkend $((14 * 24 * 3600))

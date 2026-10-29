@@ -20,9 +20,12 @@ Docker не используется: сборка образов на 1 ГБ п
 | Данные | `/var/lib/brigadir/brigadir.db` | SQLite; миграции применяются при каждом старте |
 | Обслуживание | таймер `brigadir-maintenance` | раз в 6 часов: удаление заброшенных демо-профилей старше 7 дней и онлайн-бэкап базы (хранятся 7 последних) |
 | Код | `/opt/brigadir/releases/<коммит>` | `current` — ссылка на активный релиз, хранятся 3 последних |
+| http → https | `/etc/nginx/conf.d/brigadir-redirect.conf` | nginx панели на `:80` отдаёт для адреса стенда редирект 301, остальные сайты панели не трогает |
+| Мониторинг | workflow «Stand health» | раз в 3 часа проверяет API, web, редирект и срок сертификата; если проверка упала, GitHub пишет владельцу |
 
-Наружу открыт только 443. API слушает только localhost. Настройки — в
-`/etc/brigadir/api.env` (создаётся один раз, при выкатке не перезаписывается).
+От стенда наружу смотрит только 443; API слушает только localhost. Остальные открытые порты
+(SSH, FTP, панель) принадлежат хостингу. Настройки — в `/etc/brigadir/api.env` (создаётся
+один раз, при выкатке не перезаписывается).
 
 ## Выкатка
 
@@ -72,8 +75,15 @@ ssh -i ~/.ssh/brigadir_deploy root@5.35.98.96
   1. `systemctl stop brigadir-api`;
   2. скопировать файл из `/var/lib/brigadir/backups/` в `brigadir.db`;
   3. `systemctl start brigadir-api`;
-  4. `sudo -u brigadir … python -m app.cli reapply-erasures` — повторить удаления, сделанные
-     после этого бэкапа.
+  4. Повторить удаления, сделанные после этого бэкапа:
+     ```bash
+     sudo -u brigadir sh -c 'set -a; . /etc/brigadir/api.env; cd /opt/brigadir/current/services/api && /opt/brigadir/venv/bin/python -m app.cli reapply-erasures'
+     ```
+- **Бэкапы лежат на том же диске.** От ошибок и удалений они спасают, от потери сервера —
+  нет. Перед важным показом стоит забрать копии к себе (7 файлов по нескольку МБ):
+  ```bash
+  scp -i ~/.ssh/brigadir_deploy 'root@5.35.98.96:/var/lib/brigadir/backups/*.db' .
+  ```
 
 ## Режим пилота
 
