@@ -1,23 +1,41 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { api, ApiError, type DemoProfile } from "@/shared/api/client";
 import { DEMO_SEED } from "@/shared/config";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
+import { Logo } from "@/shared/ui/brand";
 import {
   Badge,
   Button,
   Card,
   ErrorState,
+  Hero,
   LoadingState,
   Muted,
   Screen,
 } from "@/shared/ui/components";
-import { space, usePalette } from "@/shared/ui/theme";
+import { Icon, type IconName } from "@/shared/ui/icons";
+import { Text } from "@/shared/ui/text";
+import { elevation, radius, space, usePalette } from "@/shared/ui/theme";
 
 const DEFAULT_PROFILE = "young_specialist";
+
+const PROFILE_ICON: Record<string, IconName> = {
+  young_specialist: "user",
+  credit_card: "wallet",
+  freelancer: "sparkle",
+  two_banks: "bank",
+  family: "user",
+};
+
+const FEATURES: { icon: IconName; label: string }[] = [
+  { icon: "chart", label: ru.demo.featureForecast },
+  { icon: "cart", label: ru.demo.featureBefore },
+  { icon: "shield", label: ru.demo.featureNoPasswords },
+];
 
 function messageOf(error: unknown): string {
   return error instanceof ApiError ? error.message : "Неизвестная ошибка.";
@@ -62,14 +80,26 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   };
 
   return (
-    <Screen>
+    <Screen topInset>
       {notice}
-      <View style={styles.hero}>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+      <Hero>
+        <View style={styles.brandRow}>
+          <Logo onHero />
+          <Text style={[styles.brandName, { color: palette.heroText }]}>{ru.appName}</Text>
+        </View>
+        <Text accessibilityRole="header" style={[styles.title, { color: palette.heroText }]}>
           {ru.demo.title}
         </Text>
-        <Muted>{ru.demo.lead}</Muted>
-      </View>
+        <Text style={[styles.lead, { color: palette.heroMuted }]}>{ru.demo.lead}</Text>
+        <View style={styles.features}>
+          {FEATURES.map((feature) => (
+            <View key={feature.label} style={[styles.feature, { backgroundColor: palette.heroChip }]}>
+              <Icon name={feature.icon} color={palette.heroText} size={16} />
+              <Text style={[styles.featureText, { color: palette.heroText }]}>{feature.label}</Text>
+            </View>
+          ))}
+        </View>
+      </Hero>
 
       <Card title={ru.demo.profilesTitle}>
         {loadError ? (
@@ -98,19 +128,34 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
                     styles.option,
                     {
                       borderColor: active ? palette.accent : palette.border,
-                      backgroundColor: palette.card,
-                      opacity: profile.mvp ? 1 : 0.55,
+                      backgroundColor: active ? palette.accentSoft : palette.card,
+                      opacity: profile.mvp ? 1 : 0.5,
                     },
+                    active ? elevation(palette, 1) : null,
                   ]}
                 >
-                  <View style={styles.optionHeader}>
-                    <Text style={[styles.optionTitle, { color: palette.text }]}>
-                      {profile.title}
-                    </Text>
-                    {active ? <Badge label={ru.demo.selected} tone="ok" /> : null}
-                    {!profile.mvp ? <Badge label={ru.demo.afterMvp} /> : null}
+                  <View
+                    style={[
+                      styles.avatar,
+                      { backgroundColor: active ? palette.accent : palette.track },
+                    ]}
+                  >
+                    <Icon
+                      name={PROFILE_ICON[profile.id] ?? "user"}
+                      color={active ? palette.accentText : palette.muted}
+                      size={20}
+                    />
                   </View>
-                  <Muted>{profile.description}</Muted>
+                  <View style={styles.optionBody}>
+                    <View style={styles.optionHeader}>
+                      <Text style={[styles.optionTitle, { color: palette.text }]}>
+                        {profile.title}
+                      </Text>
+                      {active ? <Badge label={ru.demo.selected} tone="ok" /> : null}
+                      {!profile.mvp ? <Badge label={ru.demo.afterMvp} /> : null}
+                    </View>
+                    <Muted>{profile.description}</Muted>
+                  </View>
                 </Pressable>
               );
             })}
@@ -123,6 +168,7 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
       ) : null}
 
       <Button
+        trailingIcon="arrow"
         label={starting ? ru.demo.starting : ru.demo.start}
         onPress={() => void start()}
         loading={starting}
@@ -134,10 +180,30 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: space.sm, paddingTop: space.md },
-  title: { fontSize: 26, fontWeight: "700", lineHeight: 32 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  brandName: { fontSize: 17, fontWeight: "800", letterSpacing: -0.2 },
+  title: { fontSize: 30, fontWeight: "800", lineHeight: 36, letterSpacing: -0.8 },
+  lead: { fontSize: 15, lineHeight: 22 },
+  features: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingTop: space.xs },
+  feature: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+  },
+  featureText: { fontSize: 13, fontWeight: "700" },
   list: { gap: space.md },
-  option: { borderWidth: 1.5, borderRadius: 12, padding: space.md, gap: space.xs },
+  option: {
+    borderWidth: 1.5,
+    borderRadius: radius.lg,
+    padding: space.md + 2,
+    flexDirection: "row",
+    gap: space.md,
+  },
+  avatar: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  optionBody: { flex: 1, gap: space.xs },
   optionHeader: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
-  optionTitle: { fontSize: 16, fontWeight: "600" },
+  optionTitle: { fontSize: 16, fontWeight: "700" },
 });

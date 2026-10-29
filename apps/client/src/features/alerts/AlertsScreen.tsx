@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import {
   api,
@@ -23,6 +23,7 @@ import {
   Screen,
 } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
+import { Text } from "@/shared/ui/text";
 
 import { groupHidden, QUIET_PRESETS, quietPresetOf, timesLabel, type QuietPreset } from "./logic";
 
@@ -105,7 +106,7 @@ export function AlertsScreen() {
 
   return (
     <Screen>
-      <Card title={t.title}>
+      <Card title={t.title} icon="bell">
         <Muted>{t.lead}</Muted>
         {shown.length === 0 ? <Muted>{t.empty}</Muted> : null}
         {shown.map((alert) => (
@@ -142,7 +143,7 @@ export function AlertsScreen() {
       </Card>
 
       {hidden.length > 0 ? (
-        <Card title={t.hiddenTitle}>
+        <Card title={t.hiddenTitle} icon="shield">
           <Muted>{t.hiddenLead}</Muted>
           {groupHidden(hidden)
             .slice(0, 10)
@@ -159,7 +160,7 @@ export function AlertsScreen() {
         </Card>
       ) : null}
 
-      <Card title={t.settingsTitle}>
+      <Card title={t.settingsTitle} icon="sparkle">
         <Choice<Mode>
           label={t.mode}
           value={settings.mode as Mode}
@@ -193,7 +194,7 @@ export function AlertsScreen() {
         <Muted>{t.limitHint}</Muted>
       </Card>
 
-      <Card title={t.statsTitle}>
+      <Card title={t.statsTitle} icon="chart">
         <Muted>
           {t.stats.decisions}: {state.analytics.total_decisions} · {t.stats.sent7}:{" "}
           {state.analytics.sent_last_7_days} · {t.stats.suppressed}:{" "}

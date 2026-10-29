@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { api, ApiError, type Forecast, type ScenarioResult } from "@/shared/api/client";
 import { addDays, formatDay, formatRubApprox } from "@/shared/format";
@@ -18,6 +18,7 @@ import {
   Screen,
 } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
+import { Text } from "@/shared/ui/text";
 
 import { ForecastChart } from "../forecast/ForecastChart";
 import { RiskBanner } from "../forecast/ForecastScreen";
@@ -144,12 +145,14 @@ export function SimulateScreen() {
 
   return (
     <Screen>
-      <Card title={t.title}>
+      <Card title={t.title} icon="cart">
         {safe.available ? (
-          <View style={styles.safe}>
+          <View style={[styles.safe, { backgroundColor: palette.okSoft }]}>
             <Text style={{ color: palette.text }}>
-              {t.safeLead} {formatDay(safe.date, year)}:{" "}
-              <Text style={styles.bold}>{formatRubApprox(safe.base_minor)}</Text>
+              {t.safeLead} {formatDay(safe.date, year)}:
+            </Text>
+            <Text style={[styles.safeValue, { color: palette.ok }]}>
+              {formatRubApprox(safe.base_minor)}
             </Text>
             <Muted>
               {safe.conservative_minor > 0
@@ -191,7 +194,7 @@ export function SimulateScreen() {
       {result ? (
         <>
           <RiskBanner forecast={result.result} previous={result.risk_level_before} />
-          <Card title={t.compareTitle}>
+          <Card title={t.compareTitle} icon="sparkle">
             <Muted>{result.explanation}</Muted>
             <View style={styles.tableHead}>
               <Text style={[styles.headCell, { color: palette.muted }]} />
@@ -217,7 +220,7 @@ export function SimulateScreen() {
             ))}
             {result.base_recomputed ? <Muted>{t.recomputed}</Muted> : null}
           </Card>
-          <Card title={t.chartTitle}>
+          <Card title={t.chartTitle} icon="chart">
             <ForecastChart
               points={result.result.points}
               reserveMinor={result.result.reserve_minor}
@@ -238,7 +241,8 @@ export function SimulateScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { gap: space.xs },
+  safe: { gap: space.xs, borderRadius: 14, padding: space.md },
+  safeValue: { fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
   bold: { fontWeight: "700" },
   tableHead: { flexDirection: "row", gap: space.sm },
   headCell: { flex: 1, fontSize: 13, textAlign: "right" },

@@ -8,7 +8,7 @@ name: Every main screen opens without errors
 - scrollUntilVisible:
     element: "Свободные средства"
     direction: UP
-    timeout: 30000
+    timeout: 60000
 
 # Прогноз
 - scrollUntilVisible:
@@ -29,6 +29,7 @@ name: Every main screen opens without errors
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Календарь платежей"
 - extendedWaitUntil:
@@ -41,6 +42,7 @@ name: Every main screen opens without errors
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Предупреждения"
 - scrollUntilVisible:
@@ -53,6 +55,7 @@ name: Every main screen opens without errors
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Добавить обязательство, доход или счёт"
 - extendedWaitUntil:
@@ -68,6 +71,7 @@ name: Every main screen opens without errors
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Загрузить выписку CSV"
 - scrollUntilVisible:
@@ -105,6 +109,7 @@ name: Every main screen opens without errors
 - scrollUntilVisible:
     element: "Приватность, экспорт и выход"
     visibilityPercentage: 100
+    timeout: 60000
 - scroll
 - tapOn: "Приватность, экспорт и выход"
 - scrollUntilVisible:

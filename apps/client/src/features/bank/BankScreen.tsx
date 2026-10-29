@@ -52,7 +52,7 @@ export function BankScreen() {
   }
 
   return <Screen>
-    <Card title="Учебный банк">
+    <Card title="Учебный банк" icon="bank">
       <Badge label="Только синтетика, без подключения к банкам" tone="warning" />
       <Muted>Можно проверить загрузку счетов, остатков и операций. Будет добавлен отдельный учебный счёт, который участвует в прогнозе. Пароли и коды банка не нужны.</Muted>
       <Muted>Нажатие «Разрешить» даёт доступ только к синтетическим счетам, остаткам и операциям на 24 часа. Отзыв остановит новые загрузки; уже загруженная история останется до удаления профиля.</Muted>
@@ -60,7 +60,7 @@ export function BankScreen() {
       <Button label="Разрешить чтение синтетики на 24 часа" disabled={busy || !ready} onPress={() => void run("grant")} />
       {active ? <Button label="Отозвать доступ" variant="secondary" disabled={busy} onPress={() => void run("revoke")} /> : null}
     </Card>
-    <Card title="Проверка загрузки">
+    <Card title="Проверка загрузки" icon="upload">
       <Choice options={scenarios} value={scenario} onChange={setScenario} />
       <Muted>После сбоя выберите обычную загрузку и повторите. Старый ответ не заменяет свежие данные. Для проверки задержанного обновления начните с нового демо-профиля.</Muted>
       <Button label="Синхронизировать учебный счёт" disabled={busy || !active} onPress={() => void run("sync")} />
