@@ -210,3 +210,13 @@ def test_cli_issues_lists_and_revokes_without_leaking_codes(
     with pytest.raises(ValueError):
         with db_session_factory() as db:
             issue_codes(db, 0, 30)
+
+
+def test_cli_retention_runs(
+    db_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "SessionLocal", db_session_factory)
+    assert cli.main(["retention"]) == 0
+    assert "удалено заброшенных демо-профилей: 0" in capsys.readouterr().out

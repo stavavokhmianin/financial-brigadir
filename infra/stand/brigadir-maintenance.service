@@ -1,0 +1,19 @@
+[Unit]
+Description=Financial Brigadir: retention and SQLite backup
+After=brigadir-api.service
+
+[Service]
+Type=oneshot
+User=brigadir
+Group=brigadir
+EnvironmentFile=/etc/brigadir/api.env
+WorkingDirectory=/opt/brigadir/current/services/api
+# Заброшенные демо-профили старше 7 дней — удалить.
+ExecStart=/opt/brigadir/venv/bin/python -m app.cli retention
+# Онлайн-копия базы раз в запуск, хранится 7 последних.
+ExecStart=/bin/sh -c 'sqlite3 /var/lib/brigadir/brigadir.db ".backup /var/lib/brigadir/backups/brigadir-$(date -u +%%Y%%m%%dT%%H%%M).db" && ls -1t /var/lib/brigadir/backups/brigadir-*.db | tail -n +8 | xargs -r rm -f'
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/brigadir

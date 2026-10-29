@@ -4,7 +4,8 @@
 - ``list-codes`` — коды без секретов: id, срок, отзыв, привязан ли профиль;
 - ``revoke-code <id>`` — отозвать код, новые входы по нему невозможны;
 - ``reapply-erasures`` — после восстановления бэкапа снова удалить стёртые профили;
-- ``pilot-report [--out файл]`` — точность прогноза против факта, только агрегаты.
+- ``pilot-report [--out файл]`` — точность прогноза против факта, только агрегаты;
+- ``retention`` — удалить заброшенные демо-профили старше 7 дней (для таймера systemd).
 """
 
 import argparse
@@ -19,7 +20,7 @@ from app.db.models import PilotAccessCode
 from app.db.session import SessionLocal
 from app.modules.evaluation import collect, render
 from app.modules.pilot import issue_codes, revoke_code
-from app.modules.privacy import reapply_erasures
+from app.modules.privacy import purge_expired_profiles, reapply_erasures
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -35,6 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     report = commands.add_parser("pilot-report", help="прогноз против факта на данных пилота")
     report.add_argument("--out", help="записать Markdown в файл вместо вывода")
     report.add_argument("--include-demo", action="store_true", help="учитывать демо-профили")
+    commands.add_parser("retention", help="удалить заброшенные демо-профили старше 7 дней")
     args = parser.parse_args(argv)
 
     with SessionLocal() as db:
@@ -59,6 +61,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"отчёт: {args.out}")
             else:
                 print(text, end="")
+        elif args.command == "retention":
+            count = purge_expired_profiles(db, log_path=get_settings().erasure_log_path)
+            print(f"удалено заброшенных демо-профилей: {count}")
         else:
             count = reapply_erasures(db, get_settings().erasure_log_path)
             print(f"повторно удалено профилей: {count}")

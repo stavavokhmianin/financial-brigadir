@@ -1,0 +1,48 @@
+# Публичный демо-стенд: HTTPS на 443, статика web-клиента и /api к API на 127.0.0.1.
+# Порт 80 на сервере занят панелью хостинга, поэтому сертификат Let's Encrypt
+# подтверждается через TLS-ALPN на 443, без HTTP-проверки и без редиректа с 80.
+{
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$STAND_HOST}:443 {
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8010
+	}
+
+	handle {
+		header {
+			X-Frame-Options "DENY"
+			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+		}
+		@hashed path /_expo/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		root * /var/www/brigadir
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/brigadir.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
