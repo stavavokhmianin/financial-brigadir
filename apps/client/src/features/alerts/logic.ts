@@ -19,3 +19,39 @@ export function quietPresetOf(start: string | null, end: string | null): QuietPr
   }
   return "night";
 }
+
+export interface HiddenLike {
+  id: string;
+  action: string;
+  reason: string;
+  reason_text: string;
+  risk_date?: string | null;
+}
+
+export interface HiddenGroup<T extends HiddenLike> {
+  first: T;
+  count: number;
+}
+
+/**
+ * Одинаковые скрытые решения (то же действие, причина и дата риска) — одной строкой
+ * со счётчиком: каждый пересчёт прогноза добавляет решение, и список превращался в повтор.
+ * Порядок — по первому появлению.
+ */
+export function groupHidden<T extends HiddenLike>(items: readonly T[]): HiddenGroup<T>[] {
+  const groups = new Map<string, HiddenGroup<T>>();
+  for (const item of items) {
+    const key = `${item.action}|${item.reason}|${item.risk_date ?? ""}`;
+    const group = groups.get(key);
+    if (group) group.count += 1;
+    else groups.set(key, { first: item, count: 1 });
+  }
+  return [...groups.values()];
+}
+
+/** «2 раза», «5 раз», «12 раз», «22 раза». */
+export function timesLabel(count: number): string {
+  const tail = count % 10;
+  const teen = count % 100 >= 12 && count % 100 <= 14;
+  return `${count} ${tail >= 2 && tail <= 4 && !teen ? "раза" : "раз"}`;
+}

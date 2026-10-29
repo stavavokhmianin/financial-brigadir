@@ -10,6 +10,7 @@
 
 import argparse
 import json
+import logging
 import sys
 import urllib.request
 from collections.abc import Callable
@@ -34,7 +35,11 @@ def http_caller(base: str) -> Call:
 
 def offline_caller() -> Call:
     """API в процессе: SQLite в памяти, без сети (раздел 16.4, План Б)."""
+    import warnings
     from collections.abc import Iterator
+
+    # Предупреждение библиотеки о тестовом клиенте не относится к показу.
+    warnings.filterwarnings("ignore", message=".*httpx.*")
 
     from fastapi.testclient import TestClient
     from sqlalchemy.orm import Session, sessionmaker
@@ -48,6 +53,8 @@ def offline_caller() -> Call:
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     application = create_app()
+    # План Б показывают с экрана: служебные строки HTTP-клиента только мешают.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     def _db() -> Iterator[Session]:
         db = factory()
@@ -164,9 +171,22 @@ class Demo:
         call("POST", "/api/v1/forecasts", {}, token)
         latest = call("GET", "/api/v1/alerts", None, token)["items"][0]
         print(f"      Повторный расчёт: {latest['reason_text']}.")
-        print("      Демо-режим банковского API — этап 5 (контракт в OpenAPI).")
         self.expect(len(sent) == 1, "показано одно предупреждение")
         self.expect(latest["reason"] == "repeat_without_change", "повтор без изменений подавлен")
+
+        print("      Демо-режим банковского API: только синтетика, пароли банка не вводятся.")
+        scopes = ["accounts", "balances", "transactions"]
+        consent = {"accepted": True, "scopes": scopes, "ttl_hours": 24}
+        call("POST", "/api/v1/connectors/bank-mock/consent", consent, token)
+        first = call("POST", "/api/v1/connectors/bank-mock/sync", {}, token)
+        again = call("POST", "/api/v1/connectors/bank-mock/sync", {}, token)
+        print(f"      Согласие на 24 часа → загружено операций: {first['transactions_new']};")
+        print(
+            f"      повтор: новых {again['transactions_new']}, "
+            f"пропущено {again['transactions_duplicate']}."
+        )
+        self.expect(first["transactions_new"] > 0, "учебный банк загрузил операции")
+        self.expect(again["transactions_new"] == 0, "повторная синхронизация без дублей")
 
         self.say("6", "Код, тесты, отчёт сравнения с baseline, бизнес-модель с допущениями.")
         safe = forecast["safe_to_spend"]
@@ -174,8 +194,8 @@ class Demo:
             f"      Безопасная покупка {safe['date']}: до {rub(safe['base_minor'])} "
             f"(с запасом — до {rub(safe['conservative_minor'])})."
         )
-        print("      Репозиторий: ветка step4ik; отчёт baseline: docs/backtest/baseline.md;")
-        print("      бизнес-модель: docs/pitch/deck.md.")
+        print("      Репозиторий: ветка master; отчёт baseline: docs/backtest/baseline.md;")
+        print("      бизнес-модель: scripts/business_model.py и docs/business-model.md.")
         self.expect(safe["available"], "безопасная сумма рассчитана")
 
         print()

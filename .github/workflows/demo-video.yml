@@ -10,6 +10,7 @@ on:
       - "apps/client/**"
       - "scripts/record_demo.py"
       - "scripts/qa_screens.py"
+      - "docs/pitch/**"
       - ".github/workflows/demo-video.yml"
   workflow_dispatch:
 
@@ -59,12 +60,22 @@ jobs:
         run: python scripts/record_demo.py --web http://127.0.0.1:8081 --out artifacts/demo
       - name: Обход всех экранов
         run: python scripts/qa_screens.py --web http://127.0.0.1:8081 --out artifacts/qa
+      - name: Презентация в PDF и PPTX (Marp, Chrome раннера)
+        run: |
+          npx -y @marp-team/marp-cli@4.5.1 --no-stdin --allow-local-files docs/pitch/deck.md --pdf -o artifacts/deck/deck.pdf
+          npx -y @marp-team/marp-cli@4.5.1 --no-stdin --allow-local-files docs/pitch/deck.md --pptx -o artifacts/deck/deck.pptx
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: demo-video
           path: artifacts/demo
-          retention-days: 30
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pitch-deck
+          path: artifacts/deck
+          retention-days: 90
       - uses: actions/upload-artifact@v4
         if: always()
         with:

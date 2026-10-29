@@ -110,13 +110,15 @@ def run(demo: Demo) -> None:
     demo.snapshot("purchase")
     demo.scroll(700, steps=5)
 
-    demo.caption("Шаг 4. А если зарплата придёт на 2 дня позже?")
+    demo.caption("Шаг 4. Покупку убираем. А если зарплата придёт на 2 дня позже?")
+    # Как в живом показе: без «Не учитывать» задержка считалась бы вместе с покупкой.
+    demo.button("Не учитывать")
     page.mouse.wheel(0, -3000)
     demo.wait(0.8)
     demo.button("на 2 дн.", role="radio")
     demo.button("Посчитать")
-    demo.wait(2)
-    demo.caption("Новый прогноз: резерв под угрозой позже, минимум остатка меняется.", 3)
+    demo.expect_text("Если доход придёт на 2 дн. позже")
+    demo.caption("Минимум 6 551 → 3 828 ₽, резерв под угрозой с 26 октября.", 3)
     demo.snapshot("salary-delay")
     demo.scroll(600)
     demo.back()
