@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text } from "react-native";
+
 
 import { api, ApiError, type Account } from "@/shared/api/client";
 import { localDate } from "@/shared/format";
@@ -9,6 +9,7 @@ import { parseDateInput, parseRubInput } from "@/shared/input";
 import { useSession } from "@/shared/session";
 import { Button, Card, Choice, ErrorState, Field, Muted, Screen } from "@/shared/ui/components";
 import { usePalette } from "@/shared/ui/theme";
+import { Text } from "@/shared/ui/text";
 
 type Section = "account" | "obligation" | "income";
 type AccountType = "debit" | "cash" | "savings" | "credit_card" | "deposit";
@@ -329,7 +330,7 @@ export function AddScreen() {
 
   return (
     <Screen>
-      <Card title={t.title_screen}>
+      <Card title={t.title_screen} icon="plus">
         <Muted>{t.lead}</Muted>
         <Choice
           value={section}

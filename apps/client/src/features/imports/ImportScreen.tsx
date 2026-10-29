@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { api, ApiError, type Account, type ImportResult } from "@/shared/api/client";
 import { formatMoment, formatRub } from "@/shared/format";
@@ -17,6 +17,7 @@ import {
   Screen,
 } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
+import { Text } from "@/shared/ui/text";
 
 import { CSV_TEMPLATE } from "./template";
 
@@ -94,7 +95,7 @@ export function ImportScreen() {
 
   return (
     <Screen>
-      <Card title={ru.imports.title}>
+      <Card title={ru.imports.title} icon="upload">
         <Muted>{ru.imports.lead}</Muted>
         {accounts === null && !error ? <LoadingState label={ru.imports.loadingAccounts} /> : null}
         {accounts !== null ? (
@@ -138,7 +139,7 @@ export function ImportScreen() {
       {error ? <ErrorState title={ru.imports.error} message={error} /> : null}
 
       {preview && previewedContent === content ? (
-        <Card title={ru.imports.previewTitle}>
+        <Card title={ru.imports.previewTitle} icon="check">
           <Muted>
             {ru.imports.rows}: {preview.rows_total} · {ru.imports.rejected}: {preview.rows_rejected}
             {preview.period_from && preview.period_to
@@ -183,7 +184,7 @@ export function ImportScreen() {
       ) : null}
 
       {result ? (
-        <Card title={result.already_imported ? ru.imports.alreadyTitle : ru.imports.doneTitle}>
+        <Card title={result.already_imported ? ru.imports.alreadyTitle : ru.imports.doneTitle} icon="check">
           {result.already_imported ? (
             // Сервер вернул итог прошлой загрузки этого же файла: новых операций нет.
             <Muted>

@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { api, ApiError, type DuplicatePair } from "@/shared/api/client";
 import { formatMoment, formatRub } from "@/shared/format";
@@ -8,6 +8,7 @@ import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
 import { Button, Card, ErrorState, LoadingState, Muted, Screen } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
+import { Text } from "@/shared/ui/text";
 
 const t = ru.duplicates;
 
@@ -50,7 +51,7 @@ export function DuplicatesScreen() {
 
   return (
     <Screen>
-      <Card title={t.title}>
+      <Card title={t.title} icon="alert">
         <Muted>{t.lead}</Muted>
       </Card>
       {error ? <ErrorState title={t.error} message={error} onRetry={() => void load()} /> : null}

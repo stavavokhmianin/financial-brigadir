@@ -25,7 +25,7 @@ export function ServerCard({ onConnect }: { onConnect: () => void }) {
   };
 
   return (
-    <Card title={t.title}>
+    <Card title={t.title} icon="wallet">
       <Muted>{t.lead}</Muted>
       {pointsToDevice(apiUrl()) ? <Muted>{t.deviceHint}</Muted> : null}
       <Field

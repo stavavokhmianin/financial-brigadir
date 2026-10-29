@@ -38,7 +38,7 @@ export function StartScreen() {
   }
   if (meta) return <DemoLaunchScreen notice={notice} />;
   return (
-    <Screen>
+    <Screen topInset>
       {error ? (
         <>
           <ErrorState title={ru.server.unavailable} message={error} onRetry={() => void load()} />

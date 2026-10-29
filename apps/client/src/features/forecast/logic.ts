@@ -115,3 +115,69 @@ export function riskShift(before: string, after: string): "up" | "down" | "same"
   const delta = rank(after) - rank(before);
   return delta > 0 ? "up" : delta < 0 ? "down" : "same";
 }
+
+export interface ChartPaths {
+  /** Коридор p10–p90: верх по p90 слева направо, низ по p10 обратно. */
+  band: string;
+  /** Базовый прогноз p50 — сглаженная кривая. */
+  median: string;
+  /** Прогноз «до» сценария, если передан compare. */
+  compare: string | null;
+  xs: number[];
+  /** Индекс дня с минимальным p50 — для отметки на графике. */
+  minIndex: number;
+}
+
+const point = (x: number, y: number) => `${x.toFixed(1)},${y.toFixed(1)}`;
+
+/** Catmull-Rom → кубические Безье: плавная линия, проходящая через все точки. */
+export function smoothPath(xs: readonly number[], ys: readonly number[]): string {
+  if (xs.length === 0) return "";
+  let d = `M${point(xs[0] ?? 0, ys[0] ?? 0)}`;
+  for (let i = 0; i < xs.length - 1; i += 1) {
+    const x0 = xs[i - 1] ?? xs[i] ?? 0;
+    const y0 = ys[i - 1] ?? ys[i] ?? 0;
+    const x1 = xs[i] ?? 0;
+    const y1 = ys[i] ?? 0;
+    const x2 = xs[i + 1] ?? x1;
+    const y2 = ys[i + 1] ?? y1;
+    const x3 = xs[i + 2] ?? x2;
+    const y3 = ys[i + 2] ?? y2;
+    const c1 = point(x1 + (x2 - x0) / 6, y1 + (y2 - y0) / 6);
+    const c2 = point(x2 - (x3 - x1) / 6, y2 - (y3 - y1) / 6);
+    d += ` C${c1} ${c2} ${point(x2, y2)}`;
+  }
+  return d;
+}
+
+/** Пути SVG по геометрии графика при заданной ширине. */
+export function chartPaths(geometry: ChartGeometry, width: number): ChartPaths {
+  const n = geometry.bars.length;
+  const xs = geometry.bars.map((_, i) => (n === 1 ? width / 2 : (i / (n - 1)) * width));
+  const top = geometry.bars.map((b) => b.rangeTop);
+  const bottom = geometry.bars.map((b) => b.rangeTop + b.rangeHeight);
+  const band =
+    n === 0
+      ? ""
+      : `${smoothPath(xs, top)} L${point(xs[n - 1] ?? 0, bottom[n - 1] ?? 0)}` +
+        smoothPath([...xs].reverse(), [...bottom].reverse()).replace(/^M[^ C]+/, "") +
+        " Z";
+  const compareYs = geometry.bars.map((b) => b.compareMid);
+  const compare = compareYs.every((y): y is number => y !== null)
+    ? smoothPath(xs, compareYs)
+    : null;
+  let minIndex = 0;
+  geometry.bars.forEach((b, i) => {
+    if (b.mid > (geometry.bars[minIndex]?.mid ?? -Infinity)) minIndex = i;
+  });
+  return {
+    band,
+    median: smoothPath(
+      xs,
+      geometry.bars.map((b) => b.mid),
+    ),
+    compare: n > 0 ? compare : null,
+    xs,
+    minIndex,
+  };
+}

@@ -1,6 +1,6 @@
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import {
   api,
@@ -19,9 +19,24 @@ import {
 } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
-import { Badge, Button, Card, ErrorState, LoadingState, Muted, Screen } from "@/shared/ui/components";
-import { space, usePalette } from "@/shared/ui/theme";
+import {
+  ActionTile,
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  Hero,
+  LoadingState,
+  Muted,
+  Notice,
+  Screen,
+  Stat,
+} from "@/shared/ui/components";
+import { Icon } from "@/shared/ui/icons";
+import { Text } from "@/shared/ui/text";
+import { radius, space, usePalette } from "@/shared/ui/theme";
 
+import { ForecastChart } from "../forecast/ForecastChart";
 import { RiskBanner } from "../forecast/ForecastScreen";
 import { describeAccount, upcoming } from "./logic";
 
@@ -101,44 +116,34 @@ export function DashboardScreen() {
 
   return (
     <Screen>
-      <Card>
+      <Hero>
         <View style={styles.row}>
-          <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} />
-          {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="warning" /> : null}
-          <Badge
-            label={ru.dashboard.coverage[quality.coverage]}
-            tone={quality.coverage === "full" ? "ok" : "warning"}
-          />
+          <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} tone="hero" />
+          {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="hero" /> : null}
+          <Badge label={ru.dashboard.coverage[quality.coverage]} tone="hero" />
         </View>
-        <Muted>{ru.dashboard.liquid}</Muted>
-        <Text
-          accessibilityRole="summary"
-          style={[styles.amount, { color: palette.text }]}
-        >
-          {formatRub(data.accounts.liquid_balance_minor)}
-        </Text>
-        {quality.data_as_of ? (
-          <Muted>
-            {ru.dashboard.dataAsOf} {formatMoment(quality.data_as_of)}
-          </Muted>
-        ) : null}
-      </Card>
+        <View style={styles.balance}>
+          <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>{ru.dashboard.liquid}</Text>
+          <Text accessibilityRole="summary" style={[styles.amount, { color: palette.heroText }]}>
+            {formatRub(data.accounts.liquid_balance_minor)}
+          </Text>
+          {quality.data_as_of ? (
+            <View style={styles.freshness}>
+              <Icon name="clock" color={palette.heroMuted} size={15} />
+              <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>
+                {ru.dashboard.dataAsOf} {formatMoment(quality.data_as_of)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Hero>
 
       {quality.notes.length > 0 ? (
-        <View style={[styles.notes, { backgroundColor: palette.warningBg }]}>
-          <Text style={[styles.notesTitle, { color: palette.warning }]}>
-            {ru.dashboard.notesTitle}
-          </Text>
-          {quality.notes.map((note) => (
-            <Text key={note} style={[styles.note, { color: palette.text }]}>
-              • {note}
-            </Text>
-          ))}
-        </View>
+        <Notice text={`${ru.dashboard.notesTitle}: ${quality.notes.join(" ")}`} />
       ) : null}
 
       {data.duplicates > 0 ? (
-        <Card title={ru.duplicates.dashboardTitle}>
+        <Card title={ru.duplicates.dashboardTitle} icon="alert">
           <Muted>
             {ru.duplicates.title}: {data.duplicates}
           </Muted>
@@ -146,13 +151,74 @@ export function DashboardScreen() {
         </Card>
       ) : null}
 
-      <Card title={ru.dashboard.upcomingTitle}>
+      <Card title={ru.forecast.dashboardTitle} icon="chart">
+        {data.accounts.items.length === 0 ? (
+          // Пустой профиль участника пилота: прогноз из нуля рублей только напугает.
+          <>
+            <Muted>{ru.dashboard.noAccounts}</Muted>
+            <Button label={ru.dashboard.addFirst} onPress={() => router.push("/add")} />
+          </>
+        ) : data.forecast ? (
+          <>
+            <ForecastChart
+              compact
+              points={data.forecast.points}
+              reserveMinor={data.forecast.reserve_minor}
+            />
+            <View style={styles.stats}>
+              <Stat
+                label={`${ru.forecast.minimum} · ${formatDay(data.forecast.risk.min_balance_date, year)}`}
+                value={formatRubApprox(data.forecast.risk.min_balance_minor)}
+                tone={
+                  data.forecast.risk.min_balance_minor < data.forecast.reserve_minor
+                    ? "danger"
+                    : "default"
+                }
+              />
+              {data.forecast.safe_to_spend.available ? (
+                <Stat
+                  label={ru.dashboard.safeShort}
+                  value={formatRubApprox(data.forecast.safe_to_spend.base_minor)}
+                  tone="ok"
+                />
+              ) : null}
+            </View>
+            <RiskBanner forecast={data.forecast} />
+            {data.forecast.safe_to_spend.available ? (
+              <Muted>
+                {ru.forecast.safeToday} {formatDay(data.forecast.safe_to_spend.date, year)}: до{" "}
+                {formatRubApprox(data.forecast.safe_to_spend.base_minor)}
+              </Muted>
+            ) : null}
+            <Button label={ru.forecast.whatIf} icon="cart" onPress={() => router.push("/simulate")} />
+            <Button
+              label={ru.forecast.open}
+              icon="chart"
+              variant="secondary"
+              onPress={() => router.push("/forecast")}
+            />
+          </>
+        ) : (
+          <Muted>{ru.forecast.error}</Muted>
+        )}
+      </Card>
+
+      <Card title={ru.dashboard.upcomingTitle} icon="calendar">
         {next.items.length === 0 ? (
           <Muted>{ru.dashboard.upcomingEmpty}</Muted>
         ) : (
           <>
             {next.items.map((item) => (
               <View key={`${item.obligation_id}-${item.date}`} style={styles.line}>
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor:
+                        item.status === "confirmed" ? palette.accent : palette.warning,
+                    },
+                  ]}
+                />
                 <View style={styles.lineMain}>
                   <Text style={[styles.lineTitle, { color: palette.text }]}>{item.title}</Text>
                   <Muted>
@@ -177,39 +243,7 @@ export function DashboardScreen() {
         )}
       </Card>
 
-      <Card title={ru.forecast.dashboardTitle}>
-        {data.accounts.items.length === 0 ? (
-          // Пустой профиль участника пилота: прогноз из нуля рублей только напугает.
-          <>
-            <Muted>{ru.dashboard.noAccounts}</Muted>
-            <Button label={ru.dashboard.addFirst} onPress={() => router.push("/add")} />
-          </>
-        ) : data.forecast ? (
-          <>
-            <RiskBanner forecast={data.forecast} />
-            <Muted>
-              {ru.forecast.minimum}: {formatRubApprox(data.forecast.risk.min_balance_minor)} ·{" "}
-              {formatDay(data.forecast.risk.min_balance_date, year)}
-            </Muted>
-            {data.forecast.safe_to_spend.available ? (
-              <Muted>
-                {ru.forecast.safeToday} {formatDay(data.forecast.safe_to_spend.date, year)}: до{" "}
-                {formatRubApprox(data.forecast.safe_to_spend.base_minor)}
-              </Muted>
-            ) : null}
-            <Button label={ru.forecast.whatIf} onPress={() => router.push("/simulate")} />
-            <Button
-              label={ru.forecast.open}
-              variant="secondary"
-              onPress={() => router.push("/forecast")}
-            />
-          </>
-        ) : (
-          <Muted>{ru.forecast.error}</Muted>
-        )}
-      </Card>
-
-      <Card title={ru.dashboard.accountsTitle}>
+      <Card title={ru.dashboard.accountsTitle} icon="wallet">
         {data.accounts.items.map((account) => {
           const line = describeAccount(account);
           return (
@@ -239,40 +273,47 @@ export function DashboardScreen() {
         })}
       </Card>
 
-      <Button label={ru.dashboard.calendar} onPress={() => router.push("/calendar")} />
+      <Text style={[styles.section, { color: palette.muted }]}>{ru.dashboard.actionsTitle}</Text>
+      <View style={styles.grid}>
+        <ActionTile icon="calendar" label={ru.dashboard.calendar} onPress={() => router.push("/calendar")} />
+        <ActionTile icon="bell" label={ru.dashboard.alerts} onPress={() => router.push("/alerts")} />
+        <ActionTile icon="plus" label={ru.dashboard.add} onPress={() => router.push("/add")} />
+        <ActionTile icon="upload" label={ru.dashboard.importCsv} onPress={() => router.push("/import")} />
+        <ActionTile icon="crown" label={ru.dashboard.plans} onPress={() => router.push("/plans")} />
+        {session.user.is_demo ? (
+          <ActionTile icon="bank" label={ru.dashboard.bankMock} onPress={() => router.push("/bank")} />
+        ) : null}
+      </View>
+      {/* Последний элемент экрана: на него опирается Android-сценарий. */}
       <Button
-        label={ru.dashboard.alerts}
+        label={ru.dashboard.privacy}
+        icon="shield"
+        onPress={() => router.push("/privacy")}
         variant="secondary"
-        onPress={() => router.push("/alerts")}
       />
-      <Button
-        label={ru.dashboard.add}
-        variant="secondary"
-        onPress={() => router.push("/add")}
-      />
-      <Button
-        label={ru.dashboard.importCsv}
-        variant="secondary"
-        onPress={() => router.push("/import")}
-      />
-      <Button label={ru.dashboard.plans} onPress={() => router.push("/plans")} variant="secondary" />
-      {session.user.is_demo ? (
-        <Button label={ru.dashboard.bankMock} onPress={() => router.push("/bank")} variant="secondary" />
-      ) : null}
-      <Button label={ru.dashboard.privacy} onPress={() => router.push("/privacy")} variant="secondary" />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
-  amount: { fontSize: 34, fontWeight: "700" },
-  notes: { borderRadius: 12, padding: space.lg, gap: space.xs },
-  notesTitle: { fontSize: 15, fontWeight: "600" },
-  note: { fontSize: 14, lineHeight: 20 },
+  balance: { gap: space.xs, paddingTop: space.sm },
+  heroLabel: { fontSize: 14, fontWeight: "600" },
+  amount: { fontSize: 44, fontWeight: "800", letterSpacing: -1.2, lineHeight: 52 },
+  freshness: { flexDirection: "row", alignItems: "center", gap: 6 },
+  stats: { flexDirection: "row", gap: space.sm },
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   lineMain: { flex: 1, gap: 2 },
-  lineTitle: { fontSize: 15, fontWeight: "500" },
-  lineAmount: { fontSize: 15, fontWeight: "600", textAlign: "right" },
+  lineTitle: { fontSize: 15, fontWeight: "700" },
+  lineAmount: { fontSize: 15, fontWeight: "800", textAlign: "right" },
   total: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md },
+  section: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: -space.sm,
+  },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, borderRadius: radius.lg },
 });

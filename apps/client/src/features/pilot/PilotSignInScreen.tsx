@@ -1,12 +1,14 @@
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { api, ApiError } from "@/shared/api/client";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
-import { Button, Card, ErrorState, Field, Muted, Screen } from "@/shared/ui/components";
+import { Logo } from "@/shared/ui/brand";
+import { Button, Card, ErrorState, Field, Hero, Muted, Screen } from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
+import { Text } from "@/shared/ui/text";
 
 import { canSubmit } from "./logic";
 
@@ -47,15 +49,19 @@ export function PilotSignInScreen({
   };
 
   return (
-    <Screen>
+    <Screen topInset>
       {notice}
-      <View style={styles.hero}>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+      <Hero>
+        <View style={styles.brandRow}>
+          <Logo onHero />
+          <Text style={[styles.brandName, { color: palette.heroText }]}>{ru.appName}</Text>
+        </View>
+        <Text accessibilityRole="header" style={[styles.title, { color: palette.heroText }]}>
           {ru.demo.title}
         </Text>
-        <Muted>{t.lead}</Muted>
-      </View>
-      <Card title={t.termsTitle}>
+        <Text style={[styles.lead, { color: palette.heroMuted }]}>{t.lead}</Text>
+      </Hero>
+      <Card title={t.termsTitle} icon="shield">
         {t.terms.map((line) => (
           <Muted key={line}>• {line}</Muted>
         ))}
@@ -79,7 +85,7 @@ export function PilotSignInScreen({
           <Text style={[styles.checkText, { color: palette.text }]}>{t.accept}</Text>
         </Pressable>
       </Card>
-      <Card title={t.codeTitle}>
+      <Card title={t.codeTitle} icon="user">
         <Field
           label={t.codeLabel}
           testID="pilot-code"
@@ -103,8 +109,10 @@ export function PilotSignInScreen({
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: space.sm, paddingTop: space.md },
-  title: { fontSize: 26, fontWeight: "700", lineHeight: 32 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  brandName: { fontSize: 17, fontWeight: "800" },
+  title: { fontSize: 30, fontWeight: "800", lineHeight: 36, letterSpacing: -0.8 },
+  lead: { fontSize: 15, lineHeight: 22 },
   check: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.xs },
   box: {
     width: 24,
