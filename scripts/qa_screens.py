@@ -152,7 +152,9 @@ def profile_pass(run: Run, profile: str) -> None:
     # Уведомления — панель поверх главной, отдельного экрана у неё намеренно нет.
     run.where = f"{profile}: уведомления"
     run.tap(re.compile("^Уведомления"))
-    expect(page.get_by_role("header", name="Уведомления")).to_be_visible(timeout=15_000)
+    expect(page.get_by_text("Уведомления", exact=True).filter(visible=True).first).to_be_visible(
+        timeout=15_000
+    )
     page.screenshot(
         path=str(run.out / f"{re.sub(r'\W+', '-', profile.lower())}-alerts.png"), full_page=True
     )
@@ -174,6 +176,8 @@ def live_pass(run: Run) -> None:
     page = run.page
     run.where = "учебный аккаунт: старт"
     run.tap("Начать без регистрации")
+    expect(page.get_by_text("Управлять").filter(visible=True).first).to_be_visible(timeout=30_000)
+    run.tap("Управлять")
     expect(page.get_by_text("Учебное время").filter(visible=True).first).to_be_visible(
         timeout=30_000
     )
@@ -211,6 +215,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--web", default="http://127.0.0.1:8081")
     parser.add_argument("--out", default="artifacts/qa")
+    parser.add_argument(
+        "--live-only",
+        action="store_true",
+        help="Проверить только ускоренный учебный аккаунт после уже пройденных профилей",
+    )
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -221,8 +230,9 @@ def main() -> int:
         page.goto(args.web)
         run = Run(page, out)
         try:
-            for profile in PROFILES:
-                profile_pass(run, profile)
+            if not args.live_only:
+                for profile in PROFILES:
+                    profile_pass(run, profile)
             live_pass(run)
         except Exception as error:
             page.screenshot(path=str(out / "failure.png"), full_page=True)
