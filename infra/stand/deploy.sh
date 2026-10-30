@@ -38,7 +38,7 @@ grep -rq "https://$HOST" "$WORK/release/web/_expo" ||
   { echo "web-сборка не указывает на https://$HOST" >&2; exit 1; }
 
 find "$WORK/release" -name '._*' -delete
-tar -C "$WORK/release" -czf "$WORK/release.tgz" .
+tar --no-xattrs -C "$WORK/release" -czf "$WORK/release.tgz" .
 "${SSH[@]}" "mkdir -p /opt/brigadir/releases/$SHA && tar -xz -C /opt/brigadir/releases/$SHA && find /opt/brigadir/releases/$SHA -name '._*' -delete" \
   < "$WORK/release.tgz"
 "${SSH[@]}" "sh /opt/brigadir/releases/$SHA/infra/stand/remote-setup.sh /opt/brigadir/releases/$SHA $HOST"
