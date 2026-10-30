@@ -40,6 +40,28 @@ class DemoSummary(APIModel):
     )
 
 
+class LiveSessionCreate(APIModel):
+    seed: int | None = Field(
+        default=None,
+        ge=0,
+        le=2**31 - 1,
+        description="По умолчанию случайный: у каждого учебного аккаунта своя синтетика",
+    )
+
+
+class LiveStateOut(APIModel):
+    """Виртуальное время учебного аккаунта (ADR-0007)."""
+
+    virtual_now: datetime = Field(description="Текущий момент учебного аккаунта")
+    virtual_start: datetime
+    ends_at: datetime = Field(description="Дальше синтетического будущего нет")
+    seconds_per_day: int = Field(description="Реальных секунд на виртуальный день")
+    paused: bool
+    finished: bool = Field(description="Учебный период закончился, время стоит")
+    revealed_total: int = Field(description="Сколько новых операций уже поступило")
+    pending: int = Field(description="Сколько операций ещё впереди")
+
+
 class DemoSessionOut(APIModel):
     access_token: str = Field(description="Показывается один раз; на сервере хранится только хэш")
     token_type: Literal["bearer"] = "bearer"  # noqa: S105 — тип токена, не секрет
@@ -48,3 +70,6 @@ class DemoSessionOut(APIModel):
     profile: DemoProfileOut
     summary: DemoSummary
     data_quality: DataQuality
+    live: LiveStateOut | None = Field(
+        default=None, description="Есть только у живого учебного аккаунта"
+    )

@@ -5,10 +5,12 @@ from app.api.v1 import (
     alerts,
     bank_mock,
     demo,
+    feedback,
     forecasts,
     health,
     imports,
     incomes,
+    live,
     meta,
     notifications,
     obligations,
@@ -23,8 +25,10 @@ router.include_router(health.router)
 router.include_router(meta.router)
 router.include_router(pilot.router)
 router.include_router(demo.router)
+router.include_router(live.router)
 router.include_router(accounts.router)
 router.include_router(transactions.router)
+router.include_router(feedback.router)
 router.include_router(obligations.router)
 router.include_router(notifications.router)
 router.include_router(imports.router)

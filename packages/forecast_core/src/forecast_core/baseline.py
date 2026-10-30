@@ -28,6 +28,7 @@ from forecast_core.types import (
     Coverage,
     ForecastInputSnapshot,
     HistoricalTransaction,
+    IncomeExpectation,
     ObligationStatus,
     TxStatus,
     TxType,
@@ -47,6 +48,14 @@ DEFAULT_OBLIGATION_CATEGORIES = frozenset(
     }
 )  # fmt: skip
 SPENDING_TYPES = frozenset({TxType.EXPENSE, TxType.FEE})
+# Метки пользователя (ADR-0007). «Разовая» не участвует в обучении повторению; остальные
+# метки подтверждают, что трата — часть обычного поведения, и снимают автоотсечение крупных.
+LABEL_ONE_OFF = "one_off"
+LABELS_KEEP = frozenset({"mandatory", "regular", "reducible"})
+# Поступление засчитывается как уже пришедший доход, если оно не меньше этой доли минимума.
+RECEIVED_INCOME_SHARE = 0.5
+# Насколько раньше окна мог прийти доход, чтобы считаться его поступлением.
+RECEIVED_INCOME_EARLY_DAYS = 3
 LIQUID_TYPES = frozenset({AccountType.DEBIT, AccountType.CASH, AccountType.SAVINGS})
 
 # Пороги включения дохода в сценарий по вероятности поступления.
@@ -71,6 +80,7 @@ class SpendingModel:
     # Для симуляции (уровень 2): дневные траты истории и исключённые крупные покупки.
     daily_history: tuple[tuple[date, int], ...] = ()
     large_amounts_minor: tuple[int, ...] = ()
+    excluded_one_off: int = 0  # отмечены пользователем как разовые
 
     def daily(self, day: date) -> int:
         return self.weekday_daily_minor[day.weekday()]
@@ -143,10 +153,11 @@ def build_spending_model(
     estimator: Estimator = "mean",
 ) -> SpendingModel:
     window_start = today - timedelta(days=HISTORY_WINDOW_DAYS)
-    candidates: list[tuple[date, int]] = []
+    candidates: list[tuple[date, int, bool]] = []
     card_daily: dict[date, int] = {}
     earliest: date | None = None
     excluded_obligation_like = 0
+    excluded_one_off = 0
     for tx in history:
         if tx.status != TxStatus.POSTED:
             continue
@@ -163,17 +174,20 @@ def build_spending_model(
         if tx.category and tx.category in obligation_categories:
             excluded_obligation_like += 1
             continue
-        candidates.append((day, -tx.amount_minor))
+        if tx.label == LABEL_ONE_OFF:
+            excluded_one_off += 1
+            continue
+        candidates.append((day, -tx.amount_minor, tx.label in LABELS_KEEP))
 
     history_days = (today - earliest).days if earliest else 0
-    typical = median([amount for _, amount in candidates]) if candidates else 0
+    typical = median([amount for _, amount, _ in candidates]) if candidates else 0
     threshold = max(LARGE_TX_FLOOR_MINOR, int(typical * LARGE_TX_FACTOR))
     days = [earliest + timedelta(days=i) for i in range(history_days)] if earliest else []
     totals = dict.fromkeys(days, 0)
     excluded_large = 0
     large_amounts: list[int] = []
-    for day, amount in candidates:
-        if amount > threshold:
+    for day, amount, kept in candidates:
+        if amount > threshold and not kept:
             excluded_large += 1
             large_amounts.append(amount)
             continue
@@ -223,7 +237,31 @@ def build_spending_model(
         card_daily_minor=card_mean,
         daily_history=tuple((d, totals[d]) for d in days),
         large_amounts_minor=tuple(large_amounts),
+        excluded_one_off=excluded_one_off,
     )
+
+
+def _income_received(
+    history: Iterable[HistoricalTransaction],
+    income: IncomeExpectation,
+    liquid_ids: set[str],
+    window: tuple[date, date],
+    tz: ZoneInfo,
+) -> bool:
+    """Доход этого окна уже есть в выписке — второй раз в прогноз он не идёт."""
+    first, today = window
+    since = first - timedelta(days=RECEIVED_INCOME_EARLY_DAYS)
+    floor = int(income.amount_min_minor * RECEIVED_INCOME_SHARE)
+    for tx in history:
+        if tx.type != TxType.INCOME or tx.amount_minor < floor or tx.status != TxStatus.POSTED:
+            continue
+        if income.account_id is not None and tx.account_id != income.account_id:
+            continue
+        if income.account_id is None and tx.account_id not in liquid_ids:
+            continue
+        if since <= _local_date(tx, tz) <= today:
+            return True
+    return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -327,6 +365,11 @@ def prepare_plan(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
         shifted_from = income.date_from + shift
         spread = income.date_to - income.date_from
         for first in occurrences(shifted_from, income.recurrence, today - spread, end):
+            # Окно уже открылось, и доход пришёл: он в остатке, повторно его не ждём.
+            if first <= today and _income_received(
+                snapshot.history, income, liquid_ids, (first - shift, today), tz
+            ):
+                continue
             incomes.append(
                 IncomeHit(
                     income.id,

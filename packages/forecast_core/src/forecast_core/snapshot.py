@@ -26,6 +26,11 @@ def snapshot_fingerprint(snapshot: ForecastInputSnapshot) -> str:
     как ключ идемпотентности расчёта.
     """
     raw = dataclasses.asdict(snapshot)
+    # Операция без метки сериализуется как до появления меток: отпечатки прежних
+    # расчётов не меняются.
+    for item in raw["history"]:
+        if item.get("label") is None:
+            item.pop("label", None)
     for key in ("accounts", "obligations", "incomes", "history"):
         raw[key] = sorted(raw[key], key=lambda item: str(item["id"]))
     raw["extra_expenses"] = sorted(

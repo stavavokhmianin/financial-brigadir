@@ -11,13 +11,19 @@ from app.core.errors import APIError, error_responses, not_found
 from app.db.models import Account, AuditEvent, Transaction
 from app.domain.enums import TxStatus, TxType
 from app.modules.dedup import pending_duplicates, resolve
+from app.modules.feedback import LabelNotApplicableError, set_label
 from app.schemas.transactions import (
     DuplicatePair,
     DuplicateResolution,
     DuplicatesOut,
+    ForecastGlance,
+    LabelEffectOut,
+    TransactionLabelIn,
+    TransactionLabelOut,
     TransactionOut,
     TransactionsPage,
 )
+from forecast_core.baseline import ForecastResult
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -144,3 +150,47 @@ def resolve_duplicate(
     db.commit()
     db.refresh(tx)
     return TransactionOut.model_validate(tx)
+
+
+def _glance(result: ForecastResult) -> ForecastGlance:
+    return ForecastGlance(
+        risk_level=result.risk_level,
+        min_balance_minor=result.min_p50_minor,
+        min_balance_date=result.min_p50_day,
+        pessimistic_min_minor=result.min_p10_minor,
+        excluded_one_off=result.spending.excluded_one_off,
+    )
+
+
+@router.put(
+    "/{transaction_id}/label",
+    operation_id="setTransactionLabel",
+    summary="Метка траты от пользователя и как она изменила прогноз (ADR-0007)",
+    responses=error_responses(400, 401, 404),
+)
+def put_label(
+    transaction_id: str, body: TransactionLabelIn, user: CurrentUser, db: DbSession
+) -> TransactionLabelOut:
+    tx = db.scalar(
+        select(Transaction).where(Transaction.id == transaction_id, Transaction.user_id == user.id)
+    )
+    if tx is None:
+        raise not_found("Операция")
+    try:
+        effect = set_label(db, user, tx, body.label)
+    except LabelNotApplicableError:
+        raise APIError(
+            status.HTTP_400_BAD_REQUEST,
+            "label_not_applicable",
+            "Метку можно поставить только на трату",
+        ) from None
+    before, after = _glance(effect.before), _glance(effect.after)
+    return TransactionLabelOut(
+        transaction=TransactionOut.model_validate(tx),
+        effect=LabelEffectOut(
+            before=before,
+            after=after,
+            changed=(before.risk_level, before.min_balance_minor, before.pessimistic_min_minor)
+            != (after.risk_level, after.min_balance_minor, after.pessimistic_min_minor),
+        ),
+    )

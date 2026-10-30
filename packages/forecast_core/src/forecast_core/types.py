@@ -74,6 +74,8 @@ class HistoricalTransaction:
     type: TxType
     status: TxStatus
     category: str | None = None
+    # Метка пользователя (ADR-0007): mandatory | regular | reducible | one_off.
+    label: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

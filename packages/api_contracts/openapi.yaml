@@ -159,6 +159,139 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/demo/live-sessions:
+    post:
+      tags:
+      - live
+      summary: 'Начать без регистрации: живой учебный аккаунт со своей синтетикой'
+      operationId: createLiveSession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LiveSessionCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoSessionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/live:
+    get:
+      tags:
+      - live
+      summary: Виртуальное время учебного аккаунта
+      operationId: getLiveState
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveStateOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/live/next-day:
+    post:
+      tags:
+      - live
+      summary: Перемотать на виртуальные сутки вперёд
+      operationId: liveNextDay
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveStateOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/live/pause:
+    post:
+      tags:
+      - live
+      summary: Остановить виртуальное время
+      operationId: livePause
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveStateOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/live/resume:
+    post:
+      tags:
+      - live
+      summary: Продолжить виртуальное время
+      operationId: liveResume
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveStateOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
   /api/v1/accounts:
     get:
       tags:
@@ -448,6 +581,79 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/transactions/{transaction_id}/label:
+    put:
+      tags:
+      - transactions
+      summary: Метка траты от пользователя и как она изменила прогноз (ADR-0007)
+      operationId: setTransactionLabel
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: transaction_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Transaction Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionLabelIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionLabelOut'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/feedback:
+    get:
+      tags:
+      - feedback
+      summary: 'Траты, которые стоит уточнить: дорогие, новые, недавние'
+      operationId: getFeedback
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
   /api/v1/obligations:
     get:
       tags:
@@ -2060,6 +2266,11 @@ components:
           $ref: '#/components/schemas/DemoSummary'
         data_quality:
           $ref: '#/components/schemas/DataQuality'
+        live:
+          anyOf:
+          - $ref: '#/components/schemas/LiveStateOut'
+          - type: 'null'
+          description: Есть только у живого учебного аккаунта
       type: object
       required:
       - access_token
@@ -2165,6 +2376,90 @@ components:
       - error
       title: ErrorOut
       description: Единый формат ошибок API (кроме 422 валидации FastAPI).
+    FeedbackItemOut:
+      properties:
+        transaction:
+          $ref: '#/components/schemas/TransactionOut'
+        reason:
+          type: string
+          enum:
+          - large
+          - new
+          - recent
+          title: Reason
+          description: large — дороже обычного; new — новый получатель; recent — просто недавняя
+      type: object
+      required:
+      - transaction
+      - reason
+      title: FeedbackItemOut
+    FeedbackOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/FeedbackItemOut'
+          type: array
+          title: Items
+        reducible_30d_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Reducible 30D Minor
+          description: 'Траты с меткой «можно сократить» за 30 дней: потенциал, не обещание'
+          examples:
+          - 1200000
+        labeled:
+          type: integer
+          title: Labeled
+          description: Сколько трат уже размечено
+      type: object
+      required:
+      - items
+      - reducible_30d_minor
+      - labeled
+      title: FeedbackOut
+    ForecastGlance:
+      properties:
+        risk_level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Risk Level
+        min_balance_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Min Balance Minor
+          description: Минимальный остаток, базовый сценарий
+          examples:
+          - 1200000
+        min_balance_date:
+          type: string
+          format: date
+          title: Min Balance Date
+        pessimistic_min_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: -9.223372036854776e+18
+          title: Pessimistic Min Minor
+          description: Минимальный остаток, плохой сценарий
+          examples:
+          - 1200000
+        excluded_one_off:
+          type: integer
+          title: Excluded One Off
+          description: Сколько трат исключено как разовые
+      type: object
+      required:
+      - risk_level
+      - min_balance_minor
+      - min_balance_date
+      - pessimistic_min_minor
+      - excluded_one_off
+      title: ForecastGlance
+      description: Главное о прогнозе — для сравнения «было / стало».
     ForecastOut:
       properties:
         forecast_id:
@@ -2836,6 +3131,81 @@ components:
       - items
       - calendar
       title: IncomesOut
+    LabelEffectOut:
+      properties:
+        before:
+          $ref: '#/components/schemas/ForecastGlance'
+        after:
+          $ref: '#/components/schemas/ForecastGlance'
+        changed:
+          type: boolean
+          title: Changed
+          description: Изменились риск или минимальный остаток в сценариях
+      type: object
+      required:
+      - before
+      - after
+      - changed
+      title: LabelEffectOut
+    LiveSessionCreate:
+      properties:
+        seed:
+          anyOf:
+          - type: integer
+            maximum: 2147483647.0
+            minimum: 0.0
+          - type: 'null'
+          title: Seed
+          description: 'По умолчанию случайный: у каждого учебного аккаунта своя синтетика'
+      type: object
+      title: LiveSessionCreate
+    LiveStateOut:
+      properties:
+        virtual_now:
+          type: string
+          format: date-time
+          title: Virtual Now
+          description: Текущий момент учебного аккаунта
+        virtual_start:
+          type: string
+          format: date-time
+          title: Virtual Start
+        ends_at:
+          type: string
+          format: date-time
+          title: Ends At
+          description: Дальше синтетического будущего нет
+        seconds_per_day:
+          type: integer
+          title: Seconds Per Day
+          description: Реальных секунд на виртуальный день
+        paused:
+          type: boolean
+          title: Paused
+        finished:
+          type: boolean
+          title: Finished
+          description: Учебный период закончился, время стоит
+        revealed_total:
+          type: integer
+          title: Revealed Total
+          description: Сколько новых операций уже поступило
+        pending:
+          type: integer
+          title: Pending
+          description: Сколько операций ещё впереди
+      type: object
+      required:
+      - virtual_now
+      - virtual_start
+      - ends_at
+      - seconds_per_day
+      - paused
+      - finished
+      - revealed_total
+      - pending
+      title: LiveStateOut
+      description: Виртуальное время учебного аккаунта (ADR-0007).
     MetaOut:
       properties:
         mode:
@@ -3721,6 +4091,28 @@ components:
       - history_days
       - excluded_large
       title: SpendingModelOut
+    TransactionLabelIn:
+      properties:
+        label:
+          anyOf:
+          - $ref: '#/components/schemas/TxLabel'
+          - type: 'null'
+          description: null — снять метку
+      type: object
+      required:
+      - label
+      title: TransactionLabelIn
+    TransactionLabelOut:
+      properties:
+        transaction:
+          $ref: '#/components/schemas/TransactionOut'
+        effect:
+          $ref: '#/components/schemas/LabelEffectOut'
+      type: object
+      required:
+      - transaction
+      - effect
+      title: TransactionLabelOut
     TransactionOut:
       properties:
         id:
@@ -3796,6 +4188,11 @@ components:
           - type: 'null'
           title: Duplicate Of Id
           description: 'Подтверждённый дубль: исключён из модели'
+        label:
+          anyOf:
+          - $ref: '#/components/schemas/TxLabel'
+          - type: 'null'
+          description: 'Метка пользователя: влияет на модель трат, не на баланс'
       type: object
       required:
       - id
@@ -3834,6 +4231,15 @@ components:
       - items
       - next_cursor
       title: TransactionsPage
+    TxLabel:
+      type: string
+      enum:
+      - mandatory
+      - regular
+      - reducible
+      - one_off
+      title: TxLabel
+      description: Смысл траты со слов пользователя (ADR-0007). Баланс и история от метки не зависят.
     TxStatus:
       type: string
       enum:

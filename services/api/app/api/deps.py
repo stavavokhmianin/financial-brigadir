@@ -11,6 +11,7 @@ from app.core.errors import APIError
 from app.core.security import hash_token
 from app.db.models import AuthSession, User
 from app.db.session import get_db
+from app.modules import live
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -45,6 +46,9 @@ def get_current_user(
     user = db.get(User, session.user_id)
     if user is None:
         raise _unauthorized("Сессия не найдена или истекла")
+    if user.is_demo:
+        # Учебный аккаунт живёт лениво: всё, что случилось к этому запросу, — в реестр.
+        live.sync(db, user, now)
     return user
 
 

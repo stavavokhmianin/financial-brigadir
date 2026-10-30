@@ -17,9 +17,19 @@ __all__ = [
     "Plan",
     "Priority",
     "Recurrence",
+    "TxLabel",
     "TxStatus",
     "TxType",
 ]
+
+
+class TxLabel(StrEnum):
+    """Смысл траты со слов пользователя (ADR-0007). Баланс и история от метки не зависят."""
+
+    MANDATORY = "mandatory"  # нельзя просто убрать
+    REGULAR = "regular"  # обычная часть поведения
+    REDUCIBLE = "reducible"  # реальная, но хотелось бы меньше
+    ONE_OFF = "one_off"  # повторения не ждать: в обучение ритму не идёт
 
 
 class Plan(StrEnum):

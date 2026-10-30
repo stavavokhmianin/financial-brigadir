@@ -17,6 +17,10 @@ CASES: dict[tuple[str, str], tuple[str, dict[str, Any] | None]] = {
         "transactions",
         {"decision": "duplicate"},
     ),
+    ("PUT", "/api/v1/transactions/{transaction_id}/label"): (
+        "transactions",
+        {"label": "one_off"},
+    ),
     ("PATCH", "/api/v1/obligations/{obligation_id}"): ("obligations", {"title": "чужое"}),
     ("PATCH", "/api/v1/incomes/{income_id}"): ("incomes", {"title": "чужое"}),
     ("GET", "/api/v1/forecasts/{forecast_id}"): ("forecasts", None),

@@ -29,6 +29,7 @@ PUBLIC = {
     "/api/v1/health/ready",
     "/api/v1/demo/profiles",
     "/api/v1/demo/sessions",
+    "/api/v1/demo/live-sessions",
     "/api/v1/meta",
     "/api/v1/pilot/sessions",
 }

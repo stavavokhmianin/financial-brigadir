@@ -30,6 +30,7 @@ from app.domain.enums import (
 from app.domain.ids import new_id
 from app.modules.dedup import detect_duplicates
 from app.modules.ledger import ingest_transactions
+from app.modules.live import LiveOptions, attach_live_clock
 
 DEFAULT_RESERVE_MINOR = 500_000  # 5 000 ₽ — резерв по умолчанию для демо (раздел 9.6)
 DEFAULT_ALPHA = 0.05  # допустимый риск для «безопасной суммы» (раздел 9.4)
@@ -54,8 +55,13 @@ def create_demo_session(
     profile_id: str,
     seed: int,
     ttl_hours: int,
+    live: LiveOptions | None = None,
 ) -> DemoSessionResult:
-    bundle = adapter.load(profile_id, seed)
+    """Профиль из seed. С ``live`` — живой учебный аккаунт со скрытым будущим (ADR-0007)."""
+    if live is None:
+        bundle = adapter.load(profile_id, seed)
+    else:
+        bundle = adapter.load(profile_id, seed, horizon_days=live.horizon_days)
     user = User(
         id=new_id("usr"),
         is_demo=True,
@@ -149,6 +155,9 @@ def create_demo_session(
             )
         )
 
+    if live is not None:
+        attach_live_clock(db, user, bundle, live, datetime.now(UTC))
+
     token = new_session_token()
     expires_at = datetime.now(UTC) + timedelta(hours=ttl_hours)
     db.add(
@@ -165,7 +174,7 @@ def create_demo_session(
             action="demo_session_created",
             object_type="user",
             object_id=user.id,
-            meta={"profile": profile_id, "seed": seed},
+            meta={"profile": profile_id, "seed": seed, "live": live is not None},
         )
     )
     db.commit()

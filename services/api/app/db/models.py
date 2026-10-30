@@ -43,6 +43,7 @@ from app.domain.enums import (
     Plan,
     Priority,
     Recurrence,
+    TxLabel,
     TxStatus,
     TxType,
 )
@@ -236,7 +237,46 @@ class Transaction(Base):
     duplicate_of_id: Mapped[str | None] = mapped_column(
         ForeignKey("transactions.id", ondelete="SET NULL")
     )
+    # Метка пользователя (ADR-0007): влияет только на модель трат, не на баланс.
+    label: Mapped[TxLabel | None] = mapped_column(str_enum(TxLabel, "tx_label"))
+    labeled_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class LiveClock(Base):
+    """Виртуальное время учебного аккаунта (ADR-0007, п. 5).
+
+    Время ленивое: виртуальная дата вычисляется из реального времени при запросе,
+    фонового процесса нет.
+    """
+
+    __tablename__ = "live_clocks"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    virtual_start: Mapped[datetime] = mapped_column(UTCDateTime)
+    virtual_end: Mapped[datetime] = mapped_column(UTCDateTime)
+    real_start: Mapped[datetime] = mapped_column(UTCDateTime)
+    seconds_per_day: Mapped[int] = mapped_column(Integer)
+    paused_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    paused_seconds: Mapped[float] = mapped_column(Float, default=0.0)
+    skipped_days: Mapped[int] = mapped_column(Integer, default=0)
+    revealed_until: Mapped[datetime] = mapped_column(UTCDateTime)
+    revealed_total: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class LivePendingTransaction(Base):
+    """Синтетическое будущее учебного аккаунта. Прогноз эту таблицу не читает."""
+
+    __tablename__ = "live_pending_transactions"
+    __table_args__ = (Index("ix_live_pending_user_occurred", "user_id", "occurred_at"),)
+
+    id: Mapped[str] = mapped_column(ID, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    occurred_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    counts_in_balance: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class Obligation(Base):

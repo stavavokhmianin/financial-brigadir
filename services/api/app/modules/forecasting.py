@@ -76,9 +76,15 @@ class PreparedSnapshot:
 def _as_of(db: Session, user: User) -> tuple[datetime, datetime, bool]:
     quality = data_quality(db, user)
     data_as_of = quality.data_as_of or datetime.now(UTC)
-    # Демо-профиль заморожен на дате выгрузки, реальный пользователь считает «от сейчас».
+    # Демо-профиль заморожен на дате выгрузки (у учебного аккаунта она идёт вперёд
+    # вместе с виртуальным временем), реальный пользователь считает «от сейчас».
     as_of = data_as_of if quality.is_demo else datetime.now(UTC)
     return as_of, data_as_of, quality.stale
+
+
+def current_as_of(db: Session, user: User) -> datetime:
+    """Момент, от которого считается прогноз этого пользователя."""
+    return _as_of(db, user)[0]
 
 
 def prepare_snapshot(
@@ -216,6 +222,7 @@ def prepare_snapshot(
                 type=t.type,
                 status=t.status,
                 category=t.category,
+                label=t.label.value if t.label is not None else None,
             )
             for t in history
         ),

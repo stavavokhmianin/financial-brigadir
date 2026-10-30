@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     pilot_session_ttl_hours: int = Field(default=24 * 7, ge=1, le=24 * 30)
     # Журнал удалений вне БД: после восстановления бэкапа удаления применяются повторно (25).
     erasure_log_path: str | None = None
+    # Живой учебный аккаунт (ADR-0007): реальных секунд на виртуальный день и запас
+    # синтетического будущего, который раскрывается по мере хода времени.
+    live_seconds_per_day: int = Field(default=45, ge=5, le=3600)
+    live_horizon_days: int = Field(default=120, ge=14, le=120)
 
     @property
     def cors_origin_list(self) -> list[str]:

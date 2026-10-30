@@ -19,6 +19,8 @@ from app.db.models import (
     ForecastRun,
     ImportBatch,
     IncomeEvent,
+    LiveClock,
+    LivePendingTransaction,
     NotificationSettings,
     Obligation,
     PilotAccessCode,
@@ -40,6 +42,7 @@ EXPORT_MODELS = (
     Alert,
     NotificationSettings,
     AuditEvent,
+    LiveClock,
 )
 
 
@@ -76,6 +79,8 @@ def erase_profile(db: Session, user: User, log_path: str | None = None) -> None:
         )
     )
     for model in (
+        LivePendingTransaction,
+        LiveClock,
         Scenario,
         Alert,
         ForecastRun,
