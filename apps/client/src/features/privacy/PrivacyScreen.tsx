@@ -5,6 +5,7 @@ import { Platform, Share, View } from "react-native";
 import { api, ApiError } from "@/shared/api/client";
 import { useSession } from "@/shared/session";
 import { Button, Card, Field, Muted, Screen } from "@/shared/ui/components";
+import { usePalette } from "@/shared/ui/theme";
 
 export function PrivacyScreen() {
   const { session, setSession } = useSession();
@@ -12,6 +13,7 @@ export function PrivacyScreen() {
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const palette = usePalette();
   if (!session) return <Redirect href="/" />;
   const token = session.access_token;
 
@@ -59,10 +61,10 @@ export function PrivacyScreen() {
       <Muted>Удаление сразу очищает рабочую базу, расчёты и все сессии. Срок удаления резервных копий зависит от оператора стенда; перед загрузкой реальной выписки уточните его политику хранения.</Muted>
       <Button label="Экспортировать мои данные" disabled={busy} onPress={() => void run(exportData)} />
     </Card>
-    <Card title="Удалить профиль" icon="alert">
+    <Card title="Удалить профиль" icon="alert" style={{ borderColor: palette.danger }}>
       <Muted>Будут удалены все данные текущего профиля, включая историю, импорт, прогнозы и предупреждения. Отменить действие нельзя. Для подтверждения введите УДАЛИТЬ.</Muted>
       <Field label="Подтверждение удаления" value={confirmation} onChangeText={setConfirmation} />
-      <Button label="Удалить все мои данные" disabled={busy || confirmation !== "УДАЛИТЬ"} onPress={() => void run(() => finish(true))} />
+      <Button label="Удалить все мои данные" variant="danger" disabled={busy || confirmation !== "УДАЛИТЬ"} onPress={() => void run(() => finish(true))} />
     </Card>
     <Button label="Выйти и отозвать сессии" variant="secondary" disabled={busy} onPress={() => void run(() => finish(false))} />
     {message ? <View accessibilityRole="alert"><Muted>{message}</Muted></View> : null}

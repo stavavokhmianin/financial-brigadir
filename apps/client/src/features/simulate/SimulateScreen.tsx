@@ -24,7 +24,7 @@ import {
   Screen,
 } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
-import { radius, space, usePalette } from "@/shared/ui/theme";
+import { fonts, radius, space, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
 import { ForecastChart } from "../forecast/ForecastChart";
@@ -359,7 +359,7 @@ export function SimulateScreen() {
             style={[styles.verdict, { backgroundColor: verdictTone.soft }]}
           >
             <View style={[styles.verdictIcon, { backgroundColor: verdictTone.color }]}>
-              <Icon name={verdictTone.icon} color="#ffffff" size={24} />
+              <Icon name={verdictTone.icon} color={palette.card} size={18} />
             </View>
             <Text style={[styles.verdictTitle, { color: verdictTone.color }]}>
               {t.verdict[verdict.kind]}
@@ -394,7 +394,7 @@ export function SimulateScreen() {
               )}
             </View>
             {base.safe_to_spend.available ? (
-              <View style={[styles.guide, { backgroundColor: palette.card }]}>
+              <View style={[styles.guide, { backgroundColor: palette.card, borderColor: palette.border }]}>
                 <Text style={[styles.guideLabel, { color: palette.muted }]}>{t.currentGuide}</Text>
                 <Text style={[styles.guideValue, { color: palette.text }]}>
                   {formatRubApprox(base.safe_to_spend.base_minor)}
@@ -402,7 +402,7 @@ export function SimulateScreen() {
               </View>
             ) : null}
             {result.purchase_context ? (
-              <View style={[styles.context, { backgroundColor: palette.card }]}>
+              <View style={[styles.context, { backgroundColor: palette.card, borderColor: palette.border }]}>
                 <Text style={[styles.contextTitle, { color: palette.text }]}>
                   {t.contextTitle}
                 </Text>
@@ -504,34 +504,34 @@ export function SimulateScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { gap: space.xs, borderRadius: 14, padding: space.md },
-  safeValue: { fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
+  safe: { gap: space.xs, borderRadius: radius.md, padding: space.md },
+  safeValue: { fontSize: 26, fontWeight: "600", letterSpacing: -1, fontVariant: ["tabular-nums"] },
   verdict: { borderRadius: radius.lg, padding: space.xl, gap: space.md },
   verdictIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  verdictTitle: { fontSize: 25, lineHeight: 31, fontWeight: "800", letterSpacing: -0.6 },
-  verdictLead: { fontSize: 17, lineHeight: 24, fontWeight: "700" },
-  verdictDate: { fontSize: 15, lineHeight: 21, fontWeight: "700" },
-  guide: { borderRadius: radius.md, padding: space.md, gap: 2 },
-  guideLabel: { fontSize: 13, fontWeight: "600" },
-  guideValue: { fontSize: 22, fontWeight: "800", letterSpacing: -0.4 },
-  context: { borderRadius: radius.md, padding: space.md, gap: space.xs },
-  contextTitle: { fontSize: 14, lineHeight: 20, fontWeight: "800" },
+  verdictTitle: { fontSize: 24, lineHeight: 30, fontWeight: "600", letterSpacing: -0.96 },
+  verdictLead: { fontSize: 16, lineHeight: 24, fontWeight: "500" },
+  verdictDate: { fontSize: 14, lineHeight: 21, fontWeight: "500" },
+  guide: { borderRadius: radius.md, borderWidth: 1, padding: space.md, gap: 2 },
+  guideLabel: { fontSize: 13, fontWeight: "500" },
+  guideValue: { fontSize: 22, fontWeight: "600", letterSpacing: -0.8, fontVariant: ["tabular-nums"] },
+  context: { borderRadius: radius.md, borderWidth: 1, padding: space.md, gap: space.xs },
+  contextTitle: { fontSize: 14, lineHeight: 20, fontWeight: "600" },
   contextRange: { fontSize: 14, lineHeight: 20, fontWeight: "700" },
   reasons: { gap: space.sm },
-  reasonTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.8 },
+  reasonTitle: { fontFamily: fonts.mono, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.4 },
   reason: { flexDirection: "row", alignItems: "center", gap: space.sm },
   reasonDot: { width: 7, height: 7, borderRadius: 4 },
-  reasonText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "600" },
+  reasonText: { flex: 1, fontSize: 14, lineHeight: 21, fontWeight: "500" },
   bold: { fontWeight: "700" },
   tableHead: { flexDirection: "row", gap: space.sm },
   headCell: { flex: 1, fontSize: 13, textAlign: "right" },
   row: { flexDirection: "row", gap: space.sm, alignItems: "center" },
   rowLabel: { flex: 1, fontSize: 14 },
-  rowCell: { flex: 1, fontSize: 14, textAlign: "right" },
+  rowCell: { flex: 1, fontSize: 14, textAlign: "right", fontVariant: ["tabular-nums"] },
 });

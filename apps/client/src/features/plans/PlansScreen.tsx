@@ -80,7 +80,11 @@ export function PlansScreen() {
           <Text accessibilityRole="header" style={[styles.planName, { color: textColor }]}>
             {name}
           </Text>
-          {current ? <Badge label="сейчас" tone={plus ? "hero" : "ok"} /> : null}
+          {current ? (
+            <View>
+              <Badge label="сейчас" tone={plus ? "hero" : "ok"} />
+            </View>
+          ) : null}
         </View>
         <Text style={[styles.price, { color: plus ? palette.heroMuted : palette.muted }]}>
           {plus ? "в демо — бесплатно" : "0 ₽"}
@@ -96,7 +100,7 @@ export function PlansScreen() {
         {plans?.demo_preview ? (
           <Button
             label={`Проверить ${name} в демо`}
-            variant={plus ? "secondary" : "primary"}
+            variant={plus ? "inverse" : "primary"}
             disabled={busy || current}
             onPress={() => void preview(plan.plan)}
           />
@@ -141,8 +145,8 @@ export function PlansScreen() {
 
 const styles = StyleSheet.create({
   planHead: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  planName: { fontSize: 28, fontWeight: "800", letterSpacing: -0.6 },
-  price: { fontSize: 15, fontWeight: "700", marginTop: -space.sm },
+  planName: { fontSize: 28, fontWeight: "600", letterSpacing: -1.1 },
+  price: { fontSize: 14, fontWeight: "500", marginTop: -space.sm },
   feature: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },
-  featureText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "600" },
+  featureText: { flex: 1, fontSize: 14, lineHeight: 21 },
 });

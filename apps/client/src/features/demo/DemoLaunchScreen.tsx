@@ -16,10 +16,11 @@ import {
   LoadingState,
   Muted,
   Screen,
+  type PressState,
 } from "@/shared/ui/components";
 import { Icon, type IconName } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
-import { elevation, radius, space, usePalette } from "@/shared/ui/theme";
+import { radius, space, usePalette } from "@/shared/ui/theme";
 
 const DEFAULT_PROFILE = "young_specialist";
 
@@ -115,6 +116,7 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
           ))}
         </View>
         <Button
+          variant="inverse"
           trailingIcon="arrow"
           label={startingLive ? ru.live.starting : ru.live.start}
           onPress={() => void startLive()}
@@ -151,25 +153,25 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
                   accessibilityState={{ checked: active, disabled: !profile.mvp }}
                   disabled={!profile.mvp || starting || startingLive}
                   onPress={() => setSelected(profile.id)}
-                  style={[
+                  style={({ hovered }: PressState) => [
                     styles.option,
                     {
-                      borderColor: active ? palette.accent : palette.border,
-                      backgroundColor: active ? palette.accentSoft : palette.card,
+                      borderColor:
+                        active ? palette.text : hovered && profile.mvp ? palette.muted : palette.border,
+                      backgroundColor: palette.card,
                       opacity: profile.mvp ? 1 : 0.5,
                     },
-                    active ? elevation(palette, 1) : null,
                   ]}
                 >
                   <View
                     style={[
                       styles.avatar,
-                      { backgroundColor: active ? palette.accent : palette.track },
+                      { backgroundColor: active ? palette.primary : palette.track },
                     ]}
                   >
                     <Icon
                       name={PROFILE_ICON[profile.id] ?? "user"}
-                      color={active ? palette.accentText : palette.muted}
+                      color={active ? palette.primaryText : palette.muted}
                       size={20}
                     />
                   </View>
@@ -205,29 +207,31 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
 
 const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: space.md },
-  brandName: { fontSize: 17, fontWeight: "800", letterSpacing: -0.2 },
-  title: { fontSize: 30, fontWeight: "800", lineHeight: 36, letterSpacing: -0.8 },
-  lead: { fontSize: 15, lineHeight: 22 },
-  features: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingTop: space.xs },
+  brandName: { fontSize: 15, fontWeight: "600", letterSpacing: -0.3 },
+  title: { fontSize: 34, fontWeight: "600", lineHeight: 40, letterSpacing: -1.4, paddingTop: space.lg },
+  lead: { fontSize: 16, lineHeight: 24 },
+  features: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingVertical: space.xs },
   feature: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.14)",
     paddingHorizontal: space.md,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
-  featureText: { fontSize: 13, fontWeight: "700" },
+  featureText: { fontSize: 13, fontWeight: "500" },
   list: { gap: space.md },
   option: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: radius.lg,
     padding: space.md + 2,
     flexDirection: "row",
     gap: space.md,
   },
-  avatar: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  avatar: { width: 42, height: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   optionBody: { flex: 1, gap: space.xs },
   optionHeader: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
-  optionTitle: { fontSize: 16, fontWeight: "700" },
+  optionTitle: { fontSize: 15, fontWeight: "600", letterSpacing: -0.2 },
 });

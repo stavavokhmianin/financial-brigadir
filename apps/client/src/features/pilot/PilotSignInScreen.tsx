@@ -7,7 +7,8 @@ import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
 import { Logo } from "@/shared/ui/brand";
 import { Button, Card, ErrorState, Field, Hero, Muted, Screen } from "@/shared/ui/components";
-import { space, usePalette } from "@/shared/ui/theme";
+import { Icon } from "@/shared/ui/icons";
+import { radius, space, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
 import { canSubmit } from "./logic";
@@ -77,10 +78,13 @@ export function PilotSignInScreen({
           <View
             style={[
               styles.box,
-              { borderColor: palette.accent, backgroundColor: accepted ? palette.accent : "transparent" },
+              {
+                borderColor: accepted ? palette.primary : palette.muted,
+                backgroundColor: accepted ? palette.primary : "transparent",
+              },
             ]}
           >
-            {accepted ? <Text style={{ color: palette.accentText }}>✓</Text> : null}
+            {accepted ? <Icon name="check" color={palette.primaryText} size={14} /> : null}
           </View>
           <Text style={[styles.checkText, { color: palette.text }]}>{t.accept}</Text>
         </Pressable>
@@ -110,15 +114,15 @@ export function PilotSignInScreen({
 
 const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: space.md },
-  brandName: { fontSize: 17, fontWeight: "800" },
-  title: { fontSize: 30, fontWeight: "800", lineHeight: 36, letterSpacing: -0.8 },
-  lead: { fontSize: 15, lineHeight: 22 },
+  brandName: { fontSize: 15, fontWeight: "600", letterSpacing: -0.3 },
+  title: { fontSize: 34, fontWeight: "600", lineHeight: 40, letterSpacing: -1.4, paddingTop: space.lg },
+  lead: { fontSize: 16, lineHeight: 24 },
   check: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.xs },
   box: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderRadius: 6,
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },

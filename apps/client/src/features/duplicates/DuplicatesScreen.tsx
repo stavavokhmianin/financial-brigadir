@@ -76,11 +76,13 @@ export function DuplicatesScreen() {
           <View style={styles.actions}>
             <Button
               label={t.isDuplicate}
+              size="sm"
               onPress={() => void decide(pair.transaction.id, "duplicate")}
               loading={busy === pair.transaction.id}
             />
             <Button
               label={t.notDuplicate}
+              size="sm"
               variant="secondary"
               onPress={() => void decide(pair.transaction.id, "not_duplicate")}
               disabled={busy === pair.transaction.id}
@@ -93,7 +95,7 @@ export function DuplicatesScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 16, fontWeight: "600" },
+  title: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32 },
   row: { gap: 2 },
-  actions: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
+  actions: { flexDirection: "row", gap: space.sm, flexWrap: "wrap", paddingTop: space.xs },
 });

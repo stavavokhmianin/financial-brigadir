@@ -1,12 +1,7 @@
-import {
-  Manrope_500Medium,
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-  Manrope_800ExtraBold,
-  useFonts,
-} from "@expo-google-fonts/manrope";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ru } from "@/shared/i18n/ru";
@@ -15,11 +10,14 @@ import { fonts, usePalette } from "@/shared/ui/theme";
 
 export default function RootLayout() {
   const palette = usePalette();
+  // Geist лежит в assets/fonts: статические начертания с кириллицей (OFL).
   const [loaded, failed] = useFonts({
-    Manrope_500Medium,
-    Manrope_600SemiBold,
-    Manrope_700Bold,
-    Manrope_800ExtraBold,
+    [fonts.regular]: require("../assets/fonts/Geist_400Regular.ttf"),
+    [fonts.medium]: require("../assets/fonts/Geist_500Medium.ttf"),
+    [fonts.bold]: require("../assets/fonts/Geist_600SemiBold.ttf"),
+    [fonts.heavy]: require("../assets/fonts/Geist_700Bold.ttf"),
+    [fonts.mono]: require("../assets/fonts/GeistMono_400Regular.ttf"),
+    [fonts.monoMedium]: require("../assets/fonts/GeistMono_500Medium.ttf"),
   });
   // Без шрифта не ждём бесконечно: системный шрифт лучше пустого экрана.
   if (!loaded && !failed) return null;
@@ -31,9 +29,26 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerStyle: { backgroundColor: palette.background },
-            headerShadowVisible: false,
-            headerTintColor: palette.accent,
-            headerTitleStyle: { fontFamily: fonts.bold, fontSize: 18, color: palette.text },
+            // Шапка отделена тонкой линией: на iOS — нативной, на web — своим фоном.
+            // На Android нативная граница — это material-тень, поэтому там её нет.
+            headerShadowVisible: Platform.OS === "ios",
+            headerBackground:
+              Platform.OS === "web"
+                ? () => (
+                    <View
+                      style={[
+                        styles.headerBackground,
+                        { backgroundColor: palette.background, borderColor: palette.border },
+                      ]}
+                    />
+                  )
+                : undefined,
+            headerTintColor: palette.text,
+            headerTitleStyle: {
+              fontFamily: fonts.bold,
+              fontSize: 16,
+              color: palette.text,
+            },
             contentStyle: { backgroundColor: palette.background },
           }}
         >
@@ -54,3 +69,7 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  headerBackground: { flex: 1, borderBottomWidth: StyleSheet.hairlineWidth },
+});

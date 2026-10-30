@@ -22,7 +22,7 @@ import {
   Muted,
   Screen,
 } from "@/shared/ui/components";
-import { space, usePalette } from "@/shared/ui/theme";
+import { radius, space, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
 import { groupHidden, QUIET_PRESETS, quietPresetOf, timesLabel, type QuietPreset } from "./logic";
@@ -110,7 +110,7 @@ export function AlertsScreen() {
         <Muted>{t.lead}</Muted>
         {shown.length === 0 ? <Muted>{t.empty}</Muted> : null}
         {shown.map((alert) => (
-          <View key={alert.id} style={[styles.alert, { borderColor: palette.warning }]}>
+          <View key={alert.id} style={[styles.alert, { borderColor: palette.border }]}>
             <View style={styles.row}>
               <Badge
                 label={alert.priority === "critical" ? t.critical : t.normal}
@@ -125,13 +125,19 @@ export function AlertsScreen() {
               </Muted>
             ) : (
               <View style={styles.row}>
-                <Button label={t.feedback.useful} onPress={() => void feedback(alert.id, "useful")} />
                 <Button
+                  size="sm"
+                  label={t.feedback.useful}
+                  onPress={() => void feedback(alert.id, "useful")}
+                />
+                <Button
+                  size="sm"
                   label={t.feedback.not_relevant}
                   variant="secondary"
                   onPress={() => void feedback(alert.id, "not_relevant")}
                 />
                 <Button
+                  size="sm"
                   label={t.feedback.disable_type}
                   variant="secondary"
                   onPress={() => void feedback(alert.id, "disable_type")}
@@ -207,8 +213,8 @@ export function AlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  alert: { borderLeftWidth: 3, paddingLeft: space.md, gap: space.sm },
+  alert: { borderWidth: 1, borderRadius: radius.md, padding: space.md, gap: space.sm },
   row: { flexDirection: "row", gap: space.sm, alignItems: "center", flexWrap: "wrap" },
-  message: { fontSize: 15, lineHeight: 22 },
+  message: { fontSize: 14, lineHeight: 21 },
   hidden: { gap: 2 },
 });

@@ -11,7 +11,16 @@ import {
 } from "@/shared/api/client";
 import { formatDay, formatRub, formatRubApprox, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
-import { Badge, Card, ErrorState, Field, LoadingState, Muted, Stat } from "@/shared/ui/components";
+import {
+  Badge,
+  Card,
+  ErrorState,
+  Field,
+  LoadingState,
+  Muted,
+  Stat,
+  type PressState,
+} from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
@@ -231,11 +240,11 @@ function Item({
               accessibilityState={{ checked: tx.label === label, disabled }}
               disabled={disabled}
               onPress={() => onMark(label)}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }: PressState) => [
                 styles.chip,
                 {
                   borderColor: palette.border,
-                  backgroundColor: pressed ? palette.accentSoft : palette.card,
+                  backgroundColor: pressed || hovered ? palette.track : palette.card,
                   opacity: disabled ? 0.5 : 1,
                 },
               ]}
@@ -305,13 +314,13 @@ const styles = StyleSheet.create({
   item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
   progressRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.sm },
   pager: { flexDirection: "row", gap: space.md },
-  pagerAction: { fontSize: 13, fontWeight: "700" },
+  pagerAction: { fontSize: 13, fontWeight: "500" },
   itemHead: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
   itemMain: { flex: 1, gap: 2 },
   itemSide: { alignItems: "flex-end", gap: space.xs },
-  itemTitle: { fontSize: 15, fontWeight: "700" },
-  amount: { fontSize: 15, fontWeight: "800" },
-  question: { fontSize: 16, fontWeight: "800", lineHeight: 22, paddingTop: space.xs },
+  itemTitle: { fontSize: 14, fontWeight: "500" },
+  amount: { fontSize: 14, fontWeight: "500", fontVariant: ["tabular-nums"] },
+  question: { fontSize: 16, fontWeight: "600", lineHeight: 22, letterSpacing: -0.32, paddingTop: space.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   chip: {
     borderWidth: 1,
@@ -319,13 +328,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: 6,
   },
-  chipText: { fontSize: 13, fontWeight: "700" },
+  chipText: { fontSize: 13, fontWeight: "500" },
   skipRow: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
-  skip: { fontSize: 13, fontWeight: "700", paddingVertical: space.xs },
+  skip: { fontSize: 13, fontWeight: "500", paddingVertical: space.xs },
   applied: { borderRadius: radius.md, padding: space.md, gap: space.xs },
   appliedHead: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },
   appliedTitle: { flex: 1, fontSize: 14, fontWeight: "700", lineHeight: 20 },
   appliedLine: { fontSize: 14, lineHeight: 20 },
-  undo: { fontSize: 14, fontWeight: "700", paddingTop: space.xs },
+  undo: { fontSize: 14, fontWeight: "500", paddingTop: space.xs },
   footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.xs },
 });

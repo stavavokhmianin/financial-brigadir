@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
   type KeyboardTypeOptions,
+  type PressableStateCallbackType,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -16,6 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./icons";
 import { Text } from "./text";
 import { elevation, fonts, radius, space, usePalette } from "./theme";
+
+/** react-native-web сообщает о наведении мыши; в типах React Native этого поля нет. */
+export type PressState = PressableStateCallbackType & { hovered?: boolean };
 
 interface FieldProps {
   testID?: string;
@@ -32,6 +36,7 @@ interface FieldProps {
 
 export function Field(props: FieldProps) {
   const palette = usePalette();
+  const [focused, setFocused] = useState(false);
   return (
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { color: palette.muted }]}>{props.label}</Text>
@@ -41,20 +46,26 @@ export function Field(props: FieldProps) {
         value={props.value}
         onChangeText={props.onChangeText}
         placeholder={props.placeholder}
-        placeholderTextColor={palette.muted}
+        placeholderTextColor={palette.placeholder}
         multiline={props.multiline}
         keyboardType={props.keyboardType}
         autoCapitalize="none"
         autoCorrect={false}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={[
           styles.input,
           props.multiline ? styles.inputMultiline : null,
-          props.monospace ? styles.mono : { fontFamily: fonts.medium },
+          props.monospace ? styles.mono : { fontFamily: fonts.regular },
           {
             color: palette.text,
-            borderColor: props.error ? palette.danger : palette.border,
-            backgroundColor: palette.background,
+            borderColor: props.error ? palette.danger : focused ? palette.muted : palette.border,
+            backgroundColor: palette.card,
           },
+          // Кольцо фокуса, как у полей Geist: мягкий полупрозрачный ореол.
+          focused
+            ? { boxShadow: `0 0 0 3px ${props.error ? palette.dangerSoft : palette.focusRing}` }
+            : null,
         ]}
       />
       {props.error ? (
@@ -94,20 +105,24 @@ export function Choice<T extends string>({ label, options, value, onChange }: Ch
               accessibilityLabel={option.label}
               accessibilityState={{ checked: active }}
               onPress={() => onChange(option.value)}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }: PressState) => [
                 styles.chip,
                 {
-                  backgroundColor: active ? palette.accent : palette.track,
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                  backgroundColor: active
+                    ? palette.primary
+                    : hovered
+                      ? palette.track
+                      : palette.card,
+                  borderColor: active ? palette.primary : palette.border,
+                  opacity: pressed ? 0.8 : 1,
                 },
-                active ? elevation(palette, 1) : null,
               ]}
             >
               <Text
                 style={{
-                  color: active ? palette.accentText : palette.text,
+                  color: active ? palette.primaryText : palette.text,
                   fontSize: 14,
-                  fontWeight: active ? "700" : "600",
+                  fontWeight: "500",
                 }}
               >
                 {option.label}
@@ -120,13 +135,6 @@ export function Choice<T extends string>({ label, options, value, onChange }: Ch
   );
 }
 
-/** «#rrggbb» → «rgba(r,g,b,a)»: так прозрачность градиента понимают и web, и натив. */
-const withAlpha = (hex: string, alpha: number) => {
-  if (!hex.startsWith("#") || hex.length !== 7) return hex;
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return `rgba(${r},${g},${b},${alpha})`;
-};
-
 export function Screen({ children, topInset }: { children: ReactNode; topInset?: boolean }) {
   const palette = usePalette();
   // Android 15+ и SDK 54 рисуют edge-to-edge: без отступа последняя кнопка уходит
@@ -137,24 +145,11 @@ export function Screen({ children, topInset }: { children: ReactNode; topInset?:
       style={{ backgroundColor: palette.background }}
       contentContainerStyle={[
         styles.screen,
-        { paddingBottom: space.xl + bottom },
-        topInset ? { paddingTop: space.lg + top } : null,
+        { paddingBottom: space.xxl + bottom },
+        topInset ? { paddingTop: space.xl + top } : null,
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Мягкое фирменное свечение сверху экрана. */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={[
-          withAlpha(palette.brand[1], 0.18),
-          withAlpha(palette.brand[1], 0.06),
-          withAlpha(palette.brand[1], 0),
-        ]}
-        locations={[0, 0.55, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.glow}
-      />
       <View style={styles.column}>{children}</View>
     </ScrollView>
   );
@@ -164,8 +159,11 @@ export function Screen({ children, topInset }: { children: ReactNode; topInset?:
 export function Notice({ text }: { text: string }) {
   const palette = usePalette();
   return (
-    <View accessibilityRole="alert" style={[styles.notice, { backgroundColor: palette.warningBg }]}>
-      <Icon name="alert" color={palette.warning} size={20} />
+    <View
+      accessibilityRole="alert"
+      style={[styles.notice, { backgroundColor: palette.warningBg, borderColor: palette.warning }]}
+    >
+      <Icon name="alert" color={palette.warning} size={16} />
       <Text style={[styles.noticeText, { color: palette.warning }]}>{text}</Text>
     </View>
   );
@@ -191,11 +189,7 @@ export function Card({ title, icon, children, style }: CardProps) {
     >
       {title ? (
         <View style={styles.cardHeader}>
-          {icon ? (
-            <View style={[styles.cardIcon, { backgroundColor: palette.accentSoft }]}>
-              <Icon name={icon} color={palette.accent} size={18} />
-            </View>
-          ) : null}
+          {icon ? <Icon name={icon} color={palette.muted} size={16} /> : null}
           <Text accessibilityRole="header" style={[styles.cardTitle, { color: palette.text }]}>
             {title}
           </Text>
@@ -206,20 +200,33 @@ export function Card({ title, icon, children, style }: CardProps) {
   );
 }
 
-/** Фирменная градиентная поверхность: баланс, приветствие, итог сценария. */
+/** Контрастная поверхность: баланс, приветствие, Plus. */
 export function Hero({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const palette = usePalette();
   return (
-    <LinearGradient
-      colors={[...palette.brand]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.hero, elevation(palette, 3), style]}
+    <View
+      style={[
+        styles.hero,
+        { backgroundColor: palette.hero, borderColor: palette.heroBorder },
+        elevation(palette, 2),
+        style,
+      ]}
     >
-      <View pointerEvents="none" style={[styles.orb, styles.orbBig]} />
-      <View pointerEvents="none" style={[styles.orb, styles.orbSmall]} />
+      {/* Едва заметный блик сверху и сетка — фирменная фактура поверхности. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={["rgba(255,255,255,0.07)", "rgba(255,255,255,0)"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.heroShine}
+      />
+      <View pointerEvents="none" style={styles.heroGrid}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <View key={i} style={[styles.heroGridColumn, i < 4 ? styles.heroGridLine : null]} />
+        ))}
+      </View>
       {children}
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -229,7 +236,10 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "primary" | "secondary";
+  /** inverse — светлая кнопка на контрастной поверхности (Hero); danger — необратимое действие. */
+  variant?: "primary" | "secondary" | "inverse" | "danger";
+  /** sm — компактная кнопка для действий внутри строки списка. */
+  size?: "md" | "sm";
   icon?: IconName;
   /** Иконка после текста — для «дальше»-действий. */
   trailingIcon?: IconName;
@@ -244,20 +254,22 @@ export function Button({
   icon,
   trailingIcon,
   variant = "primary",
+  size = "md",
 }: ButtonProps) {
   const palette = usePalette();
-  const primary = variant === "primary";
   const inactive = Boolean(disabled || loading);
-  const color = primary ? palette.accentText : palette.accent;
-  const content = loading ? (
-    <ActivityIndicator color={color} />
-  ) : (
-    <View style={styles.buttonRow}>
-      {icon ? <Icon name={icon} color={color} size={20} /> : null}
-      <Text style={[styles.buttonText, { color }]}>{label}</Text>
-      {trailingIcon ? <Icon name={trailingIcon} color={color} size={20} /> : null}
-    </View>
-  );
+  const small = size === "sm";
+  // Недоступная кнопка — нейтральная серая плашка, а не полупрозрачная заливка варианта.
+  const muted = Boolean(disabled) && !loading;
+  const [background, border, color] = muted
+    ? [palette.track, palette.border, palette.placeholder]
+    : variant === "primary"
+      ? [palette.primary, palette.primary, palette.primaryText]
+      : variant === "inverse"
+        ? [palette.heroText, palette.heroText, palette.hero]
+        : variant === "danger"
+          ? [palette.dangerSolid, palette.dangerSolid, "#ffffff"]
+          : [palette.card, palette.border, palette.text];
   return (
     <Pressable
       testID={testID}
@@ -266,23 +278,33 @@ export function Button({
       accessibilityState={{ disabled: inactive, busy: Boolean(loading) }}
       disabled={inactive}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.buttonShell,
-        primary && !inactive ? elevation(palette, 2) : null,
-        { opacity: inactive ? 0.5 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
-      ]}
+      // Компактная кнопка остаётся удобной для пальца: зона нажатия больше рамки.
+      hitSlop={small ? 6 : undefined}
+      style={({ pressed, hovered }: PressState) => {
+        // Наведение: второстепенная кнопка темнеет до трека, залитые — чуть светлеют.
+        const outlined = !muted && variant === "secondary";
+        const hover = hovered && !inactive;
+        return [
+          styles.button,
+          small ? styles.buttonSmall : null,
+          {
+            backgroundColor: hover && outlined ? palette.track : background,
+            borderColor: border,
+          },
+          { opacity: loading ? 0.7 : pressed ? 0.82 : hover && !outlined ? 0.88 : 1 },
+        ];
+      }}
     >
-      {primary ? (
-        <LinearGradient
-          colors={[...palette.brand]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.button}
-        >
-          {content}
-        </LinearGradient>
+      {loading ? (
+        <ActivityIndicator color={color} size="small" />
       ) : (
-        <View style={[styles.button, { backgroundColor: palette.accentSoft }]}>{content}</View>
+        <View style={styles.buttonRow}>
+          {icon ? <Icon name={icon} color={color} size={small ? 14 : 16} /> : null}
+          <Text style={[styles.buttonText, small ? styles.buttonTextSmall : null, { color }]}>
+            {label}
+          </Text>
+          {trailingIcon ? <Icon name={trailingIcon} color={color} size={small ? 14 : 16} /> : null}
+        </View>
       )}
     </Pressable>
   );
@@ -305,15 +327,17 @@ export function ActionTile({ label, icon, onPress, hint, testID }: TileProps) {
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: PressState) => [
         styles.tile,
-        { backgroundColor: palette.card, borderColor: palette.border },
-        elevation(palette, 1),
-        { transform: [{ scale: pressed ? 0.97 : 1 }] },
+        {
+          backgroundColor: pressed ? palette.track : palette.card,
+          // Как карточки Vercel: при наведении рамка темнеет, фон не меняется.
+          borderColor: hovered ? palette.muted : palette.border,
+        },
       ]}
     >
-      <View style={[styles.tileIcon, { backgroundColor: palette.accentSoft }]}>
-        <Icon name={icon} color={palette.accent} size={20} />
+      <View style={[styles.tileIcon, { borderColor: palette.border }]}>
+        <Icon name={icon} color={palette.text} size={16} />
       </View>
       <Text
         android_hyphenationFrequency="none"
@@ -339,7 +363,7 @@ export function Stat({
   const palette = usePalette();
   const color = tone === "danger" ? palette.danger : tone === "ok" ? palette.ok : palette.text;
   return (
-    <View style={[styles.stat, { backgroundColor: palette.background }]}>
+    <View style={[styles.stat, { borderColor: palette.border }]}>
       <Text style={[styles.statLabel, { color: palette.muted }]}>{label}</Text>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
     </View>
@@ -369,9 +393,7 @@ export function LoadingState({ label }: { label: string }) {
   const palette = usePalette();
   return (
     <View style={styles.state} accessibilityLiveRegion="polite">
-      <View style={[styles.stateIcon, { backgroundColor: palette.accentSoft }]}>
-        <ActivityIndicator color={palette.accent} />
-      </View>
+      <ActivityIndicator color={palette.muted} />
       <Text style={[styles.stateText, { color: palette.muted }]}>{label}</Text>
     </View>
   );
@@ -389,11 +411,11 @@ export function ErrorState({ title, message, hint, retryLabel, onRetry }: ErrorS
   const palette = usePalette();
   return (
     <View style={styles.state} accessibilityRole="alert">
-      <View style={[styles.stateIcon, { backgroundColor: palette.dangerSoft }]}>
-        <Icon name="alert" color={palette.danger} />
+      <View style={[styles.stateIcon, { borderColor: palette.border, backgroundColor: palette.card }]}>
+        <Icon name="alert" color={palette.danger} size={18} />
       </View>
-      <Text style={[styles.errorTitle, { color: palette.danger }]}>{title}</Text>
-      <Text style={[styles.stateText, { color: palette.text }]}>{message}</Text>
+      <Text style={[styles.errorTitle, { color: palette.text }]}>{title}</Text>
+      <Text style={[styles.stateText, { color: palette.muted }]}>{message}</Text>
       {hint ? <Text style={[styles.stateText, { color: palette.muted }]}>{hint}</Text> : null}
       {onRetry ? (
         <View style={styles.retry}>
@@ -412,79 +434,118 @@ export function Muted({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   notice: {
     borderRadius: radius.md,
-    padding: space.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm + 2,
     flexDirection: "row",
     gap: space.sm,
     alignItems: "flex-start",
   },
-  noticeText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "600" },
+  noticeText: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: "500" },
   screen: { padding: space.lg, alignItems: "center" },
-  glow: { position: "absolute", left: 0, right: 0, top: 0, height: 460 },
   column: { width: "100%", maxWidth: 720, gap: space.lg },
   card: {
     borderRadius: radius.lg,
     padding: space.lg + 4,
     gap: space.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: space.sm + 2 },
-  cardIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  cardTitle: { fontSize: 18, fontWeight: "700", letterSpacing: -0.2, flexShrink: 1 },
-  hero: { borderRadius: radius.xl, padding: space.xl, gap: space.md, overflow: "hidden" },
-  orb: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.09)" },
-  orbBig: { width: 260, height: 260, top: -120, right: -80 },
-  orbSmall: { width: 140, height: 140, bottom: -70, left: -40 },
-  buttonShell: { borderRadius: radius.md },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  cardTitle: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32, flexShrink: 1 },
+  hero: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: space.xl,
+    gap: space.md,
+    overflow: "hidden",
+  },
+  heroShine: { position: "absolute", left: 0, right: 0, top: 0, height: 160 },
+  heroGrid: { ...StyleSheet.absoluteFillObject, flexDirection: "row" },
+  heroGridColumn: { flex: 1 },
+  heroGridLine: {
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
   button: {
-    minHeight: 52,
+    minHeight: 44,
     borderRadius: radius.md,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space.lg,
   },
+  buttonSmall: { minHeight: 32, borderRadius: radius.sm, paddingHorizontal: space.md },
   buttonRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  buttonText: { fontSize: 16, fontWeight: "700", letterSpacing: 0.1 },
+  buttonText: { fontSize: 15, fontWeight: "500", letterSpacing: -0.1 },
+  buttonTextSmall: { fontSize: 13 },
   tile: {
     flexGrow: 1,
     flexBasis: "45%",
-    minHeight: 112,
+    minHeight: 104,
     borderRadius: radius.lg,
-    padding: space.md + 2,
+    padding: space.lg,
     gap: space.sm,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
-  tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  tileLabel: { fontSize: 14, fontWeight: "700", lineHeight: 19 },
+  tileIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: space.xs,
+  },
+  tileLabel: { fontSize: 14, fontWeight: "500", lineHeight: 19, letterSpacing: -0.1 },
   tileHint: { fontSize: 12, lineHeight: 16 },
-  stat: { flex: 1, borderRadius: radius.md, padding: space.md, gap: 2 },
-  statLabel: { fontSize: 12, fontWeight: "600" },
-  statValue: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
+  stat: { flex: 1, borderRadius: radius.md, borderWidth: 1, padding: space.md, gap: 4 },
+  statLabel: { fontSize: 12, fontWeight: "500" },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "600",
+    letterSpacing: -0.6,
+    fontVariant: ["tabular-nums"],
+  },
   badge: {
     borderRadius: radius.pill,
-    paddingHorizontal: space.md - 2,
-    paddingVertical: 4,
+    paddingHorizontal: space.sm + 2,
+    paddingVertical: 3,
     alignSelf: "flex-start",
   },
-  badgeText: { fontSize: 12, fontWeight: "700" },
+  badgeText: { fontSize: 12, fontWeight: "500" },
   state: { alignItems: "center", gap: space.md, paddingVertical: space.xl },
-  stateIcon: { width: 52, height: 52, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  stateText: { fontSize: 15, textAlign: "center", lineHeight: 21 },
-  errorTitle: { fontSize: 18, fontWeight: "700" },
+  stateIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stateText: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  errorTitle: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32 },
   retry: { alignSelf: "stretch" },
   muted: { fontSize: 14, lineHeight: 21 },
   field: { gap: space.sm - 2 },
-  fieldLabel: { fontSize: 13, fontWeight: "700", letterSpacing: 0.2 },
+  fieldLabel: { fontSize: 13, fontWeight: "500" },
   fieldHint: { fontSize: 13, lineHeight: 18 },
   input: {
     borderWidth: 1,
     borderRadius: radius.md,
-    paddingHorizontal: space.md + 2,
+    paddingHorizontal: space.md,
     paddingVertical: space.sm + 2,
-    fontSize: 16,
-    minHeight: 52,
+    fontSize: 15,
+    minHeight: 44,
+    // Свою рамку и кольцо фокуса рисуем сами — системная обводка браузера не нужна.
+    outlineWidth: 0,
   },
   inputMultiline: { minHeight: 160, textAlignVertical: "top" },
-  mono: { fontFamily: "monospace", fontSize: 13 },
+  mono: { fontFamily: fonts.mono, fontSize: 13 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  chip: { borderRadius: radius.pill, paddingHorizontal: space.md + 2, paddingVertical: 9 },
+  chip: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: space.md + 2,
+    paddingVertical: 7,
+  },
 });

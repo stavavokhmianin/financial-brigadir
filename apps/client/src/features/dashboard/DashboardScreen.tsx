@@ -41,7 +41,7 @@ import {
 } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
-import { radius, space, usePalette } from "@/shared/ui/theme";
+import { fonts, radius, space, usePalette } from "@/shared/ui/theme";
 
 import { describeAccount, upcoming } from "./logic";
 
@@ -209,7 +209,7 @@ export function DashboardScreen() {
               style={[styles.decision, { backgroundColor: forecastTone?.soft }]}
             >
               <View style={[styles.decisionIcon, { backgroundColor: forecastTone?.color }]}>
-                <Icon name={forecastTone?.icon ?? "chart"} color="#ffffff" size={20} />
+                <Icon name={forecastTone?.icon ?? "chart"} color={palette.card} size={18} />
               </View>
               <View style={styles.lineMain}>
                 <Text style={[styles.decisionTitle, { color: forecastTone?.color }]}>
@@ -395,8 +395,14 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space.md },
   balance: { gap: space.xs, paddingTop: space.sm },
-  heroLabel: { fontSize: 14, fontWeight: "600" },
-  amount: { fontSize: 44, fontWeight: "800", letterSpacing: -1.2, lineHeight: 52 },
+  heroLabel: { fontSize: 13, fontWeight: "500" },
+  amount: {
+    fontSize: 44,
+    fontWeight: "600",
+    letterSpacing: -2,
+    lineHeight: 52,
+    fontVariant: ["tabular-nums"],
+  },
   freshness: { flexDirection: "row", alignItems: "center", gap: 6 },
   decision: {
     flexDirection: "row",
@@ -408,20 +414,20 @@ const styles = StyleSheet.create({
   decisionIcon: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  decisionTitle: { fontSize: 17, fontWeight: "800", lineHeight: 22 },
+  decisionTitle: { fontSize: 16, fontWeight: "600", lineHeight: 22, letterSpacing: -0.32 },
   decisionText: { fontSize: 14, lineHeight: 20 },
   stats: { flexDirection: "row", gap: space.sm },
   inlineChart: { gap: space.sm, paddingTop: space.xs },
-  inlineChartTitle: { fontSize: 14, fontWeight: "800" },
+  inlineChartTitle: { fontSize: 14, fontWeight: "600" },
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   dot: { width: 8, height: 8, borderRadius: 4 },
   lineMain: { flex: 1, gap: 2 },
-  lineTitle: { fontSize: 15, fontWeight: "700" },
-  lineAmount: { fontSize: 15, fontWeight: "800", textAlign: "right" },
+  lineTitle: { fontSize: 14, fontWeight: "500" },
+  lineAmount: { fontSize: 14, fontWeight: "500", textAlign: "right", fontVariant: ["tabular-nums"] },
   activity: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -433,9 +439,9 @@ const styles = StyleSheet.create({
   activityBadge: { alignSelf: "flex-start", paddingTop: 2 },
   total: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md },
   section: {
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 1,
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    letterSpacing: 0.4,
     textTransform: "uppercase",
     marginBottom: -space.sm,
   },

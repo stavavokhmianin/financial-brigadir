@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { api, type LiveState } from "@/shared/api/client";
 import { formatMoment, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
-import { Badge, Card, Muted } from "@/shared/ui/components";
+import { Badge, Card, Muted, type PressState } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
@@ -81,8 +81,8 @@ export function LiveBar({ token, latest, onArrived }: Props) {
         onPress={() => setExpanded((value) => !value)}
         style={({ pressed }) => [styles.row, { opacity: pressed ? 0.76 : 1 }]}
       >
-        <View style={[styles.icon, { backgroundColor: palette.accentSoft }]}>
-          <Icon name="clock" color={palette.accent} size={18} />
+        <View style={[styles.icon, { borderColor: palette.border }]}>
+          <Icon name="clock" color={palette.text} size={16} />
         </View>
         <View style={styles.main}>
           <Muted>{ru.live.badge}</Muted>
@@ -141,24 +141,40 @@ function Pill({
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: PressState) => [
         styles.pill,
-        { backgroundColor: palette.accentSoft, opacity: disabled ? 0.5 : pressed ? 0.8 : 1 },
+        {
+          backgroundColor: pressed || hovered ? palette.track : palette.card,
+          borderColor: palette.border,
+          opacity: disabled ? 0.5 : 1,
+        },
       ]}
     >
-      <Text style={[styles.pillText, { color: palette.accent }]}>{label}</Text>
+      <Text style={[styles.pillText, { color: palette.text }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space.md },
-  icon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  icon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   main: { flex: 1, gap: 2 },
-  moment: { fontSize: 17, fontWeight: "800" },
-  toggle: { fontSize: 12, fontWeight: "700" },
+  moment: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32, fontVariant: ["tabular-nums"] },
+  toggle: { fontSize: 13, fontWeight: "500" },
   controlPanel: { gap: space.sm, paddingTop: space.sm },
   actions: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
-  pill: { borderRadius: radius.pill, paddingHorizontal: space.lg, paddingVertical: space.sm },
-  pillText: { fontSize: 14, fontWeight: "700" },
+  pill: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: space.lg,
+    paddingVertical: 7,
+  },
+  pillText: { fontSize: 14, fontWeight: "500" },
 });

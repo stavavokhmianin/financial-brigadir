@@ -1,26 +1,37 @@
 import { Platform, useColorScheme, type ViewStyle } from "react-native";
 
-// Визуальный язык «Бригадира»: глубокий индиго-фиолетовый бренд, мятный — «запас есть»,
-// коралловый — «ниже резерва», янтарный — «внимание». Цифры — крупные и спокойные.
+// Визуальный язык «Бригадира» в духе Geist: монохромная основа (чёрный, белый, нейтральные
+// серые), тонкие границы вместо теней, синий — только для ссылок и графика. Цвет состояний
+// несёт смысл: зелёный — «запас есть», красный — «ниже резерва», янтарный — «внимание».
 export interface Palette {
   background: string;
   card: string;
   text: string;
   muted: string;
+  /** Подсказка в пустом поле: заметно светлее введённого текста. */
+  placeholder: string;
+  /** Ореол вокруг поля в фокусе. */
+  focusRing: string;
   border: string;
   /** Подложка трека шкал, разделители внутри карточек. */
   track: string;
   accent: string;
   accentSoft: string;
   accentText: string;
+  /** Главное действие: инвертированная поверхность (чёрная в светлой теме, белая в тёмной). */
+  primary: string;
+  primaryText: string;
   danger: string;
   dangerSoft: string;
+  /** Заливка кнопки необратимого действия; текст на ней белый в обеих темах. */
+  dangerSolid: string;
   warning: string;
   warningBg: string;
   ok: string;
   okSoft: string;
-  /** Градиент фирменных поверхностей: карточка баланса, главная кнопка, логотип. */
-  brand: readonly [string, string];
+  /** Контрастная поверхность: карточка баланса, первый экран, Plus. */
+  hero: string;
+  heroBorder: string;
   heroText: string;
   heroMuted: string;
   heroChip: string;
@@ -28,48 +39,60 @@ export interface Palette {
 }
 
 const light: Palette = {
-  background: "#f2f4fa",
+  background: "#fafafa",
   card: "#ffffff",
-  text: "#0e1324",
-  muted: "#5d6884",
-  border: "#e3e7f1",
-  track: "#eceff7",
-  accent: "#4f46e5",
-  accentSoft: "#eef0ff",
+  text: "#171717",
+  muted: "#666666",
+  placeholder: "#a8a8a8",
+  focusRing: "rgba(0,0,0,0.12)",
+  border: "#ebebeb",
+  track: "#f2f2f2",
+  accent: "#0070f3",
+  accentSoft: "#ebf5ff",
   accentText: "#ffffff",
-  danger: "#dc3545",
-  dangerSoft: "#fdecee",
-  warning: "#a35f00",
-  warningBg: "#fff4dd",
-  ok: "#0f9a74",
-  okSoft: "#e2f6ef",
-  brand: ["#3f33e0", "#8b5cf6"],
-  heroText: "#ffffff",
-  heroMuted: "rgba(255,255,255,0.74)",
-  heroChip: "rgba(255,255,255,0.18)",
-  shadow: "#1d2150",
+  primary: "#171717",
+  primaryText: "#ffffff",
+  danger: "#da2f35",
+  dangerSoft: "#fff0f0",
+  dangerSolid: "#da2f35",
+  warning: "#aa4d00",
+  warningBg: "#fff6e5",
+  ok: "#107d32",
+  okSoft: "#ebfaef",
+  hero: "#0a0a0a",
+  heroBorder: "#0a0a0a",
+  heroText: "#ededed",
+  heroMuted: "#a1a1a1",
+  heroChip: "rgba(255,255,255,0.1)",
+  shadow: "#000000",
 };
 
 const dark: Palette = {
-  background: "#080a12",
-  card: "#121626",
-  text: "#eef1fa",
-  muted: "#9aa4c0",
-  border: "#232a41",
-  track: "#1b2135",
-  accent: "#7d7aff",
-  accentSoft: "#1d1f45",
+  background: "#000000",
+  card: "#0a0a0a",
+  text: "#ededed",
+  muted: "#a1a1a1",
+  placeholder: "#6b6b6b",
+  focusRing: "rgba(255,255,255,0.18)",
+  border: "#2e2e2e",
+  track: "#1a1a1a",
+  accent: "#52a8ff",
+  accentSoft: "#0d1a2b",
   accentText: "#ffffff",
-  danger: "#ff6b6b",
-  dangerSoft: "#2b1519",
-  warning: "#f5b544",
-  warningBg: "#2a2011",
-  ok: "#3dd6a3",
-  okSoft: "#0e2a22",
-  brand: ["#3127c4", "#7b4cf0"],
-  heroText: "#ffffff",
-  heroMuted: "rgba(255,255,255,0.72)",
-  heroChip: "rgba(255,255,255,0.16)",
+  primary: "#ededed",
+  primaryText: "#0a0a0a",
+  danger: "#ff6166",
+  dangerSoft: "#2a1314",
+  dangerSolid: "#e5484d",
+  warning: "#ff990a",
+  warningBg: "#2a1a05",
+  ok: "#62c073",
+  okSoft: "#0e2414",
+  hero: "#0a0a0a",
+  heroBorder: "#2e2e2e",
+  heroText: "#ededed",
+  heroMuted: "#a1a1a1",
+  heroChip: "rgba(255,255,255,0.08)",
   shadow: "#000000",
 };
 
@@ -79,22 +102,27 @@ export function usePalette(): Palette {
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 
-export const radius = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
+export const radius = { sm: 6, md: 8, lg: 12, xl: 16, pill: 999 } as const;
 
-/** Начертания Manrope; вес задаётся семейством, а не fontWeight (так надёжнее на Android). */
+/** Начертания Geist; вес задаётся семейством, а не fontWeight (так надёжнее на Android). */
 export const fonts = {
-  regular: "Manrope_500Medium",
-  medium: "Manrope_600SemiBold",
-  bold: "Manrope_700Bold",
-  heavy: "Manrope_800ExtraBold",
+  regular: "Geist_400Regular",
+  medium: "Geist_500Medium",
+  bold: "Geist_600SemiBold",
+  heavy: "Geist_700Bold",
+  mono: "GeistMono_400Regular",
+  monoMedium: "GeistMono_500Medium",
 } as const;
 
-/** Мягкая тень карточки: на web — boxShadow, на iOS — shadow*, на Android — elevation. */
+/**
+ * Еле заметная тень поверх границы — как у карточек Geist. В тёмной теме тень не видна,
+ * поэтому глубину там дают только границы.
+ */
 export function elevation(palette: Palette, level: 1 | 2 | 3 = 1): ViewStyle {
-  const blur = { 1: 18, 2: 28, 3: 40 }[level];
-  const y = { 1: 6, 2: 12, 3: 18 }[level];
-  const opacity = { 1: 0.07, 2: 0.12, 3: 0.2 }[level];
-  if (Platform.OS === "android") return { elevation: { 1: 2, 2: 6, 3: 10 }[level] };
+  const blur = { 1: 2, 2: 8, 3: 24 }[level];
+  const y = { 1: 1, 2: 4, 3: 12 }[level];
+  const opacity = { 1: 0.04, 2: 0.06, 3: 0.12 }[level];
+  if (Platform.OS === "android") return { elevation: { 1: 0, 2: 1, 3: 6 }[level] };
   return {
     shadowColor: palette.shadow,
     shadowOpacity: opacity,

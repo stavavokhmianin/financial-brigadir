@@ -18,7 +18,7 @@ import {
 } from "@/shared/ui/components";
 import { Icon, type IconName } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
-import { elevation, radius, space, usePalette, type Palette } from "@/shared/ui/theme";
+import { radius, space, usePalette, type Palette } from "@/shared/ui/theme";
 
 import { ForecastChart } from "./ForecastChart";
 import { keyDays, riskScale, riskShift, riskTone } from "./logic";
@@ -47,7 +47,7 @@ export function RiskScale({ level, previous }: { level: string; previous?: strin
       accessible
       accessibilityLabel={label}
       testID={`risk-scale-${level}`}
-      style={[styles.scale, { backgroundColor: palette.card }]}
+      style={[styles.scale, { backgroundColor: palette.card, borderColor: palette.border }]}
     >
       {steps.map((step) => {
         const { color } = toneColors(palette, step.level);
@@ -56,14 +56,14 @@ export function RiskScale({ level, previous }: { level: string; previous?: strin
             key={step.level}
             style={[
               styles.scaleStep,
-              step.active ? [{ backgroundColor: color }, elevation(palette, 1)] : null,
-              step.previous ? { borderColor: color, borderWidth: 1.5, borderStyle: "dashed" } : null,
+              step.active ? { backgroundColor: color } : null,
+              step.previous ? { borderColor: color, borderWidth: 1, borderStyle: "dashed" } : null,
             ]}
           >
             <Text
               style={[
                 styles.scaleText,
-                { color: step.active ? "#ffffff" : step.previous ? color : palette.muted },
+                { color: step.active ? palette.card : step.previous ? color : palette.muted },
               ]}
             >
               {t.scale[step.level]}
@@ -90,7 +90,7 @@ export function RiskBanner({ forecast, previous }: { forecast: Forecast; previou
     >
       <View style={styles.bannerHead}>
         <View style={[styles.bannerIcon, { backgroundColor: color }]}>
-          <Icon name={icon} color="#ffffff" size={20} />
+          <Icon name={icon} color={palette.card} size={18} />
         </View>
         <Text style={[styles.bannerTitle, { color }]}>{t.level[forecast.risk_level]}</Text>
       </View>
@@ -218,8 +218,8 @@ export function ForecastScreen() {
             <Card title={t.driversTitle} icon="sparkle">
               {forecast.risk.drivers.map((driver) => (
                 <View key={`${driver.kind}-${driver.code}-${driver.date ?? ""}`} style={styles.line}>
-                  <View style={[styles.lineIcon, { backgroundColor: palette.accentSoft }]}>
-                    <Icon name={DRIVER_ICON[driver.kind] ?? "chart"} color={palette.accent} size={18} />
+                  <View style={[styles.lineIcon, { borderColor: palette.border }]}>
+                    <Icon name={DRIVER_ICON[driver.kind] ?? "chart"} color={palette.text} size={16} />
                   </View>
                   <View style={styles.lineMain}>
                     <Text style={[styles.lineTitle, { color: palette.text }]}>{driver.label}</Text>
@@ -310,8 +310,8 @@ export function ForecastScreen() {
 const styles = StyleSheet.create({
   banner: { borderRadius: radius.lg, padding: space.lg + 4, gap: space.md },
   bannerHead: { flexDirection: "row", alignItems: "center", gap: space.md },
-  bannerIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  bannerTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3, flexShrink: 1 },
+  bannerIcon: { width: 32, height: 32, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  bannerTitle: { fontSize: 20, fontWeight: "600", letterSpacing: -0.6, flexShrink: 1 },
   bannerHint: { fontSize: 14, fontWeight: "700", lineHeight: 20 },
   bannerText: { fontSize: 15, lineHeight: 23 },
   shortfall: {
@@ -324,8 +324,8 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   shortfallText: { fontSize: 13, fontWeight: "600", flex: 1 },
-  shortfallValue: { fontSize: 16, fontWeight: "800" },
-  scale: { flexDirection: "row", gap: 4, padding: 4, borderRadius: radius.pill },
+  shortfallValue: { fontSize: 16, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  scale: { flexDirection: "row", gap: 4, padding: 3, borderRadius: radius.pill, borderWidth: 1 },
   scaleStep: {
     flex: 1,
     borderRadius: radius.pill,
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scaleText: { fontSize: 13, fontWeight: "800" },
+  scaleText: { fontSize: 13, fontWeight: "600" },
   scaleWas: { fontSize: 10, fontWeight: "700", marginTop: -1 },
   legend: { flexDirection: "row", gap: space.md, flexWrap: "wrap" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -344,9 +344,16 @@ const styles = StyleSheet.create({
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   dayRow: { borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  lineIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  lineIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   lineMain: { flex: 1, gap: 2 },
   lineTitle: { fontSize: 15, fontWeight: "700" },
   values: { alignItems: "flex-end", gap: 2 },
-  amount: { fontWeight: "800", fontSize: 15 },
+  amount: { fontWeight: "500", fontSize: 14, fontVariant: ["tabular-nums"] },
 });

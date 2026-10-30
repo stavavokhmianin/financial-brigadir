@@ -72,10 +72,14 @@ export function NotificationsBell({ token }: Props) {
         }}
         style={({ pressed }) => [
           styles.bell,
-          { backgroundColor: palette.heroChip, opacity: pressed ? 0.76 : 1 },
+          {
+            backgroundColor: palette.heroChip,
+            borderColor: "rgba(255,255,255,0.14)",
+            opacity: pressed ? 0.76 : 1,
+          },
         ]}
       >
-        <Icon name="bell" color={palette.heroText} size={20} />
+        <Icon name="bell" color={palette.heroText} size={18} />
         {count > 0 ? (
           <View style={[styles.counter, { backgroundColor: palette.danger }]}> 
             <Text style={styles.counterText}>{count > 9 ? "9+" : count}</Text>
@@ -106,7 +110,7 @@ export function NotificationsBell({ token }: Props) {
           >
             <View style={styles.panelHead}>
               <View style={styles.panelTitle}>
-                <Icon name="bell" color={palette.accent} size={20} />
+                <Icon name="bell" color={palette.muted} size={16} />
                 <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
                   {ru.alerts.panelTitle}
                 </Text>
@@ -116,7 +120,7 @@ export function NotificationsBell({ token }: Props) {
                 onPress={() => setOpen(false)}
                 hitSlop={8}
               >
-                <Text style={[styles.close, { color: palette.accent }]}>{ru.alerts.close}</Text>
+                <Text style={[styles.close, { color: palette.muted }]}>{ru.alerts.close}</Text>
               </Pressable>
             </View>
 
@@ -172,9 +176,10 @@ export function NotificationsBell({ token }: Props) {
 
 const styles = StyleSheet.create({
   bell: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -189,7 +194,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  counterText: { color: "#ffffff", fontSize: 10, fontWeight: "800" },
+  counterText: { color: "#ffffff", fontSize: 10, fontWeight: "600" },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.42)",
@@ -208,11 +213,11 @@ const styles = StyleSheet.create({
   },
   panelHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   panelTitle: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  title: { fontSize: 18, fontWeight: "800" },
-  close: { fontSize: 14, fontWeight: "700" },
+  title: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32 },
+  close: { fontSize: 14, fontWeight: "500" },
   item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
   itemHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   message: { fontSize: 14, lineHeight: 21 },
-  mute: { fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  mute: { fontSize: 13, lineHeight: 19, fontWeight: "500" },
   footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
 });

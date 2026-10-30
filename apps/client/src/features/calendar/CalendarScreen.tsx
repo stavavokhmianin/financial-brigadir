@@ -71,6 +71,9 @@ export function CalendarScreen() {
   };
 
   const year = Number(today.slice(0, 4));
+  // Две группы вместо карточки на каждый день: так календарь читается одним списком.
+  const past = days?.filter((day) => day.date <= today) ?? [];
+  const future = days?.filter((day) => day.date > today) ?? [];
 
   return (
     <Screen>
@@ -85,80 +88,113 @@ export function CalendarScreen() {
       {error ? <ErrorState title={t.error} message={error} onRetry={() => void load()} /> : null}
       {days === null && !error ? <LoadingState label={t.loading} /> : null}
       {days?.length === 0 ? <Muted>{t.empty}</Muted> : null}
-      {days?.map((day) => {
-        const future = day.date > today;
-        return (
-          <Card key={day.date}>
-            <View style={styles.dayHeader}>
-              <Text style={[styles.dayTitle, { color: palette.text }]}>
-                {formatDay(day.date, year)}
-                {day.date === today ? ` · ${t.today}` : ""}
-              </Text>
-              {future && day.expectedNetMinor !== 0 ? (
-                <Text style={[styles.amount, { color: day.expectedNetMinor < 0 ? palette.danger : palette.ok }]}>
-                  {formatRub(day.expectedNetMinor)}
-                </Text>
-              ) : null}
-            </View>
-            {day.items.map((item) => {
-              const predicted = item.kind !== "past" && item.status !== "confirmed";
-              return (
-                <View
-                  key={item.key}
-                  style={[
-                    styles.item,
-                    item.kind === "past"
-                      ? { opacity: 0.7 }
-                      : {
-                          borderLeftWidth: 3,
-                          borderLeftColor: predicted ? palette.warning : palette.ok,
-                          paddingLeft: space.sm,
-                        },
-                  ]}
-                >
-                  <View style={styles.itemMain}>
-                    <Text style={{ color: palette.text }}>{item.title}</Text>
-                    <Muted>
-                      {statusLabel(item)}
-                      {item.windowTo ? ` · ${t.until} ${formatDay(item.windowTo, year)}` : ""}
-                    </Muted>
-                    {item.confirmableId ? (
-                      <View style={styles.actions}>
-                        <Button
-                          label={t.confirm}
-                          onPress={() => void decide(item.confirmableId ?? "", "confirmed")}
-                          loading={busyId === item.confirmableId}
-                        />
-                        <Button
-                          label={t.dismiss}
-                          variant="secondary"
-                          onPress={() => void decide(item.confirmableId ?? "", "canceled")}
-                          disabled={busyId === item.confirmableId}
-                        />
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text style={[styles.amount, { color: palette.text }]}>
-                    {formatRub(item.amountMinor)}
-                    {item.amountMaxMinor ? `…${formatRub(item.amountMaxMinor)}` : ""}
-                  </Text>
-                </View>
-              );
-            })}
-          </Card>
-        );
-      })}
+      {past.length > 0 ? (
+        <Card title={t.pastTitle} icon="clock">
+          {past.map(renderDay)}
+        </Card>
+      ) : null}
+      {future.length > 0 ? (
+        <Card title={t.futureTitle} icon="calendar">
+          {future.map(renderDay)}
+        </Card>
+      ) : null}
       <Button label={t.add} onPress={() => router.push("/add")} />
     </Screen>
   );
+
+  /** День — подзаголовок с датой и строки событий; дни разделены тонкой линией. */
+  function renderDay(day: CalendarDay, index: number) {
+    const ahead = day.date > today;
+    return (
+      <View
+        key={day.date}
+        style={[styles.day, index > 0 ? [styles.dayDivider, { borderColor: palette.border }] : null]}
+      >
+        <View style={styles.dayHeader}>
+          <Text style={[styles.dayTitle, { color: palette.text }]}>
+            {formatDay(day.date, year)}
+            {day.date === today ? ` · ${t.today}` : ""}
+          </Text>
+          {ahead && day.expectedNetMinor !== 0 ? (
+            <Text
+              style={[
+                styles.amount,
+                { color: day.expectedNetMinor < 0 ? palette.danger : palette.ok },
+              ]}
+            >
+              {formatRub(day.expectedNetMinor)}
+            </Text>
+          ) : null}
+        </View>
+        {day.items.map((item) => {
+          const predicted = item.kind !== "past" && item.status !== "confirmed";
+          return (
+            <View
+              key={item.key}
+              style={[
+                styles.item,
+                item.kind === "past" ? { opacity: 0.7 } : null,
+              ]}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      item.kind === "past"
+                        ? palette.muted
+                        : predicted
+                          ? palette.warning
+                          : palette.ok,
+                  },
+                ]}
+              />
+              <View style={styles.itemMain}>
+                <Text style={[styles.itemTitle, { color: palette.text }]}>{item.title}</Text>
+                <Muted>
+                  {statusLabel(item)}
+                  {item.windowTo ? ` · ${t.until} ${formatDay(item.windowTo, year)}` : ""}
+                </Muted>
+                {item.confirmableId ? (
+                  <View style={styles.actions}>
+                    <Button
+                      label={t.confirm}
+                      size="sm"
+                      onPress={() => void decide(item.confirmableId ?? "", "confirmed")}
+                      loading={busyId === item.confirmableId}
+                    />
+                    <Button
+                      label={t.dismiss}
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => void decide(item.confirmableId ?? "", "canceled")}
+                      disabled={busyId === item.confirmableId}
+                    />
+                  </View>
+                ) : null}
+              </View>
+              <Text style={[styles.amount, { color: palette.text }]}>
+                {formatRub(item.amountMinor)}
+                {item.amountMaxMinor ? `…${formatRub(item.amountMaxMinor)}` : ""}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   legend: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
+  day: { gap: space.md },
+  dayDivider: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md },
   dayHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  dayTitle: { fontSize: 16, fontWeight: "600" },
+  dayTitle: { fontSize: 14, fontWeight: "600", letterSpacing: -0.28 },
   item: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
+  dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
   itemMain: { flex: 1, gap: 2 },
-  amount: { fontWeight: "600", textAlign: "right" },
-  actions: { flexDirection: "row", gap: space.sm, marginTop: space.xs, flexWrap: "wrap" },
+  itemTitle: { fontSize: 14, fontWeight: "500" },
+  amount: { fontSize: 14, fontWeight: "500", textAlign: "right", fontVariant: ["tabular-nums"] },
+  actions: { flexDirection: "row", gap: space.sm, marginTop: space.sm, flexWrap: "wrap" },
 });

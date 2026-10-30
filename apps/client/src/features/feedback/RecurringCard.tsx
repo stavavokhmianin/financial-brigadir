@@ -9,7 +9,7 @@ import {
 } from "@/shared/api/client";
 import { formatDay, formatRub, formatRubApprox, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
-import { Badge, Button, Card, Muted } from "@/shared/ui/components";
+import { Badge, Button, Card, Muted, type PressState } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
@@ -112,33 +112,40 @@ function Candidate({
           <Text style={[styles.title, { color: palette.text }]}>{item.title}</Text>
           <Muted>{when}</Muted>
         </View>
-        <View style={styles.side}>
-          <Text style={[styles.amount, { color: palette.text }]}>{amount}</Text>
-          <Badge label={sure ? t.sure : t.likely} tone={sure ? "ok" : "muted"} />
-        </View>
+        <Text style={[styles.amount, { color: palette.text }]}>{amount}</Text>
       </View>
+      {/* Бейдж отдельной строкой: справа он сжимал описание периода. */}
+      <Badge label={sure ? t.sure : t.likely} tone={sure ? "ok" : "muted"} />
       <Muted>
         {`${t.seen} ${item.occurrences} ${plural(item.occurrences, t.times)}. ${t.next} ${formatDay(item.next_date)}.`}
       </Muted>
-      <Button
-        label={t.confirm}
-        icon="plus"
-        loading={busy}
-        disabled={disabled}
-        onPress={() => onDecide(true)}
-      />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${t.reject}: ${item.title}`}
-        disabled={disabled}
-        hitSlop={8}
-        onPress={() => onDecide(false)}
-        style={styles.rejectRow}
-      >
-        <Text style={[styles.reject, { color: palette.accent, opacity: disabled ? 0.5 : 1 }]}>
-          {t.reject}
-        </Text>
-      </Pressable>
+      <View style={styles.actions}>
+        <Button
+          label={t.confirm}
+          icon="plus"
+          size="sm"
+          loading={busy}
+          disabled={disabled}
+          onPress={() => onDecide(true)}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t.reject}: ${item.title}`}
+          disabled={disabled}
+          hitSlop={6}
+          onPress={() => onDecide(false)}
+          style={({ pressed, hovered }: PressState) => [
+            styles.reject,
+            {
+              borderColor: palette.border,
+              backgroundColor: pressed || hovered ? palette.track : palette.card,
+              opacity: disabled ? 0.5 : 1,
+            },
+          ]}
+        >
+          <Text style={[styles.rejectText, { color: palette.text }]}>{t.reject}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -171,13 +178,20 @@ const styles = StyleSheet.create({
   item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
   head: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
   main: { flex: 1, gap: 2 },
-  side: { alignItems: "flex-end", gap: space.xs },
-  title: { fontSize: 15, fontWeight: "700" },
-  amount: { fontSize: 15, fontWeight: "800" },
+  title: { fontSize: 14, fontWeight: "500" },
+  amount: { fontSize: 14, fontWeight: "500", fontVariant: ["tabular-nums"] },
   done: { borderRadius: radius.md, padding: space.md, gap: space.xs },
   doneHead: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },
   doneTitle: { flex: 1, fontSize: 14, fontWeight: "700", lineHeight: 20 },
   line: { fontSize: 14, lineHeight: 20 },
-  rejectRow: { alignSelf: "center", paddingVertical: space.xs },
-  reject: { fontSize: 14, fontWeight: "700" },
+  actions: { flexDirection: "row", gap: space.sm, flexWrap: "wrap", paddingTop: space.xs },
+  reject: {
+    minHeight: 32,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rejectText: { fontSize: 13, fontWeight: "500" },
 });

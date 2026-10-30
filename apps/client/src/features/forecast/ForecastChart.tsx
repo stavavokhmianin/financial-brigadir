@@ -5,7 +5,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from "react
 import { formatDay, formatRub } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { Text } from "@/shared/ui/text";
-import { space, usePalette } from "@/shared/ui/theme";
+import { fonts, space, usePalette } from "@/shared/ui/theme";
 
 import { chartGeometry, chartPaths, type PointLike } from "./logic";
 
@@ -48,8 +48,8 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
           <Svg width={width} height={height}>
             <Defs>
               <LinearGradient id="band" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={palette.accent} stopOpacity={0.32} />
-                <Stop offset="1" stopColor={palette.accent} stopOpacity={0.06} />
+                <Stop offset="0" stopColor={palette.accent} stopOpacity={0.18} />
+                <Stop offset="1" stopColor={palette.accent} stopOpacity={0.02} />
               </LinearGradient>
               <LinearGradient id="danger" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor={palette.danger} stopOpacity={0.14} />
@@ -65,7 +65,7 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
                 y1={geometry.zeroY}
                 y2={geometry.zeroY}
                 stroke={palette.muted}
-                strokeOpacity={0.4}
+                strokeOpacity={0.25}
                 strokeWidth={1}
               />
             ) : null}
@@ -91,7 +91,7 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
             <Path
               d={paths.median}
               stroke={palette.accent}
-              strokeWidth={compact ? 2.5 : 3}
+              strokeWidth={compact ? 1.75 : 2}
               strokeLinecap="round"
               fill="none"
             />
@@ -110,7 +110,7 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
                   r={4.5}
                   fill={palette.card}
                   stroke={minBelow ? palette.danger : palette.accent}
-                  strokeWidth={2.5}
+                  strokeWidth={2}
                 />
               </>
             ) : null}
@@ -123,7 +123,7 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
         </Text>
         <View style={[styles.reservePill, { backgroundColor: palette.dangerSoft }]}>
           <View style={[styles.reserveDash, { borderColor: palette.danger }]} />
-          <Text style={[styles.axisText, { color: palette.danger, fontWeight: "700" }]}>
+          <Text style={[styles.axisText, { color: palette.danger }]}>
             {ru.forecast.reserveLine} {formatRub(reserveMinor)}
           </Text>
         </View>
@@ -138,7 +138,7 @@ export function ForecastChart({ points, reserveMinor, compare, compact }: Props)
 const styles = StyleSheet.create({
   wrapper: { gap: space.sm },
   axis: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  axisText: { fontSize: 12, fontWeight: "600" },
+  axisText: { fontFamily: fonts.mono, fontSize: 11 },
   reservePill: {
     flexDirection: "row",
     alignItems: "center",

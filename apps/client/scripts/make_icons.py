@@ -1,15 +1,16 @@
 """Иконки приложения без графических зависимостей: python apps/client/scripts/make_icons.py
 
-Рисунок — три столбика остатка и линия резерва (образ продукта), фон — акцентный цвет.
+Рисунок — три столбика остатка и синяя линия резерва (образ продукта) на почти чёрном фоне,
+как знак в самом приложении.
 """
 
 import struct
 import zlib
 from pathlib import Path
 
-ACCENT = (31, 94, 255, 255)
+BACKGROUND = (10, 10, 10, 255)
 WHITE = (255, 255, 255, 255)
-RESERVE = (255, 214, 102, 255)
+RESERVE = (0, 112, 243, 255)
 CLEAR = (0, 0, 0, 0)
 ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
@@ -42,7 +43,7 @@ def mark(u: float, v: float) -> tuple[int, int, int, int] | None:
 
 
 def icon(u: float, v: float) -> tuple[int, int, int, int]:
-    return mark(u, v) or ACCENT
+    return mark(u, v) or BACKGROUND
 
 
 def adaptive(u: float, v: float) -> tuple[int, int, int, int]:

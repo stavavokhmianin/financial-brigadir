@@ -19,7 +19,7 @@
       "package": "ru.brigadir.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1F5EFF"
+        "backgroundColor": "#0A0A0A"
       }
     },
     "web": {

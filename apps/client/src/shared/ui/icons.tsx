@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
-// Собственный набор линейных иконок 24×24 (штрих 2): одинаковый вид на web, iOS и Android
+// Собственный набор линейных иконок 24×24 (штрих 1.75): одинаковый вид на web, iOS и Android
 // без шрифтов иконок.
 export type IconName =
   | "chart"
@@ -106,7 +106,7 @@ export function Icon({ name, color, size = 22 }: { name: IconName; color: string
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
