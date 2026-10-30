@@ -41,6 +41,8 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [applied, setApplied] = useState<Applied | null>(null);
+  const [cursor, setCursor] = useState(0);
+  const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
 
   const load = useCallback(async () => {
     setError(null);
@@ -54,6 +56,12 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  // Новые операции начинают новую лёгкую очередь; пропуски живут только в текущем просмотре.
+  useEffect(() => {
+    setCursor(0);
+    setSkipped(new Set());
+  }, [refreshKey]);
 
   const mark = async (id: string, label: TxLabel | null) => {
     setSaving(id);
@@ -73,6 +81,19 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
   const year = data?.items[0]?.transaction.occurred_at
     ? Number(data.items[0].transaction.occurred_at.slice(0, 4))
     : undefined;
+  const visible = data?.items.filter((item) => !skipped.has(item.transaction.id)) ?? [];
+  const safeCursor = visible.length === 0 ? 0 : Math.min(cursor, visible.length - 1);
+  const current = visible[safeCursor] ?? null;
+
+  const skip = (id: string) => {
+    setSkipped((previous) => new Set(previous).add(id));
+    setCursor(0);
+  };
+
+  const move = (step: number) => {
+    if (visible.length < 2) return;
+    setCursor((value) => (value + step + visible.length) % visible.length);
+  };
 
   return (
     <Card title={ru.feedback.title} icon="sparkle">
@@ -85,19 +106,22 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
         <ErrorState title={ru.feedback.error} message={error} onRetry={() => void load()} />
       ) : data === null ? (
         <LoadingState label={ru.feedback.loading} />
-      ) : data.items.length === 0 ? (
+      ) : current === null ? (
         <Muted>{ru.feedback.empty}</Muted>
       ) : (
-        data.items.map((item) => (
-          <Item
-            key={item.transaction.id}
-            item={item}
-            year={year}
-            saving={saving === item.transaction.id}
-            disabled={saving !== null}
-            onMark={(label) => void mark(item.transaction.id, label)}
-          />
-        ))
+        <Item
+          key={current.transaction.id}
+          item={current}
+          year={year}
+          saving={saving === current.transaction.id}
+          disabled={saving !== null}
+          position={safeCursor + 1}
+          total={visible.length}
+          onPrevious={() => move(-1)}
+          onNext={() => move(1)}
+          onSkip={() => skip(current.transaction.id)}
+          onMark={(label) => void mark(current.transaction.id, label)}
+        />
       )}
 
       {data && (data.reducible_30d_minor > 0 || data.labeled > 0) ? (
@@ -122,18 +146,41 @@ function Item({
   year,
   saving,
   disabled,
+  position,
+  total,
+  onPrevious,
+  onNext,
+  onSkip,
   onMark,
 }: {
   item: FeedbackItem;
   year: number | undefined;
   saving: boolean;
   disabled: boolean;
+  position: number;
+  total: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onSkip: () => void;
   onMark: (label: TxLabel) => void;
 }) {
   const palette = usePalette();
   const tx = item.transaction;
   return (
     <View style={[styles.item, { borderColor: palette.border }]}>
+      <View style={styles.progressRow}>
+        <Muted>{`${position} ${ru.feedback.of} ${total} · ${ru.feedback.optional}`}</Muted>
+        {total > 1 ? (
+          <View style={styles.pager}>
+            <Pressable accessibilityRole="button" onPress={onPrevious} hitSlop={8}>
+              <Text style={[styles.pagerAction, { color: palette.accent }]}>{ru.feedback.previous}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onNext} hitSlop={8}>
+              <Text style={[styles.pagerAction, { color: palette.accent }]}>{ru.feedback.next}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
       <View style={styles.itemHead}>
         <View style={styles.itemMain}>
           <Text style={[styles.itemTitle, { color: palette.text }]}>
@@ -149,6 +196,8 @@ function Item({
           />
         </View>
       </View>
+      <Text style={[styles.question, { color: palette.text }]}>{ru.feedback.question}</Text>
+      <Muted>{ru.feedback.questionHint}</Muted>
       {saving ? (
         <Muted>{ru.feedback.saving}</Muted>
       ) : (
@@ -177,6 +226,14 @@ function Item({
           ))}
         </View>
       )}
+      <View style={styles.skipRow}>
+        <Pressable accessibilityRole="button" disabled={disabled} onPress={onSkip} hitSlop={8}>
+          <Text style={[styles.skip, { color: palette.muted }]}>{ru.feedback.skip}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" disabled={disabled} onPress={onSkip} hitSlop={8}>
+          <Text style={[styles.skip, { color: palette.muted }]}>{ru.feedback.unknown}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -225,11 +282,15 @@ function AppliedNote({ applied, onUndo }: { applied: Applied; onUndo: () => void
 
 const styles = StyleSheet.create({
   item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
+  progressRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.sm },
+  pager: { flexDirection: "row", gap: space.md },
+  pagerAction: { fontSize: 13, fontWeight: "700" },
   itemHead: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
   itemMain: { flex: 1, gap: 2 },
   itemSide: { alignItems: "flex-end", gap: space.xs },
   itemTitle: { fontSize: 15, fontWeight: "700" },
   amount: { fontSize: 15, fontWeight: "800" },
+  question: { fontSize: 16, fontWeight: "800", lineHeight: 22, paddingTop: space.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   chip: {
     borderWidth: 1,
@@ -238,6 +299,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   chipText: { fontSize: 13, fontWeight: "700" },
+  skipRow: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
+  skip: { fontSize: 13, fontWeight: "700", paddingVertical: space.xs },
   applied: { borderRadius: radius.md, padding: space.md, gap: space.xs },
   appliedHead: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },
   appliedTitle: { flex: 1, fontSize: 14, fontWeight: "700", lineHeight: 20 },
