@@ -1,13 +1,21 @@
 // Симулятор покупки (раздел 11.3): сборка событий сценария и строки сравнения «до/после».
 
 export type ScenarioEventInput =
-  | { type: "expense"; amount_minor: number; date: string; label: string }
+  | {
+      type: "expense";
+      amount_minor: number;
+      date: string;
+      label: string;
+      merchant?: string;
+      category?: string;
+    }
   | { type: "income_shift"; target_id: string; shift_days: number };
 
 export interface SimulationInput {
   amountMinor: number | null;
   date: string;
-  label: string;
+  merchant: string;
+  category: string;
   salaryId: string | null;
   delayDays: number;
 }
@@ -38,11 +46,15 @@ export function isScenarioDateAllowed(date: string, today: string, horizonDays: 
 export function buildEvents(input: SimulationInput): ScenarioEventInput[] {
   const events: ScenarioEventInput[] = [];
   if (input.amountMinor !== null && input.amountMinor > 0) {
+    const merchant = input.merchant.trim();
+    const category = input.category.trim();
     events.push({
       type: "expense",
       amount_minor: input.amountMinor,
       date: input.date,
-      label: input.label.trim() || "Покупка",
+      label: merchant || category || "Покупка",
+      ...(merchant ? { merchant } : {}),
+      ...(category ? { category } : {}),
     });
   }
   if (input.salaryId && input.delayDays !== 0) {

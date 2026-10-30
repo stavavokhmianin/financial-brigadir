@@ -3820,6 +3820,66 @@ components:
       - critical
       - normal
       title: Priority
+    PurchaseContextOut:
+      properties:
+        basis:
+          type: string
+          enum:
+          - merchant_weekday
+          - merchant
+          - category_weekday
+          - category
+          - amount_only
+          title: Basis
+        observations:
+          type: integer
+          minimum: 0.0
+          title: Observations
+        median_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Median Minor
+        lower_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Lower Minor
+        upper_minor:
+          anyOf:
+          - type: integer
+            maximum: 9.223372036854776e+18
+            minimum: 0.0
+            examples:
+            - 500000
+          - type: 'null'
+          title: Upper Minor
+        amount_position:
+          type: string
+          enum:
+          - below
+          - typical
+          - above
+          - unknown
+          title: Amount Position
+      type: object
+      required:
+      - basis
+      - observations
+      - median_minor
+      - lower_minor
+      - upper_minor
+      - amount_position
+      title: PurchaseContextOut
+      description: Сравнение покупки с личной историей, без оценки решения пользователя.
     Recurrence:
       type: string
       enum:
@@ -4111,6 +4171,19 @@ components:
             maxLength: 80
           - type: 'null'
           title: Label
+        merchant:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Merchant
+          description: Торговая точка или получатель, если известны
+        category:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Category
         shift_days:
           anyOf:
           - type: integer
@@ -4205,6 +4278,10 @@ components:
         explanation:
           type: string
           title: Explanation
+        purchase_context:
+          anyOf:
+          - $ref: '#/components/schemas/PurchaseContextOut'
+          - type: 'null'
       type: object
       required:
       - scenario_id

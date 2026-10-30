@@ -26,6 +26,10 @@ class ScenarioEvent(APIModel):
         default=None, description="Для expense; по умолчанию — первый день прогноза"
     )
     label: str | None = Field(default=None, max_length=80)
+    merchant: str | None = Field(
+        default=None, max_length=120, description="Торговая точка или получатель, если известны"
+    )
+    category: str | None = Field(default=None, max_length=64)
     shift_days: int | None = Field(default=None, ge=-31, le=31, description="Для income_shift")
     target_id: str | None = Field(default=None, description="id дохода для income_shift")
 
@@ -141,6 +145,19 @@ class ScenarioRequest(APIModel):
     events: list[ScenarioEvent] = Field(min_length=1, max_length=10)
 
 
+class PurchaseContextOut(APIModel):
+    """Сравнение покупки с личной историей, без оценки решения пользователя."""
+
+    basis: Literal[
+        "merchant_weekday", "merchant", "category_weekday", "category", "amount_only"
+    ]
+    observations: int = Field(ge=0)
+    median_minor: NonNegativeMinor | None
+    lower_minor: NonNegativeMinor | None
+    upper_minor: NonNegativeMinor | None
+    amount_position: Literal["below", "typical", "above", "unknown"]
+
+
 class ScenarioOut(APIModel):
     """Сравнение «до/после» (раздел 11.3): исходные операции не меняются."""
 
@@ -162,3 +179,4 @@ class ScenarioOut(APIModel):
         description="Данные изменились после базового расчёта — база пересчитана"
     )
     explanation: str
+    purchase_context: PurchaseContextOut | None = None

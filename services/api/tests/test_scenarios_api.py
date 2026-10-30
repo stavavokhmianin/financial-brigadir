@@ -145,3 +145,40 @@ def test_purchase_without_date_uses_first_forecast_day(
     data = response.json()
     assert data["result"]["scenario"]["date"] is None
     assert data["min_balance_delta_minor"] == -100_000
+
+
+def test_purchase_context_uses_personal_merchant_history(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    base = _base(client, headers)
+    data = _scenario(
+        client,
+        headers,
+        base["forecast_id"],
+        {
+            "type": "expense",
+            "amount_minor": 120_000,
+            "date": "2026-10-20",
+            "merchant": "Супермаркет",
+            "category": "groceries",
+        },
+    ).json()
+    context = data["purchase_context"]
+    assert context["basis"] in {"merchant_weekday", "merchant"}
+    assert context["observations"] >= 2
+    assert context["median_minor"] > 0
+
+
+def test_purchase_context_is_honest_without_merchant_or_category(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    base = _base(client, headers)
+    data = _scenario(client, headers, base["forecast_id"], PURCHASE).json()
+    assert data["purchase_context"] == {
+        "basis": "amount_only",
+        "observations": 0,
+        "median_minor": None,
+        "lower_minor": None,
+        "upper_minor": None,
+        "amount_position": "unknown",
+    }

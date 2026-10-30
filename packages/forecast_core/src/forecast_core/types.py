@@ -120,6 +120,8 @@ class ScenarioExpense:
     day: date
     amount_minor: int
     label: str = "Покупка"
+    merchant: str | None = None
+    category: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

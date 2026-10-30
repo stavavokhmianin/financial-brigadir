@@ -1,4 +1,4 @@
-import { Redirect, useRouter } from "expo-router";
+import { Redirect } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -9,7 +9,7 @@ import {
   type IncomesResponse,
   type ScenarioResult,
 } from "@/shared/api/client";
-import { addDays, formatDay, formatRubApprox } from "@/shared/format";
+import { addDays, formatDay, formatRubApprox, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { formatDateInput, parseDateInput, parseRubInput } from "@/shared/input";
 import { useSession } from "@/shared/session";
@@ -63,7 +63,6 @@ function cell(row: ComparisonRow, value: string | number | null, year: number): 
 }
 
 export function SimulateScreen() {
-  const router = useRouter();
   const palette = usePalette();
   const { session } = useSession();
   const token = session?.access_token;
@@ -71,7 +70,8 @@ export function SimulateScreen() {
   const [salaryId, setSalaryId] = useState<string | null>(null);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [amount, setAmount] = useState("");
-  const [label, setLabel] = useState("");
+  const [merchant, setMerchant] = useState("");
+  const [category, setCategory] = useState("");
   const [date, setDate] = useState("");
   const [delay, setDelay] = useState<Delay>("0");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,7 +160,8 @@ export function SimulateScreen() {
     const events = buildEvents({
       amountMinor: parsedAmount?.ok ? parsedAmount.value : null,
       date: parsedDate.value,
-      label,
+      merchant,
+      category,
       salaryId,
       delayDays: Number(delay),
     });
@@ -184,7 +185,7 @@ export function SimulateScreen() {
         setSubmittedPurchase({
           amountMinor: parsedAmount.value,
           date: parsedDate.value,
-          label: label.trim() || t.defaultLabel,
+          label: merchant.trim() || category.trim() || t.defaultLabel,
           idempotencyKey: `scenario-plan-${nextResult.scenario_id}`,
         });
       }
@@ -224,7 +225,8 @@ export function SimulateScreen() {
   const discard = () => {
     setResult(null);
     setAmount("");
-    setLabel("");
+    setMerchant("");
+    setCategory("");
     setDelay("0");
     setSaved(null);
     setSubmittedPurchase(null);
@@ -280,13 +282,23 @@ export function SimulateScreen() {
           error={errors.amount}
           />
           <Field
-          label={t.label}
-          value={label}
+          label={t.merchant}
+          value={merchant}
           onChangeText={(value) => {
-            setLabel(value);
+            setMerchant(value);
             invalidateResult();
           }}
-          placeholder={t.defaultLabel}
+          placeholder={t.merchantPlaceholder}
+          hint={t.contextHint}
+          />
+          <Field
+          label={t.category}
+          value={category}
+          onChangeText={(value) => {
+            setCategory(value);
+            invalidateResult();
+          }}
+          placeholder={t.categoryPlaceholder}
           />
           <Field
           label={t.date}
@@ -389,6 +401,32 @@ export function SimulateScreen() {
                 </Text>
               </View>
             ) : null}
+            {result.purchase_context ? (
+              <View style={[styles.context, { backgroundColor: palette.card }]}>
+                <Text style={[styles.contextTitle, { color: palette.text }]}>
+                  {t.contextTitle}
+                </Text>
+                {result.purchase_context.basis === "amount_only" ? (
+                  <Muted>{t.contextUnavailable}</Muted>
+                ) : (
+                  <>
+                    <Muted>
+                      {`${result.purchase_context.observations} ${plural(
+                        result.purchase_context.observations,
+                        t.similarTransactions,
+                      )} · ${t.contextBasis[result.purchase_context.basis]}`}
+                    </Muted>
+                    {result.purchase_context.lower_minor !== null &&
+                    result.purchase_context.upper_minor !== null ? (
+                      <Text style={[styles.contextRange, { color: palette.text }]}>
+                        {`${t.usualRange} ${formatRubApprox(result.purchase_context.lower_minor)} — ${formatRubApprox(result.purchase_context.upper_minor)}`}
+                      </Text>
+                    ) : null}
+                    <Muted>{t.amountPosition[result.purchase_context.amount_position]}</Muted>
+                  </>
+                )}
+              </View>
+            ) : null}
           </View>
 
           {verdict.kind === "fits" && submittedPurchase ? (
@@ -456,11 +494,6 @@ export function SimulateScreen() {
                 />
                 <Muted>{t.chartHint}</Muted>
               </Card>
-              <Button
-                label={t.toForecast}
-                variant="secondary"
-                onPress={() => router.push("/forecast")}
-              />
             </>
           ) : null}
           <Button label={t.discard} variant="secondary" onPress={discard} />
@@ -487,6 +520,9 @@ const styles = StyleSheet.create({
   guide: { borderRadius: radius.md, padding: space.md, gap: 2 },
   guideLabel: { fontSize: 13, fontWeight: "600" },
   guideValue: { fontSize: 22, fontWeight: "800", letterSpacing: -0.4 },
+  context: { borderRadius: radius.md, padding: space.md, gap: space.xs },
+  contextTitle: { fontSize: 14, lineHeight: 20, fontWeight: "800" },
+  contextRange: { fontSize: 14, lineHeight: 20, fontWeight: "700" },
   reasons: { gap: space.sm },
   reasonTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.8 },
   reason: { flexDirection: "row", alignItems: "center", gap: space.sm },

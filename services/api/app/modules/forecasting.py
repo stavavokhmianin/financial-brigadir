@@ -34,6 +34,7 @@ from app.schemas.forecasts import (
     ForecastPointOut,
     ForecastQuality,
     ForecastRequest,
+    PurchaseContextOut,
     RiskDriverOut,
     RiskOut,
     SafeSpendOut,
@@ -48,6 +49,7 @@ from forecast_core import (
     HistoricalTransaction,
     IncomeExpectation,
     ObligationEvent,
+    analyze_purchase_context,
     snapshot_fingerprint,
 )
 from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
@@ -163,7 +165,16 @@ def prepare_snapshot(
                     "Дата покупки должна попадать в горизонт прогноза",
                     status_code=400,
                 )
-            extra.append(ScenarioExpense(event_day, event.amount_minor, event.label or "Покупка"))
+            display_label = event.merchant or event.category or event.label or "Покупка"
+            extra.append(
+                ScenarioExpense(
+                    event_day,
+                    event.amount_minor,
+                    display_label,
+                    merchant=event.merchant,
+                    category=event.category,
+                )
+            )
         elif event.type == "income_shift":
             if event.target_id not in income_ids:
                 raise ForecastInputError("income_not_found", "Доход для сдвига не найден")
@@ -462,6 +473,25 @@ def create_scenario(db: Session, user: User, request: ScenarioRequest) -> Scenar
     first_expense = next((e for e in request.events if e.type == "expense"), None)
     safe_day = first_expense.date if first_expense and first_expense.date else None
     safe = safe_to_spend(base_result, safe_day)
+    purchase_context = None
+    scenario_expense = next(iter(scenario_prepared.snapshot.extra_expenses), None)
+    if scenario_expense is not None:
+        context = analyze_purchase_context(
+            base_prepared.snapshot.history,
+            amount_minor=scenario_expense.amount_minor,
+            day=scenario_expense.day,
+            timezone=base_prepared.snapshot.timezone,
+            merchant=scenario_expense.merchant,
+            category=scenario_expense.category,
+        )
+        purchase_context = PurchaseContextOut(
+            basis=context.basis,
+            observations=context.observations,
+            median_minor=context.median_minor,
+            lower_minor=context.lower_minor,
+            upper_minor=context.upper_minor,
+            amount_position=context.amount_position,
+        )
     scenario_id = new_id("scn")
     created_at = datetime.now(UTC)
     db.add(
@@ -503,6 +533,7 @@ def create_scenario(db: Session, user: User, request: ScenarioRequest) -> Scenar
         explanation=explain_comparison(
             comparison, base_result, scenario_result, request.events, safe
         ),
+        purchase_context=purchase_context,
     )
 
 
