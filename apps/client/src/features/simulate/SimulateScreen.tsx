@@ -362,7 +362,25 @@ export function SimulateScreen() {
                 {t.riskFrom} {formatDay(verdict.date, year)}.
               </Text>
             ) : null}
-            <Muted>{verdict.explanation}</Muted>
+            <View style={styles.reasons}>
+              <Text style={[styles.reasonTitle, { color: palette.muted }]}>{t.why}</Text>
+              {result.result.risk.drivers.length > 0 ? (
+                result.result.risk.drivers.slice(0, 2).map((driver) => (
+                  <View
+                    key={`${driver.kind}-${driver.code}-${driver.date ?? ""}`}
+                    style={styles.reason}
+                  >
+                    <View style={[styles.reasonDot, { backgroundColor: verdictTone.color }]} />
+                    <Text style={[styles.reasonText, { color: palette.text }]}>
+                      {driver.label}
+                      {driver.date ? ` · ${formatDay(driver.date, year)}` : ""}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Muted>{verdict.explanation}</Muted>
+              )}
+            </View>
             {base.safe_to_spend.available ? (
               <View style={[styles.guide, { backgroundColor: palette.card }]}>
                 <Text style={[styles.guideLabel, { color: palette.muted }]}>{t.currentGuide}</Text>
@@ -405,6 +423,7 @@ export function SimulateScreen() {
             <>
               <Card title={t.compareTitle} icon="sparkle">
                 <RiskScale level={result.risk_level_after} previous={result.risk_level_before} />
+                <Muted>{result.explanation}</Muted>
                 <View style={styles.tableHead}>
                   <Text style={[styles.headCell, { color: palette.muted }]} />
                   <Text style={[styles.headCell, { color: palette.muted }]}>{t.before}</Text>
@@ -468,6 +487,11 @@ const styles = StyleSheet.create({
   guide: { borderRadius: radius.md, padding: space.md, gap: 2 },
   guideLabel: { fontSize: 13, fontWeight: "600" },
   guideValue: { fontSize: 22, fontWeight: "800", letterSpacing: -0.4 },
+  reasons: { gap: space.sm },
+  reasonTitle: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.8 },
+  reason: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  reasonDot: { width: 7, height: 7, borderRadius: 4 },
+  reasonText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "600" },
   bold: { fontWeight: "700" },
   tableHead: { flexDirection: "row", gap: space.sm },
   headCell: { flex: 1, fontSize: 13, textAlign: "right" },
