@@ -158,7 +158,8 @@ def profile_pass(run: Run, profile: str) -> None:
     page.screenshot(
         path=str(run.out / f"{re.sub(r'\W+', '-', profile.lower())}-alerts.png"), full_page=True
     )
-    run.tap("Закрыть")
+    # Из панели — экран настроек и полной истории (FR-24): режимы, тихие часы, лимит.
+    run.screen(f"{profile}: настройки уведомлений", "Все уведомления и настройки", None)
 
     duplicates = page.get_by_role("button", name=re.compile("Проверить")).filter(visible=True)
     if duplicates.count():
@@ -177,10 +178,11 @@ def live_pass(run: Run) -> None:
     run.where = "учебный аккаунт: старт"
     run.tap("Начать без регистрации")
     expect(page.get_by_text("Управлять").filter(visible=True).first).to_be_visible(timeout=30_000)
-    run.tap("Управлять")
-    expect(page.get_by_text("Учебное время").filter(visible=True).first).to_be_visible(
-        timeout=30_000
-    )
+    # Видимый текст «Управлять», имя кнопки для скринридера — полное.
+    run.tap("Управление учебным временем")
+    expect(
+        page.get_by_role("button", name="Следующий день").filter(visible=True).first
+    ).to_be_visible(timeout=30_000)
     run.settle()
     run.where = "учебный аккаунт: следующий день"
     run.tap("Следующий день")
@@ -199,7 +201,7 @@ def live_pass(run: Run) -> None:
     expect(page.get_by_text("Помогите уточнить прогноз").filter(visible=True).first).to_be_visible(
         timeout=15_000
     )
-    run.tap(re.compile("^Разовая: "), role="radio")
+    run.tap(re.compile("^Скорее разовая: "), role="radio")
     expect(page.get_by_text("Снять метку").filter(visible=True).first).to_be_visible(timeout=30_000)
     run.settle()
     page.screenshot(path=str(run.out / "live-feedback.png"), full_page=True)

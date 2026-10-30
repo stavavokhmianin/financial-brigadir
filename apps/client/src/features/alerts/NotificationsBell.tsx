@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from "react-native";
 
@@ -19,17 +20,28 @@ interface Props {
  */
 export function NotificationsBell({ token }: Props) {
   const palette = usePalette();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AlertItem[] | null>(null);
+  // Что сервис решил не показывать (повтор того же риска, тихие часы, лимит): подавление
+  // повторов — часть шага 5 демо 16.4, оно должно быть видно, а не только работать.
+  const [hidden, setHidden] = useState(0);
 
   const load = useCallback(async () => {
     try {
       const response = await api.listAlerts(token);
       setItems(response.items.filter((item) => item.action === "send"));
+      setHidden(response.items.filter((item) => item.action !== "send").length);
     } catch {
       setItems([]);
+      setHidden(0);
     }
   }, [token]);
+
+  const openAll = () => {
+    setOpen(false);
+    router.push("/alerts");
+  };
 
   useEffect(() => {
     void load();
@@ -143,6 +155,14 @@ export function NotificationsBell({ token }: Props) {
                 </View>
               ))
             )}
+
+            <View style={[styles.footer, { borderColor: palette.border }]}>
+              {hidden > 0 ? <Muted>{`${ru.alerts.hiddenSummary}: ${hidden}`}</Muted> : null}
+              {/* Режимы, тихие часы и лимит частоты (FR-24) и полная история решений. */}
+              <Pressable accessibilityRole="button" onPress={openAll} hitSlop={8}>
+                <Text style={[styles.mute, { color: palette.accent }]}>{ru.alerts.openAll}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -194,4 +214,5 @@ const styles = StyleSheet.create({
   itemHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   message: { fontSize: 14, lineHeight: 21 },
   mute: { fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
 });

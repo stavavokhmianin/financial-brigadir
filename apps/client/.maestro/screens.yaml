@@ -10,20 +10,12 @@ name: Every main screen opens without errors
     direction: UP
     timeout: 60000
 
-# Прогноз
-- scrollUntilVisible:
-    element: "Открыть прогноз"
-# Поднять цель от панели навигации перед касанием (edge-to-edge).
-- swipe:
-    start: "50%, 70%"
-    end: "50%, 50%"
-- tapOn: "Открыть прогноз"
+# Прогноз — на главной: отдельного экрана нет (docs/product-ux.md).
 - scrollUntilVisible:
     element: "Остаток по дням"
     timeout: 30000
 - assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
 - takeScreenshot: artifacts/mobile/06-forecast
-- back
 
 # Нижние кнопки главного экрана: сначала до конца страницы (см. mvp.yaml).
 - scrollUntilVisible:
@@ -39,17 +31,24 @@ name: Every main screen opens without errors
 - takeScreenshot: artifacts/mobile/07-calendar
 - back
 
+# Уведомления — панель поверх главной по колокольчику в шапке.
 - scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
+    element: "Свободные средства"
+    direction: UP
     timeout: 60000
-- scroll
-- tapOn: "Предупреждения"
+- tapOn: "Уведомления.*"
+- extendedWaitUntil:
+    visible: "Закрыть"
+    timeout: 30000
+- assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
+- takeScreenshot: artifacts/mobile/08-alerts
+# Режимы, тихие часы и лимит частоты (FR-24) — экран из панели.
+- tapOn: "Все уведомления и настройки"
 - scrollUntilVisible:
     element: "Настройки"
     timeout: 30000
 - assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
-- takeScreenshot: artifacts/mobile/08-alerts
+- takeScreenshot: artifacts/mobile/08b-alert-settings
 - back
 
 - scrollUntilVisible:

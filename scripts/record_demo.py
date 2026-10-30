@@ -8,6 +8,7 @@ API должен работать в демо-режиме, web-клиент —
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import Literal
@@ -90,13 +91,15 @@ def run(demo: Demo) -> None:
     demo.snapshot("dashboard")
     demo.scroll(500)
 
-    demo.caption("Шаг 2. Прогноз на 30 дней: коридор, день риска и причины.")
-    demo.button("Открыть прогноз")
-    demo.show("risk-scale-medium")
-    demo.caption("Риск «Средний»: резерв сохраняется в базовом сценарии, но не в плохом.", 3)
+    demo.caption("Шаг 2. Прогноз на 30 дней прямо на главной: коридор, день риска и причины.")
+    # Отдельного экрана прогноза нет: график и решение — на главной (docs/product-ux.md).
+    demo.expect_text("Возможен риск")
+    demo.caption("«Возможен риск»: резерв сохраняется в базовом сценарии, но не в плохом.", 3)
+    demo.expect_text("Остаток по дням")
+    demo.caption("Коридор на графике — неопределённость; он расширяется в окно зарплаты.", 3)
     demo.snapshot("forecast")
-    demo.scroll(900, steps=6)
-    demo.back()
+    page.mouse.wheel(0, -3000)
+    demo.wait(0.8)
 
     demo.caption("Шаг 3. Проверяем покупку 12 000 ₽ до оплаты.")
     demo.button("Что если купить?")
@@ -128,10 +131,17 @@ def run(demo: Demo) -> None:
     demo.back()
 
     demo.caption("Шаг 5. Одно полезное предупреждение; повтор того же риска подавлен.")
-    demo.button("Предупреждения")
+    # Уведомления — панель поверх главной по колокольчику, отдельного экрана нет.
+    page.mouse.wheel(0, -3000)
+    demo.wait(0.8)
+    bell = page.get_by_role("button", name=re.compile("^Уведомления")).filter(visible=True).first
+    expect(bell).to_be_visible(timeout=15_000)
+    bell.click()
+    demo.expect_text("Уведомления")
+    demo.expect_text("Не показано")
     demo.wait(2)
-    demo.scroll(600)
-    demo.back()
+    demo.snapshot("alerts")
+    demo.button("Закрыть")
 
     demo.caption("Учебный банк: явное согласие на 24 часа, только синтетические данные.")
     demo.button("Учебный банк (мок)")
