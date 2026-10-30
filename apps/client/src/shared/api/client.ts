@@ -35,6 +35,8 @@ export type Feedback = Schemas["FeedbackOut"];
 export type FeedbackItem = Schemas["FeedbackItemOut"];
 export type LabelResult = Schemas["TransactionLabelOut"];
 export type TxLabel = NonNullable<Schemas["TransactionLabelIn"]["label"]>;
+export type RecurringCandidate = Schemas["RecurringCandidateOut"];
+export type RecurringConfirm = Schemas["RecurringConfirmOut"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -160,6 +162,18 @@ export const api = {
     request<LiveState>(`/api/v1/live/${action}`, { method: "POST", token }),
 
   getFeedback: (token: string) => request<Feedback>("/api/v1/feedback", { token }),
+
+  listRecurring: (token: string) =>
+    request<Schemas["RecurringOut"]>("/api/v1/recurring", { token }),
+
+  confirmRecurring: (token: string, id: string) =>
+    request<RecurringConfirm>(`/api/v1/recurring/${encodeURIComponent(id)}/confirm`, {
+      method: "POST",
+      token,
+    }),
+
+  rejectRecurring: (token: string, id: string) =>
+    request<void>(`/api/v1/recurring/${encodeURIComponent(id)}/reject`, { method: "POST", token }),
 
   setTransactionLabel: (token: string, id: string, label: TxLabel | null) =>
     request<LabelResult>(`/api/v1/transactions/${encodeURIComponent(id)}/label`, {

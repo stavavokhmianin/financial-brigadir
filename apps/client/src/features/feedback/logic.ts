@@ -55,3 +55,8 @@ export function dayChanged(previousIso: string, nextIso: string, utcOffsetMinute
   const day = (iso: string) => Math.floor((Date.parse(iso) / 60_000 + utcOffsetMinutes) / 1_440);
   return day(previousIso) !== day(nextIso);
 }
+
+/** Регулярность кандидата словами (ADR-0006: без процентов). */
+export function regularity(confidence: number): "sure" | "likely" {
+  return confidence >= 0.85 ? "sure" : "likely";
+}

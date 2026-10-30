@@ -12,6 +12,7 @@ import {
 } from "@/shared/api/client";
 import { FeedbackCard } from "@/features/feedback/FeedbackCard";
 import { LiveBar } from "@/features/feedback/LiveBar";
+import { RecurringCard } from "@/features/feedback/RecurringCard";
 import {
   addDays,
   formatDay,
@@ -206,7 +207,11 @@ export function DashboardScreen() {
                 <Text style={[styles.decisionText, { color: palette.text }]}>
                   {data.forecast.risk_level === "high" && data.forecast.risk.date
                     ? `${ru.dashboard.riskOn} ${formatDay(data.forecast.risk.date, year)}. ${ru.dashboard.riskGap} ${formatRubApprox(data.forecast.risk.shortfall_minor)}.`
-                    : data.forecast.risk_level === "medium"
+                    : data.forecast.risk_level === "high"
+                      ? // Высокий риск по симуляции без одного дня: ниже резерва в большинстве
+                        // вариантов, но в разные дни. «Резерв сохраняется» здесь было бы неправдой.
+                        ru.dashboard.reserveOften
+                      : data.forecast.risk_level === "medium"
                       ? ru.dashboard.reserveTight
                       : ru.dashboard.reserveKeeps}
                 </Text>
@@ -250,7 +255,10 @@ export function DashboardScreen() {
       </Card>
 
       {isLive && token ? (
-        <FeedbackCard token={token} refreshKey={feedbackKey} onLabeled={onLabeled} />
+        <>
+          <RecurringCard token={token} refreshKey={feedbackKey} onConfirmed={onArrived} />
+          <FeedbackCard token={token} refreshKey={feedbackKey} onLabeled={onLabeled} />
+        </>
       ) : null}
 
       <Card title={ru.dashboard.upcomingTitle} icon="calendar">

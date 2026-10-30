@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { arrived, dayChanged, effectLines, type Glance } from "../src/features/feedback/logic.ts";
+import {
+  arrived,
+  dayChanged,
+  effectLines,
+  regularity,
+  type Glance,
+} from "../src/features/feedback/logic.ts";
 import { formatRubApprox } from "../src/shared/format.ts";
 
 const glance = (risk: Glance["risk_level"], min: number, bad: number): Glance => ({
@@ -56,4 +62,10 @@ test("смена учебных суток считается по москов�
   assert.equal(dayChanged("2026-10-19T07:00:00Z", "2026-10-19T20:59:00Z"), false);
   assert.equal(dayChanged("2026-10-19T20:59:00Z", "2026-10-19T21:01:00Z"), true);
   assert.equal(dayChanged("2026-10-19T07:00:00Z", "2026-10-20T07:10:00Z"), true);
+});
+
+test("регулярность словами, без процентов", () => {
+  assert.equal(regularity(1), "sure");
+  assert.equal(regularity(0.85), "sure");
+  assert.equal(regularity(0.7), "likely");
 });

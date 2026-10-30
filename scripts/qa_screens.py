@@ -3,7 +3,7 @@
     python scripts/qa_screens.py --web http://127.0.0.1:8081 [--out artifacts/qa]
 
 Для каждого демо-профиля открывает каждый экран и нажимает основные действия, затем
-проходит цикл учебного аккаунта: новый день, метка траты, пересчёт прогноза.
+проходит цикл учебного аккаунта: новый день, регулярный платёж в календарь, метка траты.
 Падает, если на экране появилась ошибка («Не удалось…», «Ошибка сервера…»), если в
 браузере было исключение JS или API ответил 5xx. Кадры каждого экрана — в --out.
 API должен работать в демо-режиме.
@@ -170,6 +170,16 @@ def live_pass(run: Run) -> None:
     run.where = "учебный аккаунт: следующий день"
     run.tap("Следующий день")
     run.settle()
+    run.where = "учебный аккаунт: регулярный платёж"
+    expect(
+        page.get_by_text("Похоже на регулярный платёж").filter(visible=True).first
+    ).to_be_visible(timeout=15_000)
+    run.tap("Добавить в обязательные")
+    expect(page.get_by_text(re.compile("в календаре, первое списание")).first).to_be_visible(
+        timeout=30_000
+    )
+    run.settle()
+    page.screenshot(path=str(run.out / "live-recurring.png"), full_page=True)
     run.where = "учебный аккаунт: метка"
     expect(page.get_by_text("Помогите уточнить прогноз").filter(visible=True).first).to_be_visible(
         timeout=15_000
