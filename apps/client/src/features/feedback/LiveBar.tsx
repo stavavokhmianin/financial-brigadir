@@ -25,6 +25,7 @@ interface Props {
 
 export function LiveBar({ token, latest, onArrived }: Props) {
   const palette = usePalette();
+  const [expanded, setExpanded] = useState(false);
   const [state, setState] = useState<LiveState>(latest);
   const [busy, setBusy] = useState(false);
   const [fresh, setFresh] = useState(0);
@@ -73,12 +74,18 @@ export function LiveBar({ token, latest, onArrived }: Props) {
 
   return (
     <Card>
-      <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={ru.live.controls}
+        accessibilityState={{ expanded }}
+        onPress={() => setExpanded((value) => !value)}
+        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.76 : 1 }]}
+      >
         <View style={[styles.icon, { backgroundColor: palette.accentSoft }]}>
           <Icon name="clock" color={palette.accent} size={18} />
         </View>
         <View style={styles.main}>
-          <Muted>{ru.live.now}</Muted>
+          <Muted>{ru.live.badge}</Muted>
           <Text accessibilityRole="summary" style={[styles.moment, { color: palette.text }]}>
             {formatMoment(state.virtual_now)}
           </Text>
@@ -87,26 +94,32 @@ export function LiveBar({ token, latest, onArrived }: Props) {
           <Badge label={ru.live.paused} tone="warning" />
         ) : fresh > 0 ? (
           <Badge label={`+${fresh} ${plural(fresh, ru.live.arrived)}`} tone="ok" />
-        ) : null}
-      </View>
-      {state.finished ? (
-        <Muted>{ru.live.finished}</Muted>
-      ) : (
-        <>
-          <Muted>
-            {ru.live.pace} {state.seconds_per_day} {ru.live.seconds}
-          </Muted>
-          <View style={styles.actions}>
-            <Pill
-              label={state.paused ? ru.live.resume : ru.live.pause}
-              disabled={busy}
-              onPress={() => void act(state.paused ? "resume" : "pause")}
-            />
-            <Pill label={ru.live.nextDay} disabled={busy} onPress={() => void act("next-day")} />
-            {busy ? <ActivityIndicator color={palette.accent} /> : null}
+        ) : (
+          <Text style={[styles.toggle, { color: palette.accent }]}>
+            {expanded ? ru.live.hideControls : ru.live.showControls}
+          </Text>
+        )}
+      </Pressable>
+      {expanded ? (
+        state.finished ? (
+          <Muted>{ru.live.finished}</Muted>
+        ) : (
+          <View style={styles.controlPanel}>
+            <Muted>
+              {ru.live.pace} {state.seconds_per_day} {ru.live.seconds}
+            </Muted>
+            <View style={styles.actions}>
+              <Pill
+                label={state.paused ? ru.live.resume : ru.live.pause}
+                disabled={busy}
+                onPress={() => void act(state.paused ? "resume" : "pause")}
+              />
+              <Pill label={ru.live.nextDay} disabled={busy} onPress={() => void act("next-day")} />
+              {busy ? <ActivityIndicator color={palette.accent} /> : null}
+            </View>
           </View>
-        </>
-      )}
+        )
+      ) : null}
     </Card>
   );
 }
@@ -143,6 +156,8 @@ const styles = StyleSheet.create({
   icon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   main: { flex: 1, gap: 2 },
   moment: { fontSize: 17, fontWeight: "800" },
+  toggle: { fontSize: 12, fontWeight: "700" },
+  controlPanel: { gap: space.sm, paddingTop: space.sm },
   actions: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
   pill: { borderRadius: radius.pill, paddingHorizontal: space.lg, paddingVertical: space.sm },
   pillText: { fontSize: 14, fontWeight: "700" },

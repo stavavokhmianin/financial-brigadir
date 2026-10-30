@@ -13,6 +13,8 @@ import {
 import { FeedbackCard } from "@/features/feedback/FeedbackCard";
 import { LiveBar } from "@/features/feedback/LiveBar";
 import { RecurringCard } from "@/features/feedback/RecurringCard";
+import { NotificationsBell } from "@/features/alerts/NotificationsBell";
+import { ForecastChart } from "@/features/forecast/ForecastChart";
 import {
   addDays,
   formatDay,
@@ -139,17 +141,20 @@ export function DashboardScreen() {
   return (
     <Screen>
       <Hero>
-        <View style={styles.row}>
-          {/* Учебный аккаунт не показывает основу синтетики как персонажа (ADR-0007). */}
-          {isLive ? (
-            <Badge label={ru.live.badge} tone="hero" />
-          ) : (
-            <>
-              <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} tone="hero" />
-              {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="hero" /> : null}
-            </>
-          )}
-          <Badge label={ru.dashboard.coverage[quality.coverage]} tone="hero" />
+        <View style={styles.heroTop}>
+          <View style={styles.row}>
+            {/* Учебный аккаунт не показывает основу синтетики как персонажа (ADR-0007). */}
+            {isLive ? (
+              <Badge label={ru.live.badge} tone="hero" />
+            ) : (
+              <>
+                <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} tone="hero" />
+                {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="hero" /> : null}
+              </>
+            )}
+            <Badge label={ru.dashboard.coverage[quality.coverage]} tone="hero" />
+          </View>
+          {token ? <NotificationsBell token={token} /> : null}
         </View>
         <View style={styles.balance}>
           <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>{ru.dashboard.liquid}</Text>
@@ -227,27 +232,19 @@ export function DashboardScreen() {
                     : "default"
                 }
               />
-              {data.forecast.safe_to_spend.available ? (
-                <Stat
-                  label={ru.dashboard.safeShort}
-                  value={formatRubApprox(data.forecast.safe_to_spend.base_minor)}
-                  tone="ok"
-                />
-              ) : null}
             </View>
-            {data.forecast.safe_to_spend.available ? (
-              <Muted>
-                {ru.forecast.safeToday} {formatDay(data.forecast.safe_to_spend.date, year)}: до{" "}
-                {formatRubApprox(data.forecast.safe_to_spend.base_minor)}
-              </Muted>
-            ) : null}
+            <View style={styles.inlineChart}>
+              <Text style={[styles.inlineChartTitle, { color: palette.text }]}>
+                {ru.forecast.chartTitle}
+              </Text>
+              <ForecastChart
+                compact
+                points={data.forecast.points}
+                reserveMinor={data.forecast.reserve_minor}
+              />
+              <Muted>{ru.dashboard.chartHint}</Muted>
+            </View>
             <Button label={ru.forecast.whatIf} icon="cart" onPress={() => router.push("/simulate")} />
-            <Button
-              label={ru.forecast.open}
-              icon="chart"
-              variant="secondary"
-              onPress={() => router.push("/forecast")}
-            />
           </>
         ) : (
           <Muted>{ru.forecast.error}</Muted>
@@ -334,7 +331,6 @@ export function DashboardScreen() {
       <Text style={[styles.section, { color: palette.muted }]}>{ru.dashboard.actionsTitle}</Text>
       <View style={styles.grid}>
         <ActionTile icon="calendar" label={ru.dashboard.calendar} onPress={() => router.push("/calendar")} />
-        <ActionTile icon="bell" label={ru.dashboard.alerts} onPress={() => router.push("/alerts")} />
         <ActionTile icon="plus" label={ru.dashboard.add} onPress={() => router.push("/add")} />
         <ActionTile icon="upload" label={ru.dashboard.importCsv} onPress={() => router.push("/import")} />
         <ActionTile icon="crown" label={ru.dashboard.plans} onPress={() => router.push("/plans")} />
@@ -355,6 +351,7 @@ export function DashboardScreen() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
+  heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space.md },
   balance: { gap: space.xs, paddingTop: space.sm },
   heroLabel: { fontSize: 14, fontWeight: "600" },
   amount: { fontSize: 44, fontWeight: "800", letterSpacing: -1.2, lineHeight: 52 },
@@ -376,6 +373,8 @@ const styles = StyleSheet.create({
   decisionTitle: { fontSize: 17, fontWeight: "800", lineHeight: 22 },
   decisionText: { fontSize: 14, lineHeight: 20 },
   stats: { flexDirection: "row", gap: space.sm },
+  inlineChart: { gap: space.sm, paddingTop: space.xs },
+  inlineChartTitle: { fontSize: 14, fontWeight: "800" },
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   dot: { width: 8, height: 8, borderRadius: 4 },
   lineMain: { flex: 1, gap: 2 },
