@@ -32,9 +32,26 @@ export function formatRub(minor: number): string {
   return `${sign}${grouped}${fraction}${NBSP}₽`;
 }
 
-/** Прогнозная сумма — оценка, поэтому без копеек: «≈ 6 530 ₽». */
+/**
+ * Прогнозная сумма — оценка, а не банковский остаток до копейки.
+ * Округляем тем грубее, чем больше сумма, и явно ставим знак приблизительности.
+ */
 export function formatRubApprox(minor: number): string {
-  return formatRub(Math.round(minor / 100) * 100);
+  if (!Number.isSafeInteger(minor)) {
+    throw new RangeError("сумма должна быть целым числом копеек");
+  }
+  const abs = Math.abs(minor);
+  const step =
+    abs < 10_000
+      ? 1_000 // до 100 ₽ — десятки рублей
+      : abs < 100_000
+        ? 10_000 // до 1 000 ₽ — сотни рублей
+        : abs < 1_000_000
+          ? 50_000 // до 10 000 ₽ — 500 ₽
+          : abs < 10_000_000
+            ? 100_000 // до 100 000 ₽ — тысячи рублей
+            : 500_000; // крупные суммы — 5 000 ₽
+  return `≈ ${formatRub(Math.round(minor / step) * step)}`;
 }
 
 function parseIsoDate(iso: string): { year: number; month: number; day: number } {

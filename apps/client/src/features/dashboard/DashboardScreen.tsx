@@ -36,8 +36,6 @@ import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
 
-import { ForecastChart } from "../forecast/ForecastChart";
-import { RiskBanner } from "../forecast/ForecastScreen";
 import { describeAccount, upcoming } from "./logic";
 
 const WINDOW_DAYS = 30;
@@ -113,6 +111,13 @@ export function DashboardScreen() {
   const quality = data.accounts.data_quality;
   const next = upcoming(data.obligations.calendar, data.from, data.to);
   const year = Number(data.from.slice(0, 4));
+  const forecastTone = data.forecast
+    ? data.forecast.risk_level === "high"
+      ? { color: palette.danger, soft: palette.dangerSoft, icon: "alert" as const }
+      : data.forecast.risk_level === "medium"
+        ? { color: palette.warning, soft: palette.warningBg, icon: "alert" as const }
+        : { color: palette.ok, soft: palette.okSoft, icon: "check" as const }
+    : null;
 
   return (
     <Screen>
@@ -151,7 +156,7 @@ export function DashboardScreen() {
         </Card>
       ) : null}
 
-      <Card title={ru.forecast.dashboardTitle} icon="chart">
+      <Card title={ru.dashboard.decisionTitle} icon="sparkle">
         {data.accounts.items.length === 0 ? (
           // Пустой профиль участника пилота: прогноз из нуля рублей только напугает.
           <>
@@ -160,11 +165,26 @@ export function DashboardScreen() {
           </>
         ) : data.forecast ? (
           <>
-            <ForecastChart
-              compact
-              points={data.forecast.points}
-              reserveMinor={data.forecast.reserve_minor}
-            />
+            <View
+              accessibilityRole="summary"
+              style={[styles.decision, { backgroundColor: forecastTone?.soft }]}
+            >
+              <View style={[styles.decisionIcon, { backgroundColor: forecastTone?.color }]}>
+                <Icon name={forecastTone?.icon ?? "chart"} color="#ffffff" size={20} />
+              </View>
+              <View style={styles.lineMain}>
+                <Text style={[styles.decisionTitle, { color: forecastTone?.color }]}>
+                  {ru.forecast.level[data.forecast.risk_level]}
+                </Text>
+                <Text style={[styles.decisionText, { color: palette.text }]}>
+                  {data.forecast.risk_level === "high" && data.forecast.risk.date
+                    ? `${ru.dashboard.riskOn} ${formatDay(data.forecast.risk.date, year)}. ${ru.dashboard.riskGap} ${formatRubApprox(data.forecast.risk.shortfall_minor)}.`
+                    : data.forecast.risk_level === "medium"
+                      ? ru.dashboard.reserveTight
+                      : ru.dashboard.reserveKeeps}
+                </Text>
+              </View>
+            </View>
             <View style={styles.stats}>
               <Stat
                 label={`${ru.forecast.minimum} · ${formatDay(data.forecast.risk.min_balance_date, year)}`}
@@ -183,7 +203,6 @@ export function DashboardScreen() {
                 />
               ) : null}
             </View>
-            <RiskBanner forecast={data.forecast} />
             {data.forecast.safe_to_spend.available ? (
               <Muted>
                 {ru.forecast.safeToday} {formatDay(data.forecast.safe_to_spend.date, year)}: до{" "}
@@ -301,6 +320,22 @@ const styles = StyleSheet.create({
   heroLabel: { fontSize: 14, fontWeight: "600" },
   amount: { fontSize: 44, fontWeight: "800", letterSpacing: -1.2, lineHeight: 52 },
   freshness: { flexDirection: "row", alignItems: "center", gap: 6 },
+  decision: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.md,
+    borderRadius: radius.md,
+    padding: space.md,
+  },
+  decisionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  decisionTitle: { fontSize: 17, fontWeight: "800", lineHeight: 22 },
+  decisionText: { fontSize: 14, lineHeight: 20 },
   stats: { flexDirection: "row", gap: space.sm },
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   dot: { width: 8, height: 8, borderRadius: 4 },

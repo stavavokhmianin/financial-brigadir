@@ -178,7 +178,7 @@ export const api = {
       body,
     }),
 
-  listIncomes: (token: string, dateFrom: string, dateTo: string) =>
+  listIncomes: (token: string, dateFrom?: string, dateTo?: string) =>
     request<IncomesResponse>("/api/v1/incomes", {
       token,
       query: { date_from: dateFrom, date_to: dateTo },

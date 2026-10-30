@@ -21,9 +21,11 @@ test("formatRub: копейки → рубли с неразрывными пр�
   assert.equal(formatRub(123_456_789_00), `123${NBSP}456${NBSP}789${NBSP}₽`);
 });
 
-test("formatRubApprox: прогнозные суммы без копеек", () => {
-  assert.equal(formatRubApprox(652_965), `6${NBSP}530${NBSP}₽`);
-  assert.equal(formatRubApprox(-147_035), `−1${NBSP}470${NBSP}₽`);
+test("formatRubApprox: прогнозные суммы явно приблизительны и без ложной точности", () => {
+  assert.equal(formatRubApprox(55_600), `≈ 600${NBSP}₽`);
+  assert.equal(formatRubApprox(652_965), `≈ 6${NBSP}500${NBSP}₽`);
+  assert.equal(formatRubApprox(-147_035), `≈ −1${NBSP}500${NBSP}₽`);
+  assert.equal(formatRubApprox(5_500_000), `≈ 55${NBSP}000${NBSP}₽`);
 });
 
 test("formatRub: дробные значения отвергаются", () => {

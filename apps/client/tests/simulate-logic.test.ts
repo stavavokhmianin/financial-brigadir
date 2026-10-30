@@ -5,6 +5,7 @@ import {
   buildEvents,
   comparisonRows,
   isScenarioDateAllowed,
+  scenarioVerdict,
   scenarioDateRange,
 } from "../src/features/simulate/logic.ts";
 
@@ -62,4 +63,39 @@ test("scenarioDateRange: сценарий ограничен отображае�
   assert.equal(isScenarioDateAllowed("2026-10-20", "2026-10-19", 30), true);
   assert.equal(isScenarioDateAllowed("2026-11-18", "2026-10-19", 30), true);
   assert.equal(isScenarioDateAllowed("2026-11-19", "2026-10-19", 30), false);
+});
+
+test("scenarioVerdict: переводит модельный риск в один пользовательский исход", () => {
+  const base = {
+    worsened: false,
+    result: {
+      risk: {
+        date: null,
+        shortfall_minor: 0,
+        explanation: "Резерв сохраняется.",
+      },
+    },
+  };
+  assert.equal(scenarioVerdict({ ...base, risk_level_after: "low" }).kind, "fits");
+  assert.equal(scenarioVerdict({ ...base, risk_level_after: "medium" }).kind, "tight");
+  assert.equal(scenarioVerdict({ ...base, risk_level_after: "low", worsened: true }).kind, "tight");
+  assert.deepEqual(
+    scenarioVerdict({
+      ...base,
+      risk_level_after: "high",
+      result: {
+        risk: {
+          date: "2026-10-23",
+          shortfall_minor: 640_000,
+          explanation: "Аренда раньше дохода.",
+        },
+      },
+    }),
+    {
+      kind: "shortfall",
+      date: "2026-10-23",
+      shortfallMinor: 640_000,
+      explanation: "Аренда раньше дохода.",
+    },
+  );
 });

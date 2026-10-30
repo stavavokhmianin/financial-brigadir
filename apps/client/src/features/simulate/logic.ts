@@ -62,6 +62,43 @@ export interface ComparisonLike {
   result: { risk: { min_balance_minor: number; pessimistic_min_minor: number } };
 }
 
+export interface ScenarioVerdictLike {
+  risk_level_after: string;
+  worsened: boolean;
+  result: {
+    risk: {
+      date?: string | null;
+      shortfall_minor: number;
+      explanation: string;
+    };
+  };
+}
+
+export type ScenarioVerdictKind = "fits" | "tight" | "shortfall";
+
+export interface ScenarioVerdict {
+  kind: ScenarioVerdictKind;
+  date: string | null;
+  shortfallMinor: number;
+  explanation: string;
+}
+
+/**
+ * Один пользовательский вердикт вместо нескольких технических карточек риска.
+ * Текст и форматирование остаются в UI, чтобы расчётная логика не зависела от языка.
+ */
+export function scenarioVerdict(scenario: ScenarioVerdictLike): ScenarioVerdict {
+  const level = scenario.risk_level_after;
+  const kind: ScenarioVerdictKind =
+    level === "high" ? "shortfall" : level === "medium" || scenario.worsened ? "tight" : "fits";
+  return {
+    kind,
+    date: scenario.result.risk.date ?? null,
+    shortfallMinor: Math.max(0, scenario.result.risk.shortfall_minor),
+    explanation: scenario.result.risk.explanation,
+  };
+}
+
 export type RowKind = "level" | "min" | "pessimistic" | "date" | "days";
 
 export interface ComparisonRow {
