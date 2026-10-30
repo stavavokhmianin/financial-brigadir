@@ -9,6 +9,7 @@ import {
   type Forecast,
   type LiveState,
   type ObligationsResponse,
+  type Transaction,
 } from "@/shared/api/client";
 import { FeedbackCard } from "@/features/feedback/FeedbackCard";
 import { LiveBar } from "@/features/feedback/LiveBar";
@@ -52,6 +53,7 @@ interface DashboardData {
   forecast: Forecast | null;
   duplicates: number;
   live: LiveState | null;
+  transactions: Transaction[];
   from: string;
   to: string;
 }
@@ -78,7 +80,7 @@ export function DashboardScreen() {
       const moment = live?.virtual_now ?? asOf;
       const from = moment ? localDate(moment) : new Date().toISOString().slice(0, 10);
       const to = addDays(from, WINDOW_DAYS);
-      const [accounts, obligations, forecast, duplicates] = await Promise.all([
+      const [accounts, obligations, forecast, duplicates, transactions] = await Promise.all([
         api.listAccounts(token),
         api.listObligations(token, from, to),
         // Прогноз не должен ломать главный экран: без него показываем остальные данные.
@@ -87,8 +89,12 @@ export function DashboardScreen() {
           .listDuplicates(token)
           .then((d) => d.items.length)
           .catch(() => 0),
+        api
+          .listTransactions(token, addDays(from, -30), from, 5)
+          .then((page) => page.items)
+          .catch(() => [] as Transaction[]),
       ]);
-      setData({ accounts, obligations, forecast, duplicates, live, from, to });
+      setData({ accounts, obligations, forecast, duplicates, live, transactions, from, to });
     } catch (err) {
       if (!quiet) setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
     }
@@ -258,6 +264,42 @@ export function DashboardScreen() {
         </>
       ) : null}
 
+      <Card title={ru.dashboard.recentTitle} icon="wallet">
+        <Muted>{ru.dashboard.recentHint}</Muted>
+        {data.transactions.length === 0 ? (
+          <Muted>{ru.dashboard.recentEmpty}</Muted>
+        ) : (
+          data.transactions.map((transaction) => (
+            <View key={transaction.id} style={styles.activity}>
+              <View style={styles.lineMain}>
+                <Text style={[styles.lineTitle, { color: palette.text }]}>
+                  {transaction.description ?? transaction.category ?? ru.feedback.fallbackTitle}
+                </Text>
+                <Muted>{formatMoment(transaction.occurred_at)}</Muted>
+                {transaction.user_note ? (
+                  <Text style={[styles.activityNote, { color: palette.muted }]}>
+                    {`${ru.dashboard.personalNote}: ${transaction.user_note}`}
+                  </Text>
+                ) : null}
+                {transaction.label ? (
+                  <View style={styles.activityBadge}>
+                    <Badge label={ru.feedback.labels[transaction.label]} tone="muted" />
+                  </View>
+                ) : null}
+              </View>
+              <Text
+                style={[
+                  styles.lineAmount,
+                  { color: transaction.amount_minor > 0 ? palette.ok : palette.text },
+                ]}
+              >
+                {formatRub(transaction.amount_minor)}
+              </Text>
+            </View>
+          ))
+        )}
+      </Card>
+
       <Card title={ru.dashboard.upcomingTitle} icon="calendar">
         {next.items.length === 0 ? (
           <Muted>{ru.dashboard.upcomingEmpty}</Muted>
@@ -380,6 +422,15 @@ const styles = StyleSheet.create({
   lineMain: { flex: 1, gap: 2 },
   lineTitle: { fontSize: 15, fontWeight: "700" },
   lineAmount: { fontSize: 15, fontWeight: "800", textAlign: "right" },
+  activity: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: space.md,
+    paddingVertical: space.xs,
+  },
+  activityNote: { fontSize: 13, lineHeight: 18 },
+  activityBadge: { alignSelf: "flex-start", paddingTop: 2 },
   total: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md },
   section: {
     fontSize: 13,

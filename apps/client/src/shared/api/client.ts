@@ -22,6 +22,7 @@ export type AccountCreate = Schemas["AccountCreate"];
 export type IncomesResponse = Schemas["IncomesOut"];
 export type IncomeCreate = Schemas["IncomeCreate"];
 export type TransactionsPage = Schemas["TransactionsPage"];
+export type Transaction = Schemas["TransactionOut"];
 export type Forecast = Schemas["ForecastOut"];
 export type ForecastRequest = Schemas["ForecastRequest"];
 export type ScenarioRequest = Schemas["ScenarioRequest"];
