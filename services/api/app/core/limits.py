@@ -39,7 +39,7 @@ class IngressLimits:
             )
             await response(scope, receive, safe_send)
 
-        if scope["method"] in {"POST", "PATCH", "DELETE"}:
+        if scope["method"] in {"POST", "PUT", "PATCH", "DELETE"}:
             now = monotonic()
             while self.windows and next(iter(self.windows.values()))[0] + 60 <= now:
                 self.windows.popitem(last=False)

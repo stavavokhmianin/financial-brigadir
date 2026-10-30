@@ -7,8 +7,11 @@ import {
   ApiError,
   type AccountsResponse,
   type Forecast,
+  type LiveState,
   type ObligationsResponse,
 } from "@/shared/api/client";
+import { FeedbackCard } from "@/features/feedback/FeedbackCard";
+import { LiveBar } from "@/features/feedback/LiveBar";
 import {
   addDays,
   formatDay,
@@ -45,6 +48,7 @@ interface DashboardData {
   obligations: ObligationsResponse;
   forecast: Forecast | null;
   duplicates: number;
+  live: LiveState | null;
   from: string;
   to: string;
 }
@@ -55,15 +59,21 @@ export function DashboardScreen() {
   const { session } = useSession();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackKey, setFeedbackKey] = useState(0);
   const token = session?.access_token;
   const asOf = session?.data_quality.data_as_of ?? null;
+  const isLive = Boolean(session && "live" in session && session.live);
 
-  const load = useCallback(async () => {
+  /** ``quiet`` — обновление поверх показанных данных, без экрана загрузки. */
+  const load = useCallback(async (quiet = false) => {
     if (!token) return;
     setError(null);
-    setData(null);
+    if (!quiet) setData(null);
     try {
-      const from = asOf ? localDate(asOf) : new Date().toISOString().slice(0, 10);
+      // У учебного аккаунта «сегодня» идёт вперёд: окно считаем от виртуального времени.
+      const live = isLive ? await api.getLiveState(token) : null;
+      const moment = live?.virtual_now ?? asOf;
+      const from = moment ? localDate(moment) : new Date().toISOString().slice(0, 10);
       const to = addDays(from, WINDOW_DAYS);
       const [accounts, obligations, forecast, duplicates] = await Promise.all([
         api.listAccounts(token),
@@ -75,11 +85,17 @@ export function DashboardScreen() {
           .then((d) => d.items.length)
           .catch(() => 0),
       ]);
-      setData({ accounts, obligations, forecast, duplicates, from, to });
+      setData({ accounts, obligations, forecast, duplicates, live, from, to });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
+      if (!quiet) setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
     }
-  }, [token, asOf]);
+  }, [token, asOf, isLive]);
+
+  const onArrived = useCallback(() => {
+    setFeedbackKey((key) => key + 1);
+    void load(true);
+  }, [load]);
+  const onLabeled = useCallback(() => void load(true), [load]);
 
   // Перезагрузка при возврате на экран: данные могли измениться в календаре или импорте.
   useFocusEffect(
@@ -123,8 +139,15 @@ export function DashboardScreen() {
     <Screen>
       <Hero>
         <View style={styles.row}>
-          <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} tone="hero" />
-          {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="hero" /> : null}
+          {/* Учебный аккаунт не показывает основу синтетики как персонажа (ADR-0007). */}
+          {isLive ? (
+            <Badge label={ru.live.badge} tone="hero" />
+          ) : (
+            <>
+              <Badge label={"profile" in session ? session.profile.title : ru.pilot.badge} tone="hero" />
+              {quality.is_demo ? <Badge label={ru.dashboard.demoBadge} tone="hero" /> : null}
+            </>
+          )}
           <Badge label={ru.dashboard.coverage[quality.coverage]} tone="hero" />
         </View>
         <View style={styles.balance}>
@@ -142,6 +165,10 @@ export function DashboardScreen() {
           ) : null}
         </View>
       </Hero>
+
+      {data.live && token ? (
+        <LiveBar key={token} token={token} latest={data.live} onArrived={onArrived} />
+      ) : null}
 
       {quality.notes.length > 0 ? (
         <Notice text={`${ru.dashboard.notesTitle}: ${quality.notes.join(" ")}`} />
@@ -221,6 +248,10 @@ export function DashboardScreen() {
           <Muted>{ru.forecast.error}</Muted>
         )}
       </Card>
+
+      {isLive && token ? (
+        <FeedbackCard token={token} refreshKey={feedbackKey} onLabeled={onLabeled} />
+      ) : null}
 
       <Card title={ru.dashboard.upcomingTitle} icon="calendar">
         {next.items.length === 0 ? (

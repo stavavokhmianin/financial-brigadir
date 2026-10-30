@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Account, DataSource, Transaction, User
+from app.db.models import Account, DataSource, LiveClock, Transaction, User
 from app.domain.enums import AccountType, Coverage, DataSourceKind
 from app.schemas.common import DataQuality
 
@@ -86,7 +86,10 @@ def data_quality(db: Session, user: User, now: datetime | None = None) -> DataQu
     if stale:
         notes.append("Данные устарели: обновите выписку перед прогнозом.")
     if is_demo:
-        notes.append("Демо-профиль на синтетических данных.")
+        # Учебный аккаунт помечен бейджем; плашка о синтетике на каждом экране только
+        # ломает ощущение настоящей системы (ADR-0007, концепция, раздел 8).
+        if db.get(LiveClock, user.id) is None:
+            notes.append("Демо-профиль на синтетических данных.")
     elif user.is_demo:
         notes.append(
             "В демо-профиль добавлен CSV: данные смешаны с синтетикой. Это учебный расчёт."

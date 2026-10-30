@@ -30,6 +30,11 @@ export type DuplicatePair = Schemas["DuplicatePair"];
 export type AlertItem = Schemas["AlertOut"];
 export type AlertAnalytics = Schemas["AlertAnalyticsOut"];
 export type NotificationSettings = Schemas["NotificationSettingsOut"];
+export type LiveState = Schemas["LiveStateOut"];
+export type Feedback = Schemas["FeedbackOut"];
+export type FeedbackItem = Schemas["FeedbackItemOut"];
+export type LabelResult = Schemas["TransactionLabelOut"];
+export type TxLabel = NonNullable<Schemas["TransactionLabelIn"]["label"]>;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -46,7 +51,7 @@ export class ApiError extends Error {
 type Query = Record<string, string | number | boolean | undefined>;
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   form?: FormData;
   token?: string;
@@ -145,6 +150,23 @@ export const api = {
 
   createDemoSession: (body: DemoSessionCreate) =>
     request<DemoSession>("/api/v1/demo/sessions", { method: "POST", body }),
+
+  createLiveSession: () =>
+    request<DemoSession>("/api/v1/demo/live-sessions", { method: "POST", body: {} }),
+
+  getLiveState: (token: string) => request<LiveState>("/api/v1/live", { token }),
+
+  liveAction: (token: string, action: "next-day" | "pause" | "resume") =>
+    request<LiveState>(`/api/v1/live/${action}`, { method: "POST", token }),
+
+  getFeedback: (token: string) => request<Feedback>("/api/v1/feedback", { token }),
+
+  setTransactionLabel: (token: string, id: string, label: TxLabel | null) =>
+    request<LabelResult>(`/api/v1/transactions/${encodeURIComponent(id)}/label`, {
+      method: "PUT",
+      token,
+      body: { label },
+    }),
 
   listAccounts: (token: string) => request<AccountsResponse>("/api/v1/accounts", { token }),
 

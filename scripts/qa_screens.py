@@ -2,7 +2,8 @@
 
     python scripts/qa_screens.py --web http://127.0.0.1:8081 [--out artifacts/qa]
 
-Для каждого демо-профиля открывает каждый экран и нажимает основные действия.
+Для каждого демо-профиля открывает каждый экран и нажимает основные действия, затем
+проходит цикл учебного аккаунта: новый день, метка траты, пересчёт прогноза.
 Падает, если на экране появилась ошибка («Не удалось…», «Ошибка сервера…»), если в
 браузере было исключение JS или API ответил 5xx. Кадры каждого экрана — в --out.
 API должен работать в демо-режиме.
@@ -91,6 +92,10 @@ def profile_pass(run: Run, profile: str) -> None:
         amount = page.get_by_test_id("purchase-amount").filter(visible=True).first
         amount.fill("5000")
         run.tap("Посчитать")
+        # Сначала вердикт, детали расчёта — по запросу (REPORT_7.7).
+        verdict = page.locator("[data-testid^='scenario-verdict-']").filter(visible=True).first
+        expect(verdict).to_be_visible(timeout=15_000)
+        run.tap("Показать расчёт")
         expect(page.get_by_text("Что изменится").filter(visible=True).first).to_be_visible(
             timeout=15_000
         )
@@ -153,6 +158,34 @@ def profile_pass(run: Run, profile: str) -> None:
     expect(page.get_by_role("button", name="Запустить демо")).to_be_visible(timeout=15_000)
 
 
+def live_pass(run: Run) -> None:
+    """Учебный аккаунт (ADR-0007): время идёт, метка меняет модель и объясняет изменение."""
+    page = run.page
+    run.where = "учебный аккаунт: старт"
+    run.tap("Начать без регистрации")
+    expect(page.get_by_text("Учебное время").filter(visible=True).first).to_be_visible(
+        timeout=30_000
+    )
+    run.settle()
+    run.where = "учебный аккаунт: следующий день"
+    run.tap("Следующий день")
+    run.settle()
+    run.where = "учебный аккаунт: метка"
+    expect(page.get_by_text("Помогите уточнить прогноз").filter(visible=True).first).to_be_visible(
+        timeout=15_000
+    )
+    run.tap(re.compile("^Разовая: "), role="radio")
+    expect(page.get_by_text("Снять метку").filter(visible=True).first).to_be_visible(timeout=30_000)
+    run.settle()
+    page.screenshot(path=str(run.out / "live-feedback.png"), full_page=True)
+    run.tap("Снять метку")
+    run.settle()
+    run.where = "учебный аккаунт: выход"
+    run.tap("Приватность, экспорт и выход")
+    run.tap("Выйти и отозвать сессии")
+    expect(page.get_by_role("button", name="Начать без регистрации")).to_be_visible(timeout=15_000)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--web", default="http://127.0.0.1:8081")
@@ -169,6 +202,7 @@ def main() -> int:
         try:
             for profile in PROFILES:
                 profile_pass(run, profile)
+            live_pass(run)
         except Exception as error:
             page.screenshot(path=str(out / "failure.png"), full_page=True)
             run.problems.append(f"{run.where}: {type(error).__name__}: {str(error)[:300]}")
@@ -179,7 +213,7 @@ def main() -> int:
         print(f"FAIL {problem}")
     if run.problems:
         return 1
-    print(f"ok   все экраны {len(PROFILES)} профилей без ошибок; кадры в {out}")
+    print(f"ok   все экраны {len(PROFILES)} профилей и учебный аккаунт без ошибок; кадры в {out}")
     return 0
 
 

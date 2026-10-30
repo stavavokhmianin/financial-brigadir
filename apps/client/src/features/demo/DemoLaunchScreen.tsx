@@ -49,6 +49,7 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState(DEFAULT_PROFILE);
   const [starting, setStarting] = useState(false);
+  const [startingLive, setStartingLive] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -64,6 +65,20 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Основной вход (ADR-0007): учебный аккаунт без выбора персонажа.
+  const startLive = async () => {
+    setStartingLive(true);
+    setStartError(null);
+    try {
+      setSession(await api.createLiveSession());
+      router.replace("/dashboard");
+    } catch (error) {
+      setStartError(messageOf(error));
+    } finally {
+      setStartingLive(false);
+    }
+  };
 
   const start = async () => {
     setStarting(true);
@@ -99,9 +114,21 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
             </View>
           ))}
         </View>
+        <Button
+          trailingIcon="arrow"
+          label={startingLive ? ru.live.starting : ru.live.start}
+          onPress={() => void startLive()}
+          loading={startingLive}
+          disabled={starting}
+        />
       </Hero>
 
+      {startError ? (
+        <ErrorState title={ru.demo.loadError} message={startError} hint={ru.demo.serverHint} />
+      ) : null}
+
       <Card title={ru.demo.profilesTitle}>
+        <Muted>{ru.demo.profilesLead}</Muted>
         {loadError ? (
           <ErrorState
             title={ru.demo.loadError}
@@ -122,7 +149,7 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
                   key={profile.id}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: active, disabled: !profile.mvp }}
-                  disabled={!profile.mvp || starting}
+                  disabled={!profile.mvp || starting || startingLive}
                   onPress={() => setSelected(profile.id)}
                   style={[
                     styles.option,
@@ -163,16 +190,13 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
         )}
       </Card>
 
-      {startError ? (
-        <ErrorState title={ru.demo.loadError} message={startError} hint={ru.demo.serverHint} />
-      ) : null}
-
       <Button
+        variant="secondary"
         trailingIcon="arrow"
         label={starting ? ru.demo.starting : ru.demo.start}
         onPress={() => void start()}
         loading={starting}
-        disabled={profiles === null || profiles.length === 0}
+        disabled={profiles === null || profiles.length === 0 || startingLive}
       />
       <Muted>{ru.demo.disclaimer}</Muted>
     </Screen>

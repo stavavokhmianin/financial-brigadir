@@ -55,6 +55,9 @@ def test_live_session_hides_persona_and_holds_the_future_back(
     live = body["live"]
     assert live["pending"] > 100 and live["revealed_total"] == 0
     assert live["virtual_now"].startswith("2026-10-19")
+    # Учебный аккаунт помечен бейджем, плашек о синтетике и «смешанных данных» нет.
+    notes = " ".join(body["data_quality"]["notes"])
+    assert "синтетич" not in notes and "CSV" not in notes
 
     # Утечки нет: прогноз не меняется, если будущее стереть из базы целиком.
     before = _forecast(client, headers)
