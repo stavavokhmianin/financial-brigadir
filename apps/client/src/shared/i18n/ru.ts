@@ -387,8 +387,10 @@ export const ru = {
     contextUnavailable: "Контекст не указан — результат рассчитан только по сумме и дате покупки.",
     similarTransactions: ["похожая операция", "похожие операции", "похожих операций"] as const,
     contextBasis: {
+      merchant_income_phase: "этот магазин на похожем этапе после дохода",
       merchant_weekday: "этот магазин в похожий день недели",
       merchant: "этот магазин",
+      category_income_phase: "эта категория на похожем этапе после дохода",
       category_weekday: "эта категория в похожий день недели",
       category: "эта категория",
       amount_only: "только сумма",

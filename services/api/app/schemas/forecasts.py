@@ -149,7 +149,13 @@ class PurchaseContextOut(APIModel):
     """Сравнение покупки с личной историей, без оценки решения пользователя."""
 
     basis: Literal[
-        "merchant_weekday", "merchant", "category_weekday", "category", "amount_only"
+        "merchant_income_phase",
+        "merchant_weekday",
+        "merchant",
+        "category_income_phase",
+        "category_weekday",
+        "category",
+        "amount_only",
     ]
     observations: int = Field(ge=0)
     median_minor: NonNegativeMinor | None

@@ -164,7 +164,7 @@ def test_purchase_context_uses_personal_merchant_history(
         },
     ).json()
     context = data["purchase_context"]
-    assert context["basis"] in {"merchant_weekday", "merchant"}
+    assert context["basis"] in {"merchant_income_phase", "merchant_weekday", "merchant"}
     assert context["observations"] >= 2
     assert context["median_minor"] > 0
 

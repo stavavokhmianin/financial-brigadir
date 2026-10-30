@@ -3825,8 +3825,10 @@ components:
         basis:
           type: string
           enum:
+          - merchant_income_phase
           - merchant_weekday
           - merchant
+          - category_income_phase
           - category_weekday
           - category
           - amount_only

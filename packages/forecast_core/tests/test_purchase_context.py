@@ -27,6 +27,18 @@ def _tx(
     )
 
 
+def _income(number: int, day: int, amount: int = 100_000) -> HistoricalTransaction:
+    return HistoricalTransaction(
+        id=f"income_{number}",
+        account_id="acc",
+        occurred_at=datetime(2026, 10, day, 8, tzinfo=UTC),
+        amount_minor=amount * RUB,
+        type=TxType.INCOME,
+        status=TxStatus.POSTED,
+        description="Зарплата",
+    )
+
+
 def test_same_merchant_and_weekday_is_most_specific_basis() -> None:
     # 5, 12 и 19 октября 2026 — понедельники.
     history = [_tx(1, 5, 1_000, "Лента 001"), _tx(2, 12, 1_200, "ЛЕНТА #77")]
@@ -60,6 +72,43 @@ def test_sparse_merchant_falls_back_to_category() -> None:
     )
     assert result.basis == "category"
     assert result.observations == 3
+
+
+def test_same_phase_after_income_is_more_specific_than_weekday() -> None:
+    history = [
+        _income(1, 1),
+        _tx(1, 2, 1_000, "Лента"),
+        _income(2, 15),
+        _tx(2, 17, 1_200, "Лента"),
+        _tx(3, 12, 4_000, "Лента"),
+    ]
+    result = analyze_purchase_context(
+        history,
+        amount_minor=1_100 * RUB,
+        day=date(2026, 10, 16),
+        timezone="Europe/Moscow",
+        merchant="Лента",
+    )
+    assert result.basis == "merchant_income_phase"
+    assert result.observations == 2
+    assert result.median_minor == 1_100 * RUB
+
+
+def test_income_after_purchase_does_not_define_its_phase() -> None:
+    history = [
+        _tx(1, 2, 1_000, "Лента"),
+        _income(1, 10),
+        _tx(2, 12, 1_100, "Лента"),
+    ]
+    result = analyze_purchase_context(
+        history,
+        amount_minor=1_050 * RUB,
+        day=date(2026, 10, 13),
+        timezone="Europe/Moscow",
+        merchant="Лента",
+    )
+    assert result.basis == "merchant"
+    assert result.observations == 2
 
 
 def test_one_off_does_not_train_purchase_context() -> None:
