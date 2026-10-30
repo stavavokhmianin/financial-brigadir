@@ -59,12 +59,24 @@ name: Demo purchase, plan preview and bank mock
     end: "50%, 50%"
 - tapOn:
     id: "calculate-scenario"
+# Сначала вердикт; шкала риска — под «Показать расчёт» (REPORT_7.7).
+- extendedWaitUntil:
+    visible:
+      id: "scenario-verdict-shortfall"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Показать расчёт"
+# Поднять цель от панели навигации перед касанием (edge-to-edge).
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 50%"
+- tapOn: "Показать расчёт"
 - scrollUntilVisible:
     element:
-      id: "risk-high"
+      id: "risk-scale-high"
     timeout: 30000
 - assertVisible:
-    id: "risk-high"
+    id: "risk-scale-high"
 - takeScreenshot: artifacts/mobile/02-purchase-risk
 - back
 - scrollUntilVisible:

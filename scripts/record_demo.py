@@ -105,6 +105,9 @@ def run(demo: Demo) -> None:
     amount.click()
     amount.press_sequentially("12000", delay=120)
     demo.button("Посчитать")
+    # Сначала вердикт; шкала и таблица «до / после» — под «Показать расчёт» (REPORT_7.7).
+    demo.show("scenario-verdict-shortfall")
+    demo.button("Показать расчёт")
     demo.show("risk-scale-high")
     demo.caption("Риск вырос: «Средний» → «Высокий». В истории операций ничего не появилось.", 4)
     demo.snapshot("purchase")
@@ -117,6 +120,7 @@ def run(demo: Demo) -> None:
     demo.wait(0.8)
     demo.button("на 2 дн.", role="radio")
     demo.button("Посчитать")
+    demo.button("Показать расчёт")
     demo.expect_text("Если доход придёт на 2 дн. позже")
     demo.caption("Минимум 6 551 → 3 828 ₽, резерв под угрозой с 26 октября.", 3)
     demo.snapshot("salary-delay")
