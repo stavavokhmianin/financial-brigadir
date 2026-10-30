@@ -1988,12 +1988,13 @@ components:
           - useful
           - not_relevant
           - disable_type
+          - disable_event
           title: Feedback
       type: object
       required:
       - feedback
       title: AlertFeedback
-      description: 'Кнопки из 23.4: «полезно», «не актуально», «отключить этот тип».'
+      description: Отзыв и точечное управление уведомлениями.
     AlertOut:
       properties:
         id:

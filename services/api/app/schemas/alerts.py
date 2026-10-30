@@ -28,9 +28,9 @@ class AlertsOut(APIModel):
 
 
 class AlertFeedback(APIModel):
-    """Кнопки из 23.4: «полезно», «не актуально», «отключить этот тип»."""
+    """Отзыв и точечное управление уведомлениями."""
 
-    feedback: Literal["useful", "not_relevant", "disable_type"]
+    feedback: Literal["useful", "not_relevant", "disable_type", "disable_event"]
 
 
 class AlertAnalyticsOut(APIModel):

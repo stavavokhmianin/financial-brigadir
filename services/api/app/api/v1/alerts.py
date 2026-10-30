@@ -1,14 +1,22 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
-from app.core.errors import error_responses, not_found
+from app.core.errors import APIError, error_responses, not_found
 from app.db.models import Alert, AuditEvent
 from app.domain.enums import AlertAction
 from app.modules.alert_policy import EVENT_TYPE
-from app.modules.alerts import analytics, get_settings, to_out
+from app.modules.alerts import (
+    EXPECTED_RECURRING,
+    analytics,
+    ensure_recurring_reminders,
+    get_settings,
+    reminder_scope,
+    to_out,
+)
+from app.modules.forecasting import current_as_of
 from app.schemas.alerts import AlertAnalyticsOut, AlertFeedback, AlertOut, AlertsOut
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -26,6 +34,8 @@ def list_alerts(
     action: AlertAction | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> AlertsOut:
+    ensure_recurring_reminders(db, user, current_as_of(db, user))
+    db.commit()
     query = select(Alert).where(Alert.user_id == user.id)
     if action is not None:
         query = query.where(Alert.action == action)
@@ -54,10 +64,26 @@ def send_feedback(alert_id: str, body: AlertFeedback, user: CurrentUser, db: DbS
     if alert is None:
         raise not_found("Предупреждение")
     alert.feedback = body.feedback
-    if body.feedback == "disable_type":
+    if body.feedback == "disable_event":
+        scope = reminder_scope(alert.event_key)
+        if scope is None:
+            raise APIError(
+                status.HTTP_400_BAD_REQUEST,
+                "not_event_notification",
+                "Точечное отключение доступно только для регулярного события",
+            )
         settings = get_settings(db, user)
         disabled = set(settings.disabled_types or ())
-        disabled.add(EVENT_TYPE)
+        disabled.add(scope)
+        settings.disabled_types = sorted(disabled)
+    elif body.feedback == "disable_type":
+        settings = get_settings(db, user)
+        disabled = set(settings.disabled_types or ())
+        disabled.add(
+            EXPECTED_RECURRING
+            if alert.event_key.startswith(f"{EXPECTED_RECURRING}:")
+            else EVENT_TYPE
+        )
         settings.disabled_types = sorted(disabled)
     db.add(
         AuditEvent(

@@ -7,8 +7,8 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Alert, NotificationSettings, User
-from app.domain.enums import AlertAction, Priority
+from app.db.models import Alert, NotificationSettings, Obligation, User
+from app.domain.enums import AlertAction, ObligationStatus, Priority, Recurrence
 from app.domain.ids import new_id
 from app.modules.alert_policy import (
     EVENT_TYPE,
@@ -21,8 +21,10 @@ from app.modules.alert_policy import (
 from app.modules.explain import day_text, rub
 from app.schemas.alerts import AlertAnalyticsOut, AlertOut
 from forecast_core.baseline import ForecastResult
+from forecast_core.calendar import occurrences
 
 HISTORY_WINDOW = timedelta(days=14)
+EXPECTED_RECURRING = "expected_recurring"
 
 REASON_TEXT = {
     "new_risk": "Новый риск нехватки до обязательных платежей",
@@ -36,7 +38,91 @@ REASON_TEXT = {
     "mode_quiet": "Тихий режим: только критичные угрозы обязательным платежам",
     "mode_smart_minor": "Умный режим: неопасный для обязательных платежей риск не показываем",
     "type_disabled": "Вы отключили этот тип предупреждений",
+    "expected_recurring": "Завтра ожидается знакомый регулярный платёж",
 }
+
+
+def recurring_scope(obligation_id: str) -> str:
+    """Стабильный ключ opt-out для одного регулярного события."""
+    return f"{EXPECTED_RECURRING}:{obligation_id}"
+
+
+def reminder_scope(event_key: str) -> str | None:
+    """``expected_recurring:<obligation>:<date>`` → ключ отключения события."""
+    parts = event_key.split(":")
+    if len(parts) != 3 or parts[0] != EXPECTED_RECURRING:
+        return None
+    return recurring_scope(parts[1])
+
+
+def ensure_recurring_reminders(
+    db: Session, user: User, today: datetime, created_at: datetime | None = None
+) -> list[Alert]:
+    """Лениво создаёт напоминания за сутки без фонового воркера.
+
+    ``today`` приходит из того же момента, что использует прогноз: для живого учебного
+    аккаунта это виртуальное время, для реального пользователя — текущее.
+    """
+    created_at = created_at or datetime.now(UTC)
+    local_day = today.astimezone(ZoneInfo(user.timezone)).date()
+    due_day = local_day + timedelta(days=1)
+    settings = get_settings(db, user)
+    disabled = set(settings.disabled_types or ())
+    if EXPECTED_RECURRING in disabled:
+        return []
+
+    obligations = db.scalars(
+        select(Obligation).where(
+            Obligation.user_id == user.id,
+            Obligation.status == ObligationStatus.CONFIRMED,
+            Obligation.recurrence.in_((Recurrence.WEEKLY, Recurrence.MONTHLY)),
+        )
+    )
+    created: list[Alert] = []
+    for obligation in obligations:
+        scope = recurring_scope(obligation.id)
+        if scope in disabled:
+            continue
+        due = next(
+            occurrences(
+                obligation.due_date,
+                obligation.recurrence,
+                due_day,
+                due_day,
+                obligation.recurrence_day,
+            ),
+            None,
+        )
+        if due is None:
+            continue
+        event_key = f"{scope}:{due.isoformat()}"
+        exists = db.scalar(
+            select(Alert.id).where(Alert.user_id == user.id, Alert.event_key == event_key)
+        )
+        if exists is not None:
+            continue
+        alert = Alert(
+            id=new_id("alr"),
+            user_id=user.id,
+            forecast_run_id=None,
+            event_key=event_key,
+            priority=Priority.NORMAL,
+            action=AlertAction.SEND,
+            reason=EXPECTED_RECURRING,
+            risk_date=due,
+            shortfall_minor=None,
+            delivery_status="in_app",
+            message=(
+                f"Завтра обычно списывается {rub(obligation.amount_minor)} "
+                f"за «{obligation.title}». "
+                "Мы уже учли платёж в прогнозе."
+            ),
+            created_at=created_at,
+        )
+        db.add(alert)
+        created.append(alert)
+    db.flush()
+    return created
 
 
 def get_settings(db: Session, user: User) -> NotificationSettings:

@@ -91,3 +91,47 @@ def test_no_risk_no_alert(client: TestClient) -> None:
     headers = {"Authorization": f"Bearer {session['access_token']}"}
     client.post("/api/v1/forecasts", headers=headers, json={})
     assert _alerts(client, headers) == []
+
+
+def test_regular_payment_reminder_is_created_once_and_can_be_muted(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    obligation = client.post(
+        "/api/v1/obligations",
+        headers=headers,
+        json={
+            "title": "VK Музыка",
+            "kind": "subscription",
+            "amount_minor": 49_900,
+            "due_date": "2026-10-20",
+            "recurrence": "monthly",
+            "recurrence_day": 20,
+            "priority": "normal",
+        },
+    ).json()
+
+    first = [a for a in _alerts(client, headers) if a["reason"] == "expected_recurring"]
+    assert len(first) == 1
+    assert first[0]["risk_date"] == "2026-10-20"
+    assert "Завтра обычно списывается 499\u00a0₽" in first[0]["message"]
+    assert len([a for a in _alerts(client, headers) if a["reason"] == "expected_recurring"]) == 1
+
+    response = client.patch(
+        f"/api/v1/alerts/{first[0]['id']}",
+        headers=headers,
+        json={"feedback": "disable_event"},
+    )
+    assert response.status_code == 200
+    settings = client.get("/api/v1/notification-settings", headers=headers).json()
+    assert f"expected_recurring:{obligation['id']}" in settings["disabled_types"]
+
+
+def test_point_mute_is_rejected_for_reserve_risk(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    client.post("/api/v1/forecasts", headers=headers, json={})
+    [alert] = _alerts(client, headers)
+    response = client.patch(
+        f"/api/v1/alerts/{alert['id']}", headers=headers, json={"feedback": "disable_event"}
+    )
+    assert response.status_code == 400

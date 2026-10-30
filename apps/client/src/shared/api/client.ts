@@ -246,7 +246,7 @@ export const api = {
   sendAlertFeedback: (
     token: string,
     id: string,
-    feedback: "useful" | "not_relevant" | "disable_type",
+    feedback: "useful" | "not_relevant" | "disable_type" | "disable_event",
   ) =>
     request<AlertItem>(`/api/v1/alerts/${encodeURIComponent(id)}`, {
       method: "PATCH",

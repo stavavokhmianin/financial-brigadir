@@ -37,6 +37,17 @@ export function NotificationsBell({ token }: Props) {
 
   const count = items?.length ?? 0;
 
+  const muteEvent = async (id: string) => {
+    try {
+      const updated = await api.sendAlertFeedback(token, id, "disable_event");
+      setItems((previous) =>
+        previous?.map((item) => (item.id === updated.id ? updated : item)) ?? [],
+      );
+    } catch {
+      // Событие останется в панели: пользователь сможет повторить действие.
+    }
+  };
+
   return (
     <>
       <Pressable
@@ -114,6 +125,21 @@ export function NotificationsBell({ token }: Props) {
                   <Text style={[styles.message, { color: palette.text }]}>
                     {item.message ?? item.reason_text}
                   </Text>
+                  {item.reason === "expected_recurring" ? (
+                    item.feedback === "disable_event" ? (
+                      <Muted>{ru.alerts.eventMuted}</Muted>
+                    ) : (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => void muteEvent(item.id)}
+                        hitSlop={8}
+                      >
+                        <Text style={[styles.mute, { color: palette.accent }]}>
+                          {ru.alerts.disableEvent}
+                        </Text>
+                      </Pressable>
+                    )
+                  ) : null}
                 </View>
               ))
             )}
@@ -167,4 +193,5 @@ const styles = StyleSheet.create({
   item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
   itemHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   message: { fontSize: 14, lineHeight: 21 },
+  mute: { fontSize: 13, lineHeight: 19, fontWeight: "700" },
 });
