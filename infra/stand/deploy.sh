@@ -8,6 +8,10 @@
 # правок. Готовую сборку можно передать через STAND_WEB_DIR.
 set -euo pipefail
 
+# macOS добавляет AppleDouble-файлы `._*` при упаковке xattr. Python/Alembic пытается
+# импортировать такие файлы как миграции и падает на содержащихся в них NUL-байтах.
+export COPYFILE_DISABLE=1
+
 TARGET=${STAND_TARGET:-root@5.35.98.96}
 HOST=${STAND_HOST:-5-35-98-96.sslip.io}
 KEY=${STAND_KEY:-$HOME/.ssh/brigadir_deploy}
@@ -33,8 +37,9 @@ fi
 grep -rq "https://$HOST" "$WORK/release/web/_expo" ||
   { echo "web-сборка не указывает на https://$HOST" >&2; exit 1; }
 
+find "$WORK/release" -name '._*' -delete
 tar -C "$WORK/release" -czf "$WORK/release.tgz" .
-"${SSH[@]}" "mkdir -p /opt/brigadir/releases/$SHA && tar -xz -C /opt/brigadir/releases/$SHA" \
+"${SSH[@]}" "mkdir -p /opt/brigadir/releases/$SHA && tar -xz -C /opt/brigadir/releases/$SHA && find /opt/brigadir/releases/$SHA -name '._*' -delete" \
   < "$WORK/release.tgz"
 "${SSH[@]}" "sh /opt/brigadir/releases/$SHA/infra/stand/remote-setup.sh /opt/brigadir/releases/$SHA $HOST"
 
