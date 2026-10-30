@@ -164,6 +164,8 @@ def put_label(
     )
     if tx is None:
         raise not_found("Операция")
+    if "user_note" in body.model_fields_set:
+        tx.user_note = body.user_note.strip() if body.user_note and body.user_note.strip() else None
     try:
         effect = set_label(db, user, tx, body.label)
     except LabelNotApplicableError:

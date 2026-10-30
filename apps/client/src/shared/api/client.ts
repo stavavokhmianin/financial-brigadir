@@ -175,11 +175,11 @@ export const api = {
   rejectRecurring: (token: string, id: string) =>
     request<void>(`/api/v1/recurring/${encodeURIComponent(id)}/reject`, { method: "POST", token }),
 
-  setTransactionLabel: (token: string, id: string, label: TxLabel | null) =>
+  setTransactionLabel: (token: string, id: string, label: TxLabel | null, userNote?: string | null) =>
     request<LabelResult>(`/api/v1/transactions/${encodeURIComponent(id)}/label`, {
       method: "PUT",
       token,
-      body: { label },
+      body: { label, ...(userNote === undefined ? {} : { user_note: userNote }) },
     }),
 
   listAccounts: (token: string) => request<AccountsResponse>("/api/v1/accounts", { token }),

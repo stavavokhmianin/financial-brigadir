@@ -11,7 +11,7 @@ import {
 } from "@/shared/api/client";
 import { formatDay, formatRub, formatRubApprox, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
-import { Badge, Card, ErrorState, LoadingState, Muted, Stat } from "@/shared/ui/components";
+import { Badge, Card, ErrorState, Field, LoadingState, Muted, Stat } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
@@ -43,6 +43,7 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
   const [applied, setApplied] = useState<Applied | null>(null);
   const [cursor, setCursor] = useState(0);
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
+  const [userNote, setUserNote] = useState("");
 
   const load = useCallback(async () => {
     setError(null);
@@ -63,11 +64,11 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
     setSkipped(new Set());
   }, [refreshKey]);
 
-  const mark = async (id: string, label: TxLabel | null) => {
+  const mark = async (id: string, label: TxLabel | null, note?: string | null) => {
     setSaving(id);
     setSaveError(null);
     try {
-      const result = await api.setTransactionLabel(token, id, label);
+      const result = await api.setTransactionLabel(token, id, label, note);
       setApplied({ id, label, result });
       onLabeled();
       await load();
@@ -84,6 +85,10 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
   const visible = data?.items.filter((item) => !skipped.has(item.transaction.id)) ?? [];
   const safeCursor = visible.length === 0 ? 0 : Math.min(cursor, visible.length - 1);
   const current = visible[safeCursor] ?? null;
+
+  useEffect(() => {
+    setUserNote(current?.transaction.user_note ?? "");
+  }, [current?.transaction.id, current?.transaction.user_note]);
 
   const skip = (id: string) => {
     setSkipped((previous) => new Set(previous).add(id));
@@ -120,7 +125,11 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
           onPrevious={() => move(-1)}
           onNext={() => move(1)}
           onSkip={() => skip(current.transaction.id)}
-          onMark={(label) => void mark(current.transaction.id, label)}
+          userNote={userNote}
+          onUserNoteChange={setUserNote}
+          onMark={(label) =>
+            void mark(current.transaction.id, label, userNote.trim() || null)
+          }
         />
       )}
 
@@ -151,6 +160,8 @@ function Item({
   onPrevious,
   onNext,
   onSkip,
+  userNote,
+  onUserNoteChange,
   onMark,
 }: {
   item: FeedbackItem;
@@ -162,6 +173,8 @@ function Item({
   onPrevious: () => void;
   onNext: () => void;
   onSkip: () => void;
+  userNote: string;
+  onUserNoteChange: (value: string) => void;
   onMark: (label: TxLabel) => void;
 }) {
   const palette = usePalette();
@@ -198,6 +211,14 @@ function Item({
       </View>
       <Text style={[styles.question, { color: palette.text }]}>{ru.feedback.question}</Text>
       <Muted>{ru.feedback.questionHint}</Muted>
+      <Field
+        label={ru.feedback.note}
+        value={userNote}
+        onChangeText={onUserNoteChange}
+        placeholder={ru.feedback.notePlaceholder}
+        hint={ru.feedback.noteHint}
+        multiline
+      />
       {saving ? (
         <Muted>{ru.feedback.saving}</Muted>
       ) : (

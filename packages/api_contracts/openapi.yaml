@@ -4381,6 +4381,12 @@ components:
           - $ref: '#/components/schemas/TxLabel'
           - type: 'null'
           description: null — снять метку
+        user_note:
+          anyOf:
+          - type: string
+            maxLength: 280
+          - type: 'null'
+          title: User Note
       type: object
       required:
       - label
@@ -4476,6 +4482,12 @@ components:
           - $ref: '#/components/schemas/TxLabel'
           - type: 'null'
           description: 'Метка пользователя: влияет на модель трат, не на баланс'
+        user_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Note
+          description: 'Личный комментарий: хранится отдельно и сам не меняет модель'
       type: object
       required:
       - id

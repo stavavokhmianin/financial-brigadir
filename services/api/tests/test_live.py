@@ -136,8 +136,13 @@ def test_feedback_queue_label_effect_and_reducible_sum(client: TestClient) -> No
 
     item = queue["items"][0]["transaction"]
     url = f"/api/v1/transactions/{item['id']}/label"
-    one_off = client.put(url, json={"label": "one_off"}, headers=headers).json()
+    one_off = client.put(
+        url,
+        json={"label": "one_off", "user_note": "Вернут деньги после командировки"},
+        headers=headers,
+    ).json()
     assert one_off["transaction"]["label"] == "one_off"
+    assert one_off["transaction"]["user_note"] == "Вернут деньги после командировки"
     assert one_off["effect"]["after"]["excluded_one_off"] == 1
     assert one_off["effect"]["before"]["excluded_one_off"] == 0
     # Баланс от метки не зависит.
@@ -153,6 +158,7 @@ def test_feedback_queue_label_effect_and_reducible_sum(client: TestClient) -> No
 
     cleared = client.put(url, json={"label": None}, headers=headers).json()
     assert cleared["transaction"]["label"] is None
+    assert cleared["transaction"]["user_note"] == "Вернут деньги после командировки"
 
 
 def fixed_start(client: TestClient, headers: dict[str, str]) -> int:

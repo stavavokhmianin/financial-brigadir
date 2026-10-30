@@ -240,6 +240,8 @@ class Transaction(Base):
     # Метка пользователя (ADR-0007): влияет только на модель трат, не на баланс.
     label: Mapped[TxLabel | None] = mapped_column(str_enum(TxLabel, "tx_label"))
     labeled_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    # Личный контекст не смешивается с описанием банка и сам по себе не меняет прогноз.
+    user_note: Mapped[str | None] = mapped_column(String(280))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

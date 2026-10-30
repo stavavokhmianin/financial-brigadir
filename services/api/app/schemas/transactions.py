@@ -29,6 +29,9 @@ class TransactionOut(APIModel):
     label: TxLabel | None = Field(
         default=None, description="Метка пользователя: влияет на модель трат, не на баланс"
     )
+    user_note: str | None = Field(
+        default=None, description="Личный комментарий: хранится отдельно и сам не меняет модель"
+    )
 
 
 class TransactionsPage(APIModel):
@@ -52,6 +55,7 @@ class DuplicateResolution(APIModel):
 
 class TransactionLabelIn(APIModel):
     label: TxLabel | None = Field(description="null — снять метку")
+    user_note: str | None = Field(default=None, max_length=280)
 
 
 class ForecastGlance(APIModel):
