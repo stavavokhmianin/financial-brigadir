@@ -13,6 +13,11 @@ export interface Palette {
   /** Ореол вокруг поля в фокусе. */
   focusRing: string;
   border: string;
+  /**
+   * Рамка поля ввода. Темнее декоративной `border`: у пустого поля это единственное, что
+   * показывает, куда печатать (WCAG 1.4.11 — не меньше 3:1 к фону).
+   */
+  inputBorder: string;
   /** Подложка трека шкал, разделители внутри карточек. */
   track: string;
   accent: string;
@@ -43,18 +48,21 @@ const light: Palette = {
   card: "#ffffff",
   text: "#171717",
   muted: "#666666",
-  placeholder: "#a8a8a8",
+  // Контраст текста к фону — не меньше 4.5:1 (WCAG 1.4.3), подсказка в поле — тоже текст.
+  placeholder: "#737373",
   focusRing: "rgba(0,0,0,0.12)",
   border: "#ebebeb",
+  inputBorder: "#8f8f8f",
   track: "#f2f2f2",
-  accent: "#0070f3",
+  // Чуть темнее #0070f3: ссылка на голубой плашке accentSoft иначе даёт 4.1:1.
+  accent: "#0062d1",
   accentSoft: "#ebf5ff",
   accentText: "#ffffff",
   primary: "#171717",
   primaryText: "#ffffff",
-  danger: "#da2f35",
+  danger: "#c52b30",
   dangerSoft: "#fff0f0",
-  dangerSolid: "#da2f35",
+  dangerSolid: "#c52b30",
   warning: "#aa4d00",
   warningBg: "#fff6e5",
   ok: "#107d32",
@@ -72,9 +80,10 @@ const dark: Palette = {
   card: "#0a0a0a",
   text: "#ededed",
   muted: "#a1a1a1",
-  placeholder: "#6b6b6b",
+  placeholder: "#808080",
   focusRing: "rgba(255,255,255,0.18)",
   border: "#2e2e2e",
+  inputBorder: "#666666",
   track: "#1a1a1a",
   accent: "#52a8ff",
   accentSoft: "#0d1a2b",
@@ -83,7 +92,8 @@ const dark: Palette = {
   primaryText: "#0a0a0a",
   danger: "#ff6166",
   dangerSoft: "#2a1314",
-  dangerSolid: "#e5484d",
+  // Белый текст на красной кнопке — 5.2:1 (с #e5484d было 3.9:1).
+  dangerSolid: "#c8373c",
   warning: "#ff990a",
   warningBg: "#2a1a05",
   ok: "#62c073",

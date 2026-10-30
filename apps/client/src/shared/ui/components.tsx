@@ -59,7 +59,7 @@ export function Field(props: FieldProps) {
           props.monospace ? styles.mono : { fontFamily: fonts.regular },
           {
             color: palette.text,
-            borderColor: props.error ? palette.danger : focused ? palette.muted : palette.border,
+            borderColor: props.error ? palette.danger : focused ? palette.text : palette.inputBorder,
             backgroundColor: palette.card,
           },
           // Кольцо фокуса, как у полей Geist: мягкий полупрозрачный ореол.

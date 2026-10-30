@@ -148,7 +148,7 @@ export function DashboardScreen() {
     <Screen>
       <Hero>
         <View style={styles.heroTop}>
-          <View style={styles.row}>
+          <View style={styles.heroBadges}>
             {/* Учебный аккаунт не показывает основу синтетики как персонажа (ADR-0007). */}
             {isLive ? (
               <Badge label={ru.live.badge} tone="hero" />
@@ -392,8 +392,9 @@ export function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space.md },
+  // Бейджи сжимаются и переносятся, колокольчик остаётся в панели даже на 320–375 px.
+  heroBadges: { flex: 1, flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
   balance: { gap: space.xs, paddingTop: space.sm },
   heroLabel: { fontSize: 13, fontWeight: "500" },
   amount: {
