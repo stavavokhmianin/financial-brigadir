@@ -64,7 +64,7 @@ class ForecastGlance(APIModel):
     excluded_one_off: int = Field(description="Сколько трат исключено как разовые")
 
 
-class LabelEffectOut(APIModel):
+class ForecastEffectOut(APIModel):
     before: ForecastGlance
     after: ForecastGlance
     changed: bool = Field(description="Изменились риск или минимальный остаток в сценариях")
@@ -72,7 +72,7 @@ class LabelEffectOut(APIModel):
 
 class TransactionLabelOut(APIModel):
     transaction: TransactionOut
-    effect: LabelEffectOut
+    effect: ForecastEffectOut
 
 
 class FeedbackItemOut(APIModel):

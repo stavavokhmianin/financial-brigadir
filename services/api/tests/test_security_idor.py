@@ -25,6 +25,8 @@ CASES: dict[tuple[str, str], tuple[str, dict[str, Any] | None]] = {
     ("PATCH", "/api/v1/incomes/{income_id}"): ("incomes", {"title": "чужое"}),
     ("GET", "/api/v1/forecasts/{forecast_id}"): ("forecasts", None),
     ("PATCH", "/api/v1/alerts/{alert_id}"): ("alerts", {"feedback": "useful"}),
+    ("POST", "/api/v1/recurring/{candidate_id}/confirm"): ("recurring", None),
+    ("POST", "/api/v1/recurring/{candidate_id}/reject"): ("recurring", None),
 }
 
 
@@ -39,7 +41,11 @@ def _alice_objects(client: TestClient, alice: dict[str, str]) -> dict[str, str]:
         kind: client.get(f"/api/v1/{kind}", headers=alice).json()["items"][0]["id"]
         for kind in ("accounts", "transactions", "obligations", "incomes", "alerts")
     }
-    return {**first, "forecasts": forecast["forecast_id"]}
+    # Кандидаты в регулярные платежи есть у учебного аккаунта Алисы.
+    live = client.post("/api/v1/demo/live-sessions", json={"seed": 7}).json()
+    live_headers = {"Authorization": f"Bearer {live['access_token']}"}
+    candidate = client.get("/api/v1/recurring", headers=live_headers).json()["items"][0]["id"]
+    return {**first, "forecasts": forecast["forecast_id"], "recurring": candidate}
 
 
 def test_every_id_path_is_covered() -> None:

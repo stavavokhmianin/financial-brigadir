@@ -311,3 +311,22 @@ def test_cli_writes_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["profile"]["id"] == "two_banks"
     assert data["seed"] == 3
+
+
+def test_unregistered_payments_only_for_training_account() -> None:
+    """Незаведённые регулярные платежи — только по флагу; без него профиль прежний."""
+    plain = generate("young_specialist", seed=42)
+    assert plain == generate("young_specialist", seed=42, unregistered=False)
+    live = generate("young_specialist", seed=42, unregistered=True)
+    titles = {t["description"] for t in live["known"]["transactions"]}
+    assert {"Фитнес-клуб", "Облачное хранилище"} <= titles
+    assert not {"Фитнес-клуб", "Облачное хранилище"} & {
+        t["description"] for t in plain["known"]["transactions"]
+    }
+    # В календаре их нет: их должен найти поиск повторений.
+    assert "Фитнес-клуб" not in {o["title"] for o in live["known"]["obligations"]}
+    # Остаток на дату выгрузки тот же: входящий остаток подобран под цель профиля.
+    assert (
+        live["known"]["accounts"][0]["balance_minor"]
+        == plain["known"]["accounts"][0]["balance_minor"]
+    )

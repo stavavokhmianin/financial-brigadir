@@ -654,6 +654,103 @@ paths:
                 $ref: '#/components/schemas/ErrorOut'
       security:
       - HTTPBearer: []
+  /api/v1/recurring:
+    get:
+      tags:
+      - recurring
+      summary: 'Похоже на регулярный платёж: повторения, которых нет в календаре'
+      operationId: listRecurringCandidates
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/recurring/{candidate_id}/confirm:
+    post:
+      tags:
+      - recurring
+      summary: 'Добавить в обязательные платежи: в календарь, из повседневных трат — убрать'
+      operationId: confirmRecurring
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringConfirmOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/recurring/{candidate_id}/reject:
+    post:
+      tags:
+      - recurring
+      summary: 'Это не регулярный платёж: больше не предлагать'
+      operationId: rejectRecurring
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/obligations:
     get:
       tags:
@@ -2418,6 +2515,22 @@ components:
       - reducible_30d_minor
       - labeled
       title: FeedbackOut
+    ForecastEffectOut:
+      properties:
+        before:
+          $ref: '#/components/schemas/ForecastGlance'
+        after:
+          $ref: '#/components/schemas/ForecastGlance'
+        changed:
+          type: boolean
+          title: Changed
+          description: Изменились риск или минимальный остаток в сценариях
+      type: object
+      required:
+      - before
+      - after
+      - changed
+      title: ForecastEffectOut
     ForecastGlance:
       properties:
         risk_level:
@@ -3131,22 +3244,6 @@ components:
       - items
       - calendar
       title: IncomesOut
-    LabelEffectOut:
-      properties:
-        before:
-          $ref: '#/components/schemas/ForecastGlance'
-        after:
-          $ref: '#/components/schemas/ForecastGlance'
-        changed:
-          type: boolean
-          title: Changed
-          description: Изменились риск или минимальный остаток в сценариях
-      type: object
-      required:
-      - before
-      - after
-      - changed
-      title: LabelEffectOut
     LiveSessionCreate:
       properties:
         seed:
@@ -3729,6 +3826,114 @@ components:
       - weekly
       - monthly
       title: Recurrence
+    RecurringCandidateOut:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: 'Ключ кандидата: счёт, получатель и период'
+        title:
+          type: string
+          title: Title
+        account_id:
+          type: string
+          title: Account Id
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        period:
+          type: string
+          enum:
+          - monthly
+          - weekly
+          title: Period
+        anchor:
+          type: integer
+          title: Anchor
+          description: День месяца (monthly) или день недели, 0 — понедельник
+        amount_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Minor
+          description: Типичная сумма списания
+          examples:
+          - 1200000
+        amount_min_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Min Minor
+          examples:
+          - 1200000
+        amount_max_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          exclusiveMinimum: 0.0
+          title: Amount Max Minor
+          examples:
+          - 1200000
+        occurrences:
+          type: integer
+          title: Occurrences
+          description: Сколько раз встречалось за последние ~200 дней
+        last_date:
+          type: string
+          format: date
+          title: Last Date
+        next_date:
+          type: string
+          format: date
+          title: Next Date
+          description: Ожидаемая дата следующего списания
+        confidence:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence
+          description: Насколько регулярно повторялось. Не вероятность — показывать словами
+      type: object
+      required:
+      - id
+      - title
+      - account_id
+      - category
+      - period
+      - anchor
+      - amount_minor
+      - amount_min_minor
+      - amount_max_minor
+      - occurrences
+      - last_date
+      - next_date
+      - confidence
+      title: RecurringCandidateOut
+      description: Повторение из выписки, которого нет в календаре (FR-11).
+    RecurringConfirmOut:
+      properties:
+        obligation:
+          $ref: '#/components/schemas/ObligationOut'
+        effect:
+          $ref: '#/components/schemas/ForecastEffectOut'
+          description: 'Прогноз до и после: платёж в календаре, из повседневных трат убран'
+      type: object
+      required:
+      - obligation
+      - effect
+      title: RecurringConfirmOut
+    RecurringOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/RecurringCandidateOut'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: RecurringOut
     RiskDriverOut:
       properties:
         kind:
@@ -4107,7 +4312,7 @@ components:
         transaction:
           $ref: '#/components/schemas/TransactionOut'
         effect:
-          $ref: '#/components/schemas/LabelEffectOut'
+          $ref: '#/components/schemas/ForecastEffectOut'
       type: object
       required:
       - transaction

@@ -17,6 +17,7 @@ from app.api.v1 import (
     pilot,
     plans,
     privacy,
+    recurring,
     transactions,
 )
 
@@ -29,6 +30,7 @@ router.include_router(live.router)
 router.include_router(accounts.router)
 router.include_router(transactions.router)
 router.include_router(feedback.router)
+router.include_router(recurring.router)
 router.include_router(obligations.router)
 router.include_router(notifications.router)
 router.include_router(imports.router)

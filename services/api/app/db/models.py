@@ -324,6 +324,9 @@ class Obligation(Base):
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     movable: Mapped[bool] = mapped_column(Boolean, default=False)
     idempotency_key: Mapped[str | None] = mapped_column(String(80))
+    # Получатель из выписки (forecast_core.recurring.merchant_key): операции с ним на том
+    # же счёте — платежи этого обязательства, в модель повседневных трат они не идут.
+    match_key: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
@@ -332,6 +335,25 @@ class Obligation(Base):
     @property
     def source_kind(self) -> str:
         return self.source.kind.value if self.source is not None else DataSourceKind.MANUAL.value
+
+
+class RecurringDecision(Base):
+    """Решение пользователя по кандидату в регулярные платежи (ADR-0007, этап B).
+
+    Отклонённый кандидат больше не предлагается; подтверждённый стал обязательством.
+    """
+
+    __tablename__ = "recurring_decisions"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)
+    decision: Mapped[str] = mapped_column(String(16))  # confirmed | rejected
+    obligation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("obligations.id", ondelete="SET NULL")
+    )
+    decided_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 
 class IncomeEvent(Base):

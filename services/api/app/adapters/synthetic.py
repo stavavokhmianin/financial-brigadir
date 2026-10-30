@@ -41,11 +41,15 @@ class SyntheticDataAdapter:
         return profile_id in PROFILES and PROFILES[profile_id].mvp
 
     def load(
-        self, profile_id: str, seed: int, horizon_days: int = DEFAULT_HORIZON_DAYS
+        self,
+        profile_id: str,
+        seed: int,
+        horizon_days: int = DEFAULT_HORIZON_DAYS,
+        unregistered: bool = False,
     ) -> SyntheticBundle:
         if profile_id not in PROFILES:
             raise UnknownProfileError(profile_id)
-        data = generate(profile_id, seed=seed, horizon_days=horizon_days)
+        data = generate(profile_id, seed=seed, horizon_days=horizon_days, unregistered=unregistered)
         known = data["known"]
         return SyntheticBundle(
             profile=data["profile"],

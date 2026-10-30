@@ -7,7 +7,7 @@ from typing import Any
 
 from synthetic_generator.dates import MSK, clamp_day
 from synthetic_generator.ledger import Ledger, Tx
-from synthetic_generator.profiles import PROFILES, ProfileInfo
+from synthetic_generator.profiles import PROFILES, UNREGISTERED, ProfileInfo
 
 SCHEMA_VERSION = "1"
 DEFAULT_SEED = 42
@@ -36,8 +36,13 @@ def generate(
     as_of: datetime = DEFAULT_AS_OF,
     months: int = DEFAULT_MONTHS,
     horizon_days: int = DEFAULT_HORIZON_DAYS,
+    unregistered: bool = False,
 ) -> dict[str, Any]:
-    """Строит профиль. Одинаковые аргументы → побайтно одинаковый результат."""
+    """Строит профиль. Одинаковые аргументы → побайтно одинаковый результат.
+
+    ``unregistered`` добавляет регулярные платежи, которых нет в календаре обязательств,
+    — для учебного аккаунта, где их находит поиск повторений.
+    """
     if profile_id not in PROFILES:
         raise KeyError(f"неизвестный профиль: {profile_id}")
     if not 6 <= months <= 12:
@@ -46,6 +51,8 @@ def generate(
         raise ValueError("горизонт скрытого будущего: 1–120 дней")
     info = PROFILES[profile_id]
     ledger = Ledger(profile_id, info.prefix, seed, as_of, months, horizon_days)
+    if unregistered:
+        ledger.unregistered = list(UNREGISTERED.get(profile_id, ()))
     info.build(ledger)
     return _assemble(info, ledger, seed, months)
 

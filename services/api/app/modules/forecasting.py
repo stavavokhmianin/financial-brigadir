@@ -52,6 +52,7 @@ from forecast_core import (
 )
 from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
 from forecast_core.probabilistic import run_monte_carlo
+from forecast_core.recurring import merchant_key
 from forecast_core.scenarios import compare, safe_to_spend
 from forecast_core.types import IncomeShift, ScenarioExpense
 
@@ -135,6 +136,13 @@ def prepare_snapshot(
             Transaction.duplicate_of_id.is_(None),
         )
     ).all()
+
+    # Платежи подтверждённых обязательств уже стоят в календаре — из модели трат их убираем.
+    links = {(o.account_id, o.match_key): o.id for o in obligations if o.match_key}
+
+    def obligation_of(tx: Transaction) -> str | None:
+        key = merchant_key(tx.description, tx.category)
+        return links.get((tx.account_id, key)) or links.get((None, key))
 
     reserve = request.reserve_minor
     if reserve is None:
@@ -223,6 +231,8 @@ def prepare_snapshot(
                 status=t.status,
                 category=t.category,
                 label=t.label.value if t.label is not None else None,
+                description=t.description,
+                obligation_id=obligation_of(t) if links else None,
             )
             for t in history
         ),

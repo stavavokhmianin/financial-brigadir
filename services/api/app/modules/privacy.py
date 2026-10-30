@@ -24,6 +24,7 @@ from app.db.models import (
     NotificationSettings,
     Obligation,
     PilotAccessCode,
+    RecurringDecision,
     Scenario,
     Transaction,
     User,
@@ -43,6 +44,7 @@ EXPORT_MODELS = (
     NotificationSettings,
     AuditEvent,
     LiveClock,
+    RecurringDecision,
 )
 
 
@@ -81,6 +83,7 @@ def erase_profile(db: Session, user: User, log_path: str | None = None) -> None:
     for model in (
         LivePendingTransaction,
         LiveClock,
+        RecurringDecision,
         Scenario,
         Alert,
         ForecastRun,

@@ -61,7 +61,9 @@ def create_demo_session(
     if live is None:
         bundle = adapter.load(profile_id, seed)
     else:
-        bundle = adapter.load(profile_id, seed, horizon_days=live.horizon_days)
+        # Учебному аккаунту — и регулярные платежи, которых нет в календаре: их найдёт
+        # поиск повторений (этап B). Фиксированные сценарии остаются прежними.
+        bundle = adapter.load(profile_id, seed, horizon_days=live.horizon_days, unregistered=True)
     user = User(
         id=new_id("usr"),
         is_demo=True,

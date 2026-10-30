@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query, status
 from sqlalchemy import and_, or_, select
 
 from app.api.deps import CurrentUser, DbSession
+from app.api.effects import forecast_effect
 from app.core.errors import APIError, error_responses, not_found
 from app.db.models import Account, AuditEvent, Transaction
 from app.domain.enums import TxStatus, TxType
@@ -16,14 +17,11 @@ from app.schemas.transactions import (
     DuplicatePair,
     DuplicateResolution,
     DuplicatesOut,
-    ForecastGlance,
-    LabelEffectOut,
     TransactionLabelIn,
     TransactionLabelOut,
     TransactionOut,
     TransactionsPage,
 )
-from forecast_core.baseline import ForecastResult
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -152,16 +150,6 @@ def resolve_duplicate(
     return TransactionOut.model_validate(tx)
 
 
-def _glance(result: ForecastResult) -> ForecastGlance:
-    return ForecastGlance(
-        risk_level=result.risk_level,
-        min_balance_minor=result.min_p50_minor,
-        min_balance_date=result.min_p50_day,
-        pessimistic_min_minor=result.min_p10_minor,
-        excluded_one_off=result.spending.excluded_one_off,
-    )
-
-
 @router.put(
     "/{transaction_id}/label",
     operation_id="setTransactionLabel",
@@ -184,13 +172,7 @@ def put_label(
             "label_not_applicable",
             "Метку можно поставить только на трату",
         ) from None
-    before, after = _glance(effect.before), _glance(effect.after)
     return TransactionLabelOut(
         transaction=TransactionOut.model_validate(tx),
-        effect=LabelEffectOut(
-            before=before,
-            after=after,
-            changed=(before.risk_level, before.min_balance_minor, before.pessimistic_min_minor)
-            != (after.risk_level, after.min_balance_minor, after.pessimistic_min_minor),
-        ),
+        effect=forecast_effect(effect.before, effect.after),
     )

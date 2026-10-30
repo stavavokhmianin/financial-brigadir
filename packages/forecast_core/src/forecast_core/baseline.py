@@ -171,7 +171,7 @@ def build_spending_model(
         earliest = day if earliest is None or day < earliest else earliest
         if tx.type not in SPENDING_TYPES or tx.amount_minor >= 0:
             continue
-        if tx.category and tx.category in obligation_categories:
+        if tx.obligation_id or (tx.category and tx.category in obligation_categories):
             excluded_obligation_like += 1
             continue
         if tx.label == LABEL_ONE_OFF:

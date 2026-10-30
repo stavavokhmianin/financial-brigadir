@@ -65,6 +65,23 @@ class ObligationSpec:
 
 
 @dataclass
+class RecurringSpec:
+    """Регулярный платёж, которого нет в календаре обязательств: человек его не завёл.
+
+    Только для учебного аккаунта (ADR-0007, этап B): его должен найти поиск повторений.
+    ``day`` — число месяца для monthly и день недели (0 — понедельник) для weekly.
+    """
+
+    title: str
+    category: str
+    account: str
+    amount_minor: int
+    period: str  # monthly | weekly
+    day: int
+    jitter_minor: int = 0
+
+
+@dataclass
 class SpendSpec:
     category: str
     account: str
@@ -126,6 +143,9 @@ class Ledger:
         self.partial_accounts: set[str] = set()
         self.extra_incomes: list[dict[str, Any]] = []
         self.extra_obligations: list[dict[str, Any]] = []
+        self.unregistered: list[RecurringSpec] = []
+        # Свой генератор: незаведённые платежи не сдвигают остальную синтетику.
+        self.unregistered_rng = random.Random(f"{profile_key}:{seed}:unregistered")  # noqa: S311
         self._seq: dict[str, int] = defaultdict(int)
         self._groups = 0
 
@@ -330,6 +350,27 @@ class Ledger:
                     spend.category,
                     description=spend.description,
                     booked_delay_days=self.rng.choice((0, 0, 1)),
+                )
+        self._simulate_unregistered(start, end)
+
+    def _simulate_unregistered(self, start: date, end: date) -> None:
+        rng = self.unregistered_rng
+        for spec in self.unregistered:
+            if spec.period == "weekly":
+                days = [d for d in iter_days(start, end) if d.weekday() == spec.day]
+            else:
+                days = [clamp_day(y, m, spec.day) for y, m in iter_months(start, end)]
+            for day in days:
+                if not start <= day <= end:
+                    continue
+                jitter = rng.randint(-spec.jitter_minor, spec.jitter_minor)
+                self.tx(
+                    spec.account,
+                    at(day, 9 + rng.randint(0, 9), rng.randint(0, 59)),
+                    -(spec.amount_minor + jitter),
+                    "expense",
+                    spec.category,
+                    description=spec.title,
                 )
 
     # --- остатки -----------------------------------------------------------

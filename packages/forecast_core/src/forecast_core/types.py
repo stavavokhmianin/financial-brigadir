@@ -76,6 +76,9 @@ class HistoricalTransaction:
     category: str | None = None
     # Метка пользователя (ADR-0007): mandatory | regular | reducible | one_off.
     label: str | None = None
+    description: str | None = None
+    # Платёж по подтверждённому обязательству: он уже в календаре, в модель трат не идёт.
+    obligation_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

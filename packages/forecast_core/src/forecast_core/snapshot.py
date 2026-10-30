@@ -29,8 +29,9 @@ def snapshot_fingerprint(snapshot: ForecastInputSnapshot) -> str:
     # Операция без метки сериализуется как до появления меток: отпечатки прежних
     # расчётов не меняются.
     for item in raw["history"]:
-        if item.get("label") is None:
-            item.pop("label", None)
+        for optional in ("label", "description", "obligation_id"):
+            if item.get(optional) is None:
+                item.pop(optional, None)
     for key in ("accounts", "obligations", "incomes", "history"):
         raw[key] = sorted(raw[key], key=lambda item: str(item["id"]))
     raw["extra_expenses"] = sorted(

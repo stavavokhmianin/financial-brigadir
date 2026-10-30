@@ -18,6 +18,7 @@ from app.modules.forecasting import current_as_of, prepare_snapshot
 from app.schemas.forecasts import ForecastRequest
 from forecast_core.baseline import DEFAULT_OBLIGATION_CATEGORIES, ForecastResult
 from forecast_core.probabilistic import run_monte_carlo
+from forecast_core.recurring import merchant_key
 
 LABELABLE_TYPES = frozenset({TxType.EXPENSE, TxType.FEE, TxType.CREDIT_PURCHASE})
 QUEUE_DAYS = 14
@@ -62,10 +63,17 @@ def _merchant(tx: Transaction) -> str:
 
 def build_queue(db: Session, user: User) -> Queue:
     as_of = current_as_of(db, user)
-    obligation_kinds = {
-        o.kind.value for o in db.scalars(select(Obligation).where(Obligation.user_id == user.id))
-    }
-    calendar_like = set(DEFAULT_OBLIGATION_CATEGORIES) | obligation_kinds
+    obligations = list(db.scalars(select(Obligation).where(Obligation.user_id == user.id)))
+    calendar_like = set(DEFAULT_OBLIGATION_CATEGORIES) | {o.kind.value for o in obligations}
+    # Платежи подтверждённых регулярных обязательств — тоже из календаря.
+    linked = {(o.account_id, o.match_key) for o in obligations if o.match_key}
+
+    def in_calendar(tx: Transaction) -> bool:
+        if tx.category in calendar_like:
+            return True
+        key = merchant_key(tx.description, tx.category)
+        return (tx.account_id, key) in linked or (None, key) in linked
+
     spending = [
         tx
         for tx in db.scalars(
@@ -78,7 +86,7 @@ def build_queue(db: Session, user: User) -> Queue:
             .order_by(Transaction.occurred_at, Transaction.id)
         )
         # Платежи из календаря уже обязательны по определению — о них не спрашиваем.
-        if labelable(tx) and tx.category not in calendar_like
+        if labelable(tx) and not in_calendar(tx)
     ]
     typical = median([-tx.amount_minor for tx in spending]) if spending else 0
     large_from = max(LARGE_FLOOR_MINOR, int(typical * LARGE_FACTOR))

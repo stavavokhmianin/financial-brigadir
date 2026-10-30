@@ -13,6 +13,7 @@ from synthetic_generator.ledger import (
     IncomeSpec,
     Ledger,
     ObligationSpec,
+    RecurringSpec,
     SpendSpec,
     Tx,
 )
@@ -691,6 +692,26 @@ def build_family(ledger: Ledger) -> None:
     )
     ledger.set_openings({"ivan": 1_000_000, "maria": 500_000})
 
+
+# Регулярные платежи, которых нет в календаре: их подключает только учебный аккаунт
+# (generate(..., unregistered=True)), фиксированные сценарии и эталонные числа не меняются.
+UNREGISTERED: dict[str, tuple[RecurringSpec, ...]] = {
+    "young_specialist": (
+        RecurringSpec("Фитнес-клуб", "sport", "card", 2_900 * RUB, "monthly", 10),
+        RecurringSpec("Облачное хранилище", "services", "card", 149 * RUB, "monthly", 18),
+    ),
+    "credit_card": (
+        RecurringSpec("Курсы английского", "education", "debit", 4_500 * RUB, "monthly", 12),
+    ),
+    "freelancer": (
+        RecurringSpec("Сервис для дизайна", "software", "card", 990 * RUB, "monthly", 8),
+        RecurringSpec("Аренда склада", "services", "card", 1_800 * RUB, "monthly", 20, 150 * RUB),
+    ),
+    "two_banks": (
+        RecurringSpec("Секция для ребёнка", "education", "main", 3_500 * RUB, "monthly", 6),
+        RecurringSpec("Доставка воды", "household", "spend", 450 * RUB, "weekly", 0, 30 * RUB),
+    ),
+}
 
 PROFILES: dict[str, ProfileInfo] = {
     info.id: info
