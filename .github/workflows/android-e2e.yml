@@ -2,7 +2,7 @@ name: Android APK and device E2E
 
 on:
   push:
-    branches: [step4ik]
+    branches: [step4ik, master]
     # Эмулятор дорогой по минутам Actions: на push — только при изменении клиента
     # и самой проверки. Изменения API покрывает основной CI, вручную — workflow_dispatch.
     paths:
@@ -30,8 +30,35 @@ env:
   CI: "1"
 
 jobs:
+  # На master тот же коммит обычно уже проверен на step4ik перед слиянием: второй раз
+  # дорогую проверку не гоняем. Коммит, который пришёл прямо в master, проверяется полностью.
+  # step4ik и ручной запуск проверяются всегда — так две ветки не пропустят друг друга.
+  dedupe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      covered: ${{ steps.check.outputs.covered }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          covered=false
+          if [ "${{ github.event_name }}" = push ] && [ "${{ github.ref_name }}" = master ]; then
+            runs="repos/${{ github.repository }}/actions/workflows/android-e2e.yml/runs"
+            others=$(gh api "$runs?head_sha=${{ github.sha }}" --jq '[.workflow_runs[]
+              | select(.id != ${{ github.run_id }})
+              | select(.status != "completed" or .conclusion == "success")] | length')
+            if [ "$others" -gt 0 ]; then
+              covered=true
+              echo "Коммит ${{ github.sha }} уже проверен (или проверяется) на другой ветке."
+            fi
+          fi
+          echo "covered=$covered" >> "$GITHUB_OUTPUT"
+
   build:
-    if: ${{ !inputs.apk_run_id }}
+    needs: dedupe
+    if: ${{ !inputs.apk_run_id && needs.dedupe.outputs.covered != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
