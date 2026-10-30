@@ -7,6 +7,7 @@
 
 from forecast_core.liquidity import liquid_balance_minor
 from forecast_core.money import format_rub, parse_rub_to_minor
+from forecast_core.purchase_context import PurchaseContextAnalysis, analyze_purchase_context
 from forecast_core.snapshot import snapshot_fingerprint
 from forecast_core.types import (
     AccountSnapshot,
@@ -32,8 +33,10 @@ __all__ = [
     "IncomeExpectation",
     "ObligationEvent",
     "ObligationStatus",
+    "PurchaseContextAnalysis",
     "TxStatus",
     "TxType",
+    "analyze_purchase_context",
     "format_rub",
     "liquid_balance_minor",
     "parse_rub_to_minor",
