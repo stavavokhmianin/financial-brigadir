@@ -81,16 +81,17 @@ def profile_pass(run: Run, profile: str) -> None:
     expect(page.get_by_text("Свободные средства").filter(visible=True).first).to_be_visible(
         timeout=20_000
     )
+    expect(page.get_by_text("Последние операции").filter(visible=True).first).to_be_visible(
+        timeout=20_000
+    )
     run.where = f"{profile}: главная"
     run.settle()
-
-    def forecast() -> None:
-        run.tap("0 ₽", role="radio")
-        run.tap("Пересчитать")
 
     def simulate() -> None:
         amount = page.get_by_test_id("purchase-amount").filter(visible=True).first
         amount.fill("5000")
+        page.get_by_label("Магазин или получатель — необязательно").fill("Супермаркет")
+        page.get_by_label("Категория — необязательно").fill("groceries")
         run.tap("Посчитать")
         # Сначала вердикт, детали расчёта — по запросу (REPORT_7.7).
         verdict = page.locator("[data-testid^='scenario-verdict-']").filter(visible=True).first
@@ -99,6 +100,9 @@ def profile_pass(run: Run, profile: str) -> None:
         expect(page.get_by_text("Что изменится").filter(visible=True).first).to_be_visible(
             timeout=15_000
         )
+        expect(
+            page.get_by_text("Сравнение с вашей историей").filter(visible=True).first
+        ).to_be_visible(timeout=15_000)
 
     def add() -> None:
         for section in ("Доход", "Счёт", "Обязательство"):
@@ -134,10 +138,8 @@ def profile_pass(run: Run, profile: str) -> None:
         run.tap("Проверить Plus в демо")
 
     screens: list[tuple[str, str, Callable[[], None] | None]] = [
-        ("прогноз", "Открыть прогноз", forecast),
         ("покупка", "Что если купить?", simulate),
         ("календарь", "Календарь платежей", None),
-        ("предупреждения", "Предупреждения", None),
         ("добавить", "Добавить обязательство, доход или счёт", add),
         ("импорт", "Загрузить выписку CSV", import_csv),
         ("тарифы", "Free и Plus", plans),
@@ -146,6 +148,15 @@ def profile_pass(run: Run, profile: str) -> None:
     ]
     for name, button, actions in screens:
         run.screen(f"{profile}: {name}", button, actions)
+
+    # Уведомления — панель поверх главной, отдельного экрана у неё намеренно нет.
+    run.where = f"{profile}: уведомления"
+    run.tap(re.compile("^Уведомления"))
+    expect(page.get_by_role("header", name="Уведомления")).to_be_visible(timeout=15_000)
+    page.screenshot(
+        path=str(run.out / f"{re.sub(r'\W+', '-', profile.lower())}-alerts.png"), full_page=True
+    )
+    run.tap("Закрыть")
 
     duplicates = page.get_by_role("button", name=re.compile("Проверить")).filter(visible=True)
     if duplicates.count():
