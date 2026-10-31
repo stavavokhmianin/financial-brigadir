@@ -430,12 +430,6 @@ export function DashboardScreen() {
                   reserveMinor={data.forecast.reserve_minor}
                 />
                 <ChartLegend />
-                <Button
-                  label="Открыть прогноз"
-                  variant="secondary"
-                  trailingIcon="arrow"
-                  onPress={() => router.push("/forecast")}
-                />
               </>
             ) : (
               <Muted>

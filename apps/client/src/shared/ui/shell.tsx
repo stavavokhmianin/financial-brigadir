@@ -1,4 +1,4 @@
-import { usePathname, useRouter, type Href } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import {
   Pressable,
   ScrollView,
@@ -9,9 +9,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ReactNode } from "react";
 import { Logo } from "./brand";
-import { Icon, type IconName } from "./icons";
 import { Text } from "./text";
-import { fonts, radius, space, typeScale, usePalette, useTheme } from "./theme";
+import { radius, typeScale, usePalette, useTheme } from "./theme";
 import { Reveal } from "./motion";
 
 const pages: Record<string, [string, string, string]> = {
@@ -71,13 +70,6 @@ const pages: Record<string, [string, string, string]> = {
     "Управляйте информацией, которую доверяете приложению.",
   ],
 };
-const destinations: { path: string; title: string; icon: IconName }[] = [
-  { path: "/dashboard", title: "Обзор", icon: "wallet" },
-  { path: "/forecast", title: "Прогноз", icon: "chart" },
-  { path: "/calendar", title: "Календарь", icon: "calendar" },
-  { path: "/simulate", title: "Что, если?", icon: "sparkle" },
-];
-
 export function AppShell({
   children,
   wide = false,
@@ -95,44 +87,6 @@ export function AppShell({
   const landing = pathname === "/";
   const page = pages[pathname];
   const maxWidth = wide ? 1200 : 800;
-  const nav = (mobile: boolean) =>
-    destinations.map((item) => {
-      const active = pathname === item.path;
-      return (
-        <Pressable
-          key={item.path}
-          accessibilityRole="button"
-          accessibilityLabel={item.title}
-          accessibilityState={{ selected: active }}
-          onPress={() => router.navigate(item.path as Href)}
-          style={({ pressed }) => [
-            styles.navItem,
-            mobile && styles.mobileItem,
-            {
-              backgroundColor: active
-                ? palette.accentSoft
-                : pressed
-                  ? palette.track
-                  : "transparent",
-            },
-          ]}
-        >
-          <Icon
-            name={item.icon}
-            color={active ? palette.accent : palette.muted}
-            size={18}
-          />
-          <Text
-            style={[
-              mobile ? styles.mobileLabel : styles.navLabel,
-              { color: active ? palette.text : palette.muted },
-            ]}
-          >
-            {item.title}
-          </Text>
-        </Pressable>
-      );
-    });
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <View
@@ -157,9 +111,6 @@ export function AppShell({
               Финансовый{"\n"}бригадир
             </Text>
           </Pressable>
-          {!landing && desktop ? (
-            <View style={styles.nav}>{nav(false)}</View>
-          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
@@ -194,7 +145,7 @@ export function AppShell({
         <View style={{ width: "100%", maxWidth, gap: desktop ? 24 : 16 }}>
           {page ? (
             <View style={styles.pageHeading}>
-              {!destinations.some((d) => d.path === pathname) ? (
+              {pathname !== "/dashboard" ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Вернуться к обзору"
@@ -234,20 +185,6 @@ export function AppShell({
           </View>
         </View>
       </ScrollView>
-      {!landing && !desktop ? (
-        <View
-          style={[
-            styles.mobileNav,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-              paddingBottom: Math.max(insets.bottom, 8),
-            },
-          ]}
-        >
-          {nav(true)}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -269,17 +206,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: -0.25,
   },
-  nav: { flexDirection: "row", gap: 6 },
-  navItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: 16,
-    gap: 8,
-    borderRadius: radius.md,
-  },
-  navLabel: { fontSize: 13, fontWeight: "500" },
   theme: {
     width: 44,
     height: 44,
@@ -290,20 +216,6 @@ const styles = StyleSheet.create({
   },
   pageHeading: { gap: 8 },
   back: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
-  mobileNav: {
-    flexDirection: "row",
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-  },
-  mobileItem: {
-    flex: 1,
-    paddingHorizontal: 2,
-    flexDirection: "column",
-    gap: 4,
-    minHeight: 50,
-  },
-  mobileLabel: { fontSize: 10, fontWeight: "500" },
   footer: {
     borderTopWidth: 1,
     paddingTop: 20,
