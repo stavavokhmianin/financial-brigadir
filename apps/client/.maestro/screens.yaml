@@ -17,12 +17,8 @@ name: Every main screen opens without errors
 - assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
 - takeScreenshot: artifacts/mobile/06-forecast
 
-# Нижние кнопки главного экрана: сначала до конца страницы (см. mvp.yaml).
-- scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
-    timeout: 60000
-- scroll
+# Служебные экраны собраны в компактной панели профиля.
+- tapOn: "Данные и настройки"
 - tapOn: "Календарь платежей"
 - extendedWaitUntil:
     visible: "Прошедшие операции.*"
@@ -42,8 +38,10 @@ name: Every main screen opens without errors
     timeout: 30000
 - assertNotVisible: ".*(Не удалось|Ошибка сервера|Нет связи).*"
 - takeScreenshot: artifacts/mobile/08-alerts
-# Режимы, тихие часы и лимит частоты (FR-24) — экран из панели.
-- tapOn: "Все уведомления и настройки"
+- tapOn: "Закрыть"
+# Режимы, тихие часы и лимит частоты (FR-24) — служебный экран, а не лента.
+- tapOn: "Данные и настройки"
+- tapOn: "Настройки"
 - scrollUntilVisible:
     element: "Настройки"
     timeout: 30000
@@ -51,11 +49,7 @@ name: Every main screen opens without errors
 - takeScreenshot: artifacts/mobile/08b-alert-settings
 - back
 
-- scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
-    timeout: 60000
-- scroll
+- tapOn: "Данные и настройки"
 - tapOn: "Добавить обязательство, доход или счёт"
 - extendedWaitUntil:
     visible: "Что добавить\\?"
@@ -67,11 +61,7 @@ name: Every main screen opens without errors
 - back
 
 # Импорт CSV — основной путь участника пилота.
-- scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
-    timeout: 60000
-- scroll
+- tapOn: "Данные и настройки"
 - tapOn: "Загрузить выписку CSV"
 - scrollUntilVisible:
     element: "Вставить пример"
@@ -105,11 +95,7 @@ name: Every main screen opens without errors
 - takeScreenshot: artifacts/mobile/10-import
 - back
 
-- scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
-    timeout: 60000
-- scroll
+- tapOn: "Данные и настройки"
 - tapOn: "Приватность, экспорт и выход"
 - scrollUntilVisible:
     element: "Удалить профиль"

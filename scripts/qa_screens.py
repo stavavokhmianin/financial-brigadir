@@ -59,6 +59,13 @@ class Run:
         if visible_errors:
             self.problems.append(f"{self.where}: {visible_errors[0][:160]}")
 
+    def close_panel(self) -> None:
+        """Закрыть модальную панель по видимой подписи, а не по фоновой подложке."""
+        close = self.page.get_by_text("Закрыть", exact=True).filter(visible=True).first
+        expect(close).to_be_visible(timeout=15_000)
+        close.click()
+        self.page.wait_for_timeout(400)
+
     def screen(self, name: str, button: str, actions: Callable[[], None] | None = None) -> None:
         self.where = name
         self.tap(button)
@@ -75,6 +82,7 @@ class Run:
 def profile_pass(run: Run, profile: str) -> None:
     page = run.page
     run.where = f"{profile}: старт"
+    run.tap("Технические сценарии демо")
     # Имя карточки профиля включает описание: сопоставляем по началу.
     run.tap(re.compile("^" + re.escape(profile)), role="radio")
     run.tap("Запустить демо")
@@ -139,14 +147,22 @@ def profile_pass(run: Run, profile: str) -> None:
 
     screens: list[tuple[str, str, Callable[[], None] | None]] = [
         ("покупка", "Что если купить?", simulate),
+    ]
+    for name, button, actions in screens:
+        run.screen(f"{profile}: {name}", button, actions)
+
+    # Служебные экраны не занимают главную: они собраны под одной кнопкой профиля.
+    menu_screens: list[tuple[str, str, Callable[[], None] | None]] = [
         ("календарь", "Календарь платежей", None),
         ("добавить", "Добавить обязательство, доход или счёт", add),
         ("импорт", "Загрузить выписку CSV", import_csv),
+        ("настройки уведомлений", "Настройки", None),
         ("тарифы", "Free и Plus", plans),
         ("учебный-банк", "Учебный банк (мок)", bank),
         ("приватность", "Приватность, экспорт и выход", None),
     ]
-    for name, button, actions in screens:
+    for name, button, actions in menu_screens:
+        run.tap("Данные и настройки")
         run.screen(f"{profile}: {name}", button, actions)
 
     # Уведомления — панель поверх главной, отдельного экрана у неё намеренно нет.
@@ -155,21 +171,29 @@ def profile_pass(run: Run, profile: str) -> None:
     expect(page.get_by_text("Уведомления", exact=True).filter(visible=True).first).to_be_visible(
         timeout=15_000
     )
+    profile_slug = re.sub(r"\W+", "-", profile.lower())
     page.screenshot(
-        path=str(run.out / f"{re.sub(r'\W+', '-', profile.lower())}-alerts.png"), full_page=True
+        path=str(run.out / f"{profile_slug}-alerts.png"), full_page=True
     )
-    # Из панели — экран настроек и полной истории (FR-24): режимы, тихие часы, лимит.
-    run.screen(f"{profile}: настройки уведомлений", "Все уведомления и настройки", None)
+    run.close_panel()
 
-    duplicates = page.get_by_role("button", name=re.compile("Проверить")).filter(visible=True)
+    run.tap("Данные и настройки")
+    duplicates = page.get_by_role(
+        "button", name=re.compile("^Есть операции для проверки")
+    ).filter(visible=True)
     if duplicates.count():
         run.screen(f"{profile}: дубли", duplicates.first.inner_text().strip(), None)
+    else:
+        run.close_panel()
 
     # Выход возвращает на старт: следующий профиль начинается с чистого состояния.
     run.where = f"{profile}: выход"
+    run.tap("Данные и настройки")
     run.tap("Приватность, экспорт и выход")
     run.tap("Выйти и отозвать сессии")
-    expect(page.get_by_role("button", name="Запустить демо")).to_be_visible(timeout=15_000)
+    expect(page.get_by_role("button", name="Технические сценарии демо")).to_be_visible(
+        timeout=15_000
+    )
 
 
 def live_pass(run: Run) -> None:
@@ -177,8 +201,8 @@ def live_pass(run: Run) -> None:
     page = run.page
     run.where = "учебный аккаунт: старт"
     run.tap("Начать без регистрации")
-    expect(page.get_by_text("Управлять").filter(visible=True).first).to_be_visible(timeout=30_000)
-    # Видимый текст «Управлять», имя кнопки для скринридера — полное.
+    expect(page.get_by_role("button", name="Данные и настройки")).to_be_visible(timeout=30_000)
+    run.tap("Данные и настройки")
     run.tap("Управление учебным временем")
     expect(
         page.get_by_role("button", name="Следующий день").filter(visible=True).first
@@ -187,6 +211,7 @@ def live_pass(run: Run) -> None:
     run.where = "учебный аккаунт: следующий день"
     run.tap("Следующий день")
     run.settle()
+    run.close_panel()
     run.where = "учебный аккаунт: регулярный платёж"
     expect(
         page.get_by_text("Похоже на регулярный платёж").filter(visible=True).first
@@ -197,6 +222,16 @@ def live_pass(run: Run) -> None:
     )
     run.settle()
     page.screenshot(path=str(run.out / "live-recurring.png"), full_page=True)
+    # Показываем по одному вопросу. Разбираем оставшиеся регулярные кандидаты,
+    # после чего становится доступна одна нейтральная метка обычной траты.
+    for _ in range(5):
+        reject = page.get_by_role("button", name=re.compile("^Не регулярный:")).filter(
+            visible=True
+        )
+        if reject.count() == 0:
+            break
+        reject.first.click()
+        page.wait_for_timeout(700)
     run.where = "учебный аккаунт: метка"
     expect(page.get_by_text("Помогите уточнить прогноз").filter(visible=True).first).to_be_visible(
         timeout=15_000
@@ -208,6 +243,7 @@ def live_pass(run: Run) -> None:
     run.tap("Снять метку")
     run.settle()
     run.where = "учебный аккаунт: выход"
+    run.tap("Данные и настройки")
     run.tap("Приватность, экспорт и выход")
     run.tap("Выйти и отозвать сессии")
     expect(page.get_by_role("button", name="Начать без регистрации")).to_be_visible(timeout=15_000)
@@ -246,7 +282,8 @@ def main() -> int:
         print(f"FAIL {problem}")
     if run.problems:
         return 1
-    print(f"ok   все экраны {len(PROFILES)} профилей и учебный аккаунт без ошибок; кадры в {out}")
+    scope = "учебный аккаунт" if args.live_only else f"{len(PROFILES)} профиля и учебный аккаунт"
+    print(f"ok   {scope} без ошибок; кадры в {out}")
     return 0
 
 

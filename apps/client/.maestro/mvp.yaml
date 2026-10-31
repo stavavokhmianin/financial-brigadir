@@ -22,6 +22,9 @@ name: Demo purchase, plan preview and bank mock
     timeout: 30000
 # Фиксированный сценарий для защиты — ниже основного входа (ADR-0007).
 - scrollUntilVisible:
+    element: "Технические сценарии демо"
+- tapOn: "Технические сценарии демо"
+- scrollUntilVisible:
     element: ".*Молодой специалист.*"
 - scrollUntilVisible:
     element: "Запустить демо"
@@ -79,11 +82,7 @@ name: Demo purchase, plan preview and bank mock
     id: "risk-scale-high"
 - takeScreenshot: artifacts/mobile/02-purchase-risk
 - back
-- scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
-    timeout: 60000
-- scroll
+- tapOn: "Данные и настройки"
 - tapOn: "Free и Plus"
 - scrollUntilVisible:
     element: "Проверить Free в демо"
@@ -108,11 +107,7 @@ name: Demo purchase, plan preview and bank mock
     direction: UP
 - takeScreenshot: artifacts/mobile/03-plan-preview
 - back
-- scrollUntilVisible:
-    element: "Приватность, экспорт и выход"
-    visibilityPercentage: 100
-    timeout: 60000
-- scroll
+- tapOn: "Данные и настройки"
 - tapOn: "Учебный банк \\(мок\\)"
 - tapOn: "Разрешить чтение синтетики на 24 часа"
 - assertVisible: "Отозвать доступ"

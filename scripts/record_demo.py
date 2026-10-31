@@ -79,12 +79,19 @@ class Demo:
         self.page.go_back()
         self.wait(1.2)
 
+    def close_panel(self) -> None:
+        close = self.page.get_by_text("Закрыть", exact=True).filter(visible=True).first
+        expect(close).to_be_visible(timeout=15_000)
+        close.click()
+        self.wait(0.8)
+
 
 def run(demo: Demo) -> None:
     page = demo.page
     demo.caption("«Финансовый бригадир»: хватит ли денег до следующего дохода — до покупки.", 3)
 
     demo.caption("Шаг 1. Демо-профиль «Молодой специалист»: синтетика, без банковских паролей.")
+    demo.button("Технические сценарии демо")
     demo.button("Запустить демо")
     demo.expect_text("55 000 ₽")
     demo.caption("55 000 ₽, данные на 19 октября. Впереди кредит 12 000 ₽ и аренда 30 000 ₽.", 3)
@@ -141,9 +148,10 @@ def run(demo: Demo) -> None:
     demo.expect_text("Не показано")
     demo.wait(2)
     demo.snapshot("alerts")
-    demo.button("Закрыть")
+    demo.close_panel()
 
     demo.caption("Учебный банк: явное согласие на 24 часа, только синтетические данные.")
+    demo.button("Данные и настройки")
     demo.button("Учебный банк (мок)")
     demo.button("Разрешить чтение синтетики на 24 часа")
     demo.wait(1)
