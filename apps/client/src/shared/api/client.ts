@@ -3,9 +3,7 @@ import type { components } from "./schema";
 
 // Типы генерируются из packages/api_contracts/openapi.yaml (npm run gen:api).
 export type Schemas = components["schemas"];
-export type DemoProfile = Schemas["DemoProfileOut"];
 export type DemoSession = Schemas["DemoSessionOut"];
-export type DemoSessionCreate = Schemas["DemoSessionCreate"];
 export type PilotSession = Schemas["PilotSessionOut"];
 export type UserSession = Schemas["UserSessionOut"];
 export type Session = DemoSession | PilotSession | UserSession;
@@ -154,11 +152,6 @@ export const api = {
   deleteProfile: (token: string) => request<void>("/api/v1/privacy/profile", {
     token, method: "DELETE", body: { confirmation: "DELETE" },
   }),
-  listDemoProfiles: () => request<DemoProfile[]>("/api/v1/demo/profiles"),
-
-  createDemoSession: (body: DemoSessionCreate) =>
-    request<DemoSession>("/api/v1/demo/sessions", { method: "POST", body }),
-
   createLiveSession: () =>
     request<DemoSession>("/api/v1/demo/live-sessions", { method: "POST", body: {} }),
 

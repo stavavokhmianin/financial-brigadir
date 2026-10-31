@@ -34,6 +34,10 @@
 		}
 		@hashed path /_expo/*
 		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		# Корневой HTML всегда перепроверяется: после релиза голый URL не должен
+		# открывать сохранённую браузером старую оболочку. Хэшированные assets — выше.
+		@entry path / /index.html
+		header @entry Cache-Control "no-cache, max-age=0, must-revalidate"
 		root * /var/www/brigadir
 		try_files {path} /index.html
 		file_server

@@ -2,8 +2,8 @@
 
     python scripts/qa_screens.py --web http://127.0.0.1:8081 [--out artifacts/qa]
 
-Для каждого демо-профиля открывает каждый экран и нажимает основные действия, затем
-проходит цикл учебного аккаунта: новый день, регулярный платёж в календарь, метка траты.
+На отдельном гостевом аккаунте открывает каждый экран и нажимает основные действия, затем
+проходит цикл второго учебного аккаунта: новый день, регулярный платёж в календарь, метка траты.
 Падает, если на экране появилась ошибка («Не удалось…», «Ошибка сервера…»), если в
 браузере было исключение JS или API ответил 5xx. Кадры каждого экрана — в --out.
 API должен работать в демо-режиме.
@@ -17,7 +17,6 @@ from pathlib import Path
 
 from playwright.sync_api import Page, Response, ViewportSize, expect, sync_playwright
 
-PROFILES = ("Молодой специалист", "Кредитная карта и рассрочка", "Фрилансер", "Два банка")
 ERROR_TEXT = re.compile(
     r"Не удалось|Ошибка сервера|Неизвестная ошибка|Сервер недоступен|Импорт не выполнен|Нет связи"
 )
@@ -79,12 +78,11 @@ class Run:
         self.page.wait_for_timeout(800)
 
 
-def profile_pass(run: Run, profile: str) -> None:
+def full_pass(run: Run) -> None:
     page = run.page
+    profile = "полный обход"
     run.where = f"{profile}: старт"
-    # Имя карточки профиля включает описание: сопоставляем по началу.
-    run.tap(re.compile("^" + re.escape(profile)), role="radio")
-    run.tap("Запустить демо")
+    run.tap("Попробовать без регистрации")
     expect(page.get_by_text("Свободные средства").filter(visible=True).first).to_be_visible(
         timeout=20_000
     )
@@ -183,12 +181,12 @@ def profile_pass(run: Run, profile: str) -> None:
     else:
         run.close_panel()
 
-    # Выход возвращает на старт: следующий профиль начинается с чистого состояния.
+    # Выход возвращает на новый экран регистрации.
     run.where = f"{profile}: выход"
     run.tap("Данные и настройки")
     run.tap("Приватность, экспорт и выход")
     run.tap("Выйти и отозвать сессии")
-    expect(page.get_by_role("button", name="Запустить демо")).to_be_visible(timeout=15_000)
+    expect(page.get_by_role("button", name="Зарегистрироваться")).to_be_visible(timeout=15_000)
 
 
 def live_pass(run: Run) -> None:
@@ -267,10 +265,7 @@ def main() -> int:
         run = Run(page, out)
         try:
             if not args.live_only:
-                separator = "&" if "?" in args.web else "?"
-                page.goto(f"{args.web}{separator}technical=1")
-                for profile in PROFILES:
-                    profile_pass(run, profile)
+                full_pass(run)
                 page.goto(args.web)
             live_pass(run)
         except Exception as error:
@@ -283,7 +278,7 @@ def main() -> int:
         print(f"FAIL {problem}")
     if run.problems:
         return 1
-    scope = "учебный аккаунт" if args.live_only else f"{len(PROFILES)} профиля и учебный аккаунт"
+    scope = "учебный аккаунт" if args.live_only else "полный обход и учебный аккаунт"
     print(f"ok   {scope} без ошибок; кадры в {out}")
     return 0
 

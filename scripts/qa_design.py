@@ -20,12 +20,11 @@ def main() -> int:
         page = browser.new_page(viewport={"width": 1440, "height": 1080}, locale="ru-RU")
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
-        separator = "&" if "?" in args.web else "?"
-        page.goto(f"{args.web}{separator}technical=1")
+        page.goto(args.web)
         page.get_by_role("button", name="Попробовать без регистрации", exact=True).wait_for()
         page.wait_for_timeout(600)
         page.screenshot(path=str(out / "landing-desktop.png"))
-        page.get_by_role("button", name="Запустить демо", exact=True).click()
+        page.get_by_role("button", name="Попробовать без регистрации", exact=True).click()
         page.get_by_text("Свободные средства", exact=True).wait_for(timeout=30000)
         page.wait_for_timeout(800)
         checks = []
