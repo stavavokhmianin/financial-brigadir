@@ -143,18 +143,16 @@ export function AppShell({
         }}
       >
         <View style={{ width: "100%", maxWidth, gap: desktop ? 24 : 16 }}>
-          {page ? (
+          {page && pathname !== "/dashboard" ? (
             <View style={styles.pageHeading}>
-              {pathname !== "/dashboard" ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Вернуться к обзору"
-                  onPress={() => router.navigate("/dashboard")}
-                  style={styles.back}
-                >
-                  <Text style={{ color: palette.muted }}>← К обзору</Text>
-                </Pressable>
-              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Вернуться к обзору"
+                onPress={() => router.navigate("/dashboard")}
+                style={styles.back}
+              >
+                <Text style={{ color: palette.muted }}>← К обзору</Text>
+              </Pressable>
               <Text style={[typeScale.eyebrow, { color: palette.muted }]}>
                 {page[0]}
               </Text>

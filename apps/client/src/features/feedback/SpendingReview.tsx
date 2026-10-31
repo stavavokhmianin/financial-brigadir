@@ -32,7 +32,7 @@ export function SpendingReview({
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Уточнить траты"
+        accessibilityLabel="Разобрать покупки"
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(true)}
         style={({ pressed, hovered }) => [
@@ -48,9 +48,9 @@ export function SpendingReview({
           <Icon name="sparkle" color={palette.accent} size={20} />
         </View>
         <View style={styles.launchText}>
-          <Text style={[styles.launchTitle, { color: palette.text }]}>Уточнить траты</Text>
+          <Text style={[styles.launchTitle, { color: palette.text }]}>Разобрать покупки</Text>
           <Text style={[styles.launchHint, { color: palette.muted }]}>
-            Несколько быстрых ответов сделают прогноз личнее
+            Листайте карточки — один короткий ответ на покупку
           </Text>
         </View>
         <Icon name="arrow" color={palette.accent} size={18} />
@@ -87,9 +87,9 @@ export function SpendingReview({
                 <Icon name="sparkle" color={palette.accent} size={18} />
                 <View style={{ flex: 1 }}>
                   <Text accessibilityRole="header" style={[typeScale.heading, { color: palette.text }]}>
-                    Уточнить траты
+                    Разобрать покупки
                   </Text>
-                  <Text style={[styles.headHint, { color: palette.muted }]}>Без правильных ответов и оценок</Text>
+                  <Text style={[styles.headHint, { color: palette.muted }]}>Одна карточка за раз, без правильных ответов</Text>
                 </View>
               </View>
               <Pressable accessibilityRole="button" onPress={() => setOpen(false)} hitSlop={8}>

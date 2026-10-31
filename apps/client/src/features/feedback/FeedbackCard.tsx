@@ -27,8 +27,6 @@ import { radius, space, usePalette } from "@/shared/ui/theme";
 
 import { effectLines } from "./logic";
 
-const LABELS: TxLabel[] = ["regular", "mandatory", "reducible", "one_off"];
-
 interface Applied {
   id: string;
   label: TxLabel | null;
@@ -207,11 +205,12 @@ function Item({
   onMark: (label: TxLabel) => void;
 }) {
   const palette = usePalette();
+  const [showNote, setShowNote] = useState(false);
   const tx = item.transaction;
   return (
     <View style={[styles.item, { borderColor: palette.border }]}>
       <View style={styles.progressRow}>
-        <Muted>{`${position} ${ru.feedback.of} ${total} · ${ru.feedback.optional}`}</Muted>
+        <Muted>{`Покупка ${position} ${ru.feedback.of} ${total}`}</Muted>
         {total > 1 ? (
           <View style={styles.pager}>
             <Pressable
@@ -231,65 +230,95 @@ function Item({
           </View>
         ) : null}
       </View>
-      <View style={styles.itemHead}>
-        <View style={styles.itemMain}>
-          <Text style={[styles.itemTitle, { color: palette.text }]}>
-            {tx.description ?? tx.category ?? "—"}
-          </Text>
-          <Muted>{formatDay(tx.occurred_at.slice(0, 10), year)}</Muted>
-        </View>
-        <View style={styles.itemSide}>
-          <Text style={[styles.amount, { color: palette.text }]}>
-            {formatRub(tx.amount_minor)}
-          </Text>
+      <View style={[styles.progressTrack, { backgroundColor: palette.track }]}>
+        <View
+          style={[
+            styles.progressFill,
+            {
+              backgroundColor: palette.accent,
+              width: `${Math.max(8, (position / total) * 100)}%`,
+            },
+          ]}
+        />
+      </View>
+      <View
+        style={[
+          styles.purchase,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
+      >
+        <View style={styles.purchaseTop}>
+          <View style={styles.itemMain}>
+            <Text style={[styles.itemTitle, { color: palette.text }]}>
+              {tx.description ?? tx.category ?? ru.feedback.fallbackTitle}
+            </Text>
+            <Muted>{formatDay(tx.occurred_at.slice(0, 10), year)}</Muted>
+          </View>
           <Badge
             label={ru.feedback.reasons[item.reason]}
             tone={item.reason === "large" ? "warning" : "muted"}
           />
         </View>
+        <Text style={[styles.amount, { color: palette.text }]}>
+          {formatRub(Math.abs(tx.amount_minor))}
+        </Text>
+        <Muted>Сумма операции</Muted>
       </View>
       <Text style={[styles.question, { color: palette.text }]}>
         {ru.feedback.question}
       </Text>
       <Muted>{ru.feedback.questionHint}</Muted>
-      <Field
-        label={ru.feedback.note}
-        value={userNote}
-        onChangeText={onUserNoteChange}
-        placeholder={ru.feedback.notePlaceholder}
-        hint={ru.feedback.noteHint}
-        multiline
-      />
       {saving ? (
         <Muted>{ru.feedback.saving}</Muted>
       ) : (
-        <View accessibilityRole="radiogroup" style={styles.chips}>
-          {LABELS.map((label) => (
-            <Pressable
-              key={label}
-              accessibilityRole="radio"
-              accessibilityLabel={`${ru.feedback.labels[label]}: ${tx.description ?? ""}`}
-              accessibilityState={{ checked: tx.label === label, disabled }}
-              aria-checked={tx.label === label}
-              disabled={disabled}
-              onPress={() => onMark(label)}
-              style={({ pressed, hovered }: PressState) => [
-                styles.chip,
-                {
-                  borderColor: palette.border,
-                  backgroundColor:
-                    pressed || hovered ? palette.track : palette.card,
-                  opacity: disabled ? 0.5 : 1,
-                },
-              ]}
-            >
-              <Text style={[styles.chipText, { color: palette.text }]}>
-                {ru.feedback.labels[label]}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <>
+          <View accessibilityRole="radiogroup" style={styles.primaryChoices}>
+            {(["regular", "one_off"] as const).map((label) => (
+              <Answer
+                key={label}
+                title={ru.feedback.labels[label]}
+                transaction={tx.description ?? ""}
+                checked={tx.label === label}
+                disabled={disabled}
+                primary
+                onPress={() => onMark(label)}
+              />
+            ))}
+          </View>
+          <View accessibilityRole="radiogroup" style={styles.secondaryChoices}>
+            {(["mandatory", "reducible"] as const).map((label) => (
+              <Answer
+                key={label}
+                title={ru.feedback.labels[label]}
+                transaction={tx.description ?? ""}
+                checked={tx.label === label}
+                disabled={disabled}
+                onPress={() => onMark(label)}
+              />
+            ))}
+          </View>
+        </>
       )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showNote }}
+        onPress={() => setShowNote((value) => !value)}
+        hitSlop={8}
+      >
+        <Text style={[styles.noteToggle, { color: palette.accent }]}>
+          {showNote ? "Скрыть комментарий" : ru.feedback.note}
+        </Text>
+      </Pressable>
+      {showNote ? (
+        <Field
+          label={ru.feedback.note}
+          value={userNote}
+          onChangeText={onUserNoteChange}
+          placeholder={ru.feedback.notePlaceholder}
+          hint={ru.feedback.noteHint}
+          multiline
+        />
+      ) : null}
       <View style={styles.skipRow}>
         <Pressable
           accessibilityRole="button"
@@ -313,6 +342,52 @@ function Item({
         </Pressable>
       </View>
     </View>
+  );
+}
+
+function Answer({
+  title,
+  transaction,
+  checked,
+  disabled,
+  primary = false,
+  onPress,
+}: {
+  title: string;
+  transaction: string;
+  checked: boolean;
+  disabled: boolean;
+  primary?: boolean;
+  onPress: () => void;
+}) {
+  const palette = usePalette();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={`${title}: ${transaction}`}
+      accessibilityState={{ checked, disabled }}
+      aria-checked={checked}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed, hovered }: PressState) => [
+        primary ? styles.primaryChoice : styles.secondaryChoice,
+        {
+          borderColor: checked ? palette.accent : palette.border,
+          backgroundColor:
+            checked || pressed || hovered ? palette.accentSoft : palette.card,
+          opacity: disabled ? 0.5 : 1,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          primary ? styles.primaryChoiceText : styles.secondaryChoiceText,
+          { color: palette.text },
+        ]}
+      >
+        {title}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -377,9 +452,7 @@ function AppliedNote({
 
 const styles = StyleSheet.create({
   item: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: space.md,
-    gap: space.sm,
+    gap: space.md,
   },
   progressRow: {
     flexDirection: "row",
@@ -395,11 +468,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  itemHead: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
+  progressTrack: { height: 4, borderRadius: radius.pill, overflow: "hidden" },
+  progressFill: { height: 4, borderRadius: radius.pill },
+  purchase: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    padding: space.lg,
+    gap: space.xs,
+  },
+  purchaseTop: {
+    flexDirection: "row",
+    gap: space.md,
+    alignItems: "flex-start",
+  },
   itemMain: { flex: 1, gap: 2 },
-  itemSide: { alignItems: "flex-end", gap: space.xs },
-  itemTitle: { fontSize: 14, fontWeight: "500" },
-  amount: { fontSize: 14, fontWeight: "500", fontVariant: ["tabular-nums"] },
+  itemTitle: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+  amount: {
+    fontSize: 34,
+    lineHeight: 42,
+    fontWeight: "600",
+    letterSpacing: -1.2,
+    fontVariant: ["tabular-nums"],
+    paddingTop: space.sm,
+  },
   question: {
     fontSize: 16,
     fontWeight: "600",
@@ -407,16 +498,37 @@ const styles = StyleSheet.create({
     letterSpacing: -0.32,
     paddingTop: space.xs,
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  chip: {
+  primaryChoices: { flexDirection: "row", gap: space.sm },
+  primaryChoice: {
+    flex: 1,
+    minHeight: 64,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+  primaryChoiceText: { fontSize: 15, fontWeight: "700", textAlign: "center" },
+  secondaryChoices: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
+  secondaryChoice: {
+    flexGrow: 1,
+    flexBasis: "44%",
     minHeight: 44,
     justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.md,
-    paddingVertical: 6,
+    borderRadius: radius.md,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
   },
-  chipText: { fontSize: 13, fontWeight: "500" },
+  secondaryChoiceText: { fontSize: 13, fontWeight: "500", textAlign: "center" },
+  noteToggle: {
+    minHeight: 44,
+    paddingVertical: 12,
+    fontSize: 13,
+    fontWeight: "600",
+  },
   skipRow: {
     flexDirection: "row",
     justifyContent: "space-between",

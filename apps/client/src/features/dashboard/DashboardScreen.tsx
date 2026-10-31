@@ -180,10 +180,30 @@ export function DashboardScreen() {
 
   return (
     <Screen wide>
-      <View style={styles.topBar}>
-        <View style={styles.heroBadges}>
-          <Badge label={session.user.display_name ?? ru.live.badge} />
-          <Badge label={ru.dashboard.coverage[quality.coverage]} tone="muted" />
+      <View style={[styles.dashboardHeader, desktop && styles.horizontal]}>
+        <View style={styles.headingBlock}>
+          <Text style={[typeScale.eyebrow, { color: palette.muted }]}>
+            ЛИЧНЫЙ КАПИТАЛ
+          </Text>
+          <Text
+            accessibilityRole="header"
+            style={[
+              desktop ? typeScale.display : typeScale.title,
+              { color: palette.text },
+            ]}
+          >
+            Обзор финансов
+          </Text>
+          <Text style={[typeScale.body, { color: palette.muted }]}>
+            Всё важное о ваших деньгах. В одном месте.
+          </Text>
+          <View style={styles.heroBadges}>
+            <Badge label={session.user.display_name ?? ru.live.badge} />
+            <Badge
+              label={ru.dashboard.coverage[quality.coverage]}
+              tone="muted"
+            />
+          </View>
         </View>
         <View style={styles.heroActions}>
           {token ? <NotificationsBell token={token} /> : null}
@@ -554,13 +574,11 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   overviewGrid: { gap: space.xl },
   horizontal: { flexDirection: "row", alignItems: "stretch" },
-  topBar: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
+  dashboardHeader: {
     justifyContent: "space-between",
-    gap: space.md,
+    gap: space.lg,
   },
+  headingBlock: { flex: 1, gap: space.sm },
   heroSummary: { gap: space.xl, alignItems: "stretch" },
   forecastSummary: { gap: space.md, alignItems: "stretch" },
   forecastStat: {
@@ -587,7 +605,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  heroActions: { flexDirection: "row", gap: space.sm },
+  heroActions: {
+    flexDirection: "row",
+    gap: space.sm,
+    alignSelf: "flex-start",
+  },
   // Бейджи сжимаются и переносятся, колокольчик остаётся в панели даже на 320–375 px.
   heroBadges: {
     flex: 1,
