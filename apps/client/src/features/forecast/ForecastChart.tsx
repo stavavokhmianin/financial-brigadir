@@ -235,14 +235,101 @@ export function ForecastChart({
         </View>
       </View>
       <View style={styles.axis}>
-        <Text style={[styles.caption, { color: palette.muted }]}>
-          {formatDay(points[0]!.day)}
-        </Text>
-        <Text style={[styles.caption, { color: palette.muted }]}>
-          {formatDay(points[points.length - 1]!.day)}
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Выбрать ${formatDay(points[0]!.day)}`}
+          onPress={() => select(0)}
+          style={styles.axisButton}
+        >
+          <Text
+            style={[
+              styles.caption,
+              { color: index === 0 ? palette.accent : palette.muted },
+            ]}
+          >
+            {formatDay(points[0]!.day)}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Выбрать ${formatDay(points[points.length - 1]!.day)}`}
+          onPress={() => select(points.length - 1)}
+          style={styles.axisButton}
+        >
+          <Text
+            style={[
+              styles.caption,
+              {
+                color:
+                  index === points.length - 1
+                    ? palette.accent
+                    : palette.muted,
+              },
+            ]}
+          >
+            {formatDay(points[points.length - 1]!.day)}
+          </Text>
+        </Pressable>
       </View>
-      {compact ? null : (
+      {compact ? (
+        <View
+          accessibilityLiveRegion="polite"
+          style={[
+            styles.compactDetails,
+            { backgroundColor: palette.background, borderColor: palette.border },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Предыдущий день"
+            accessibilityState={{ disabled: index === 0 }}
+            disabled={index === 0}
+            onPress={() => select(index - 1)}
+            style={[
+              styles.compactArrow,
+              {
+                borderColor: palette.inputBorder,
+                opacity: index === 0 ? 0.35 : 1,
+              },
+            ]}
+          >
+            <Text style={{ color: palette.text }}>←</Text>
+          </Pressable>
+          <View style={styles.compactReadout}>
+            <Text style={[styles.compactDate, { color: palette.muted }]}>
+              {formatDay(selected.day)} · ожидаемый остаток
+            </Text>
+            <Text
+              style={[
+                styles.compactValue,
+                {
+                  color: selectedBar.belowReserve
+                    ? palette.danger
+                    : palette.text,
+                },
+              ]}
+            >
+              {formatRub(selected.p50_minor)}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Следующий день"
+            accessibilityState={{ disabled: index === points.length - 1 }}
+            disabled={index === points.length - 1}
+            onPress={() => select(index + 1)}
+            style={[
+              styles.compactArrow,
+              {
+                borderColor: palette.inputBorder,
+                opacity: index === points.length - 1 ? 0.35 : 1,
+              },
+            ]}
+          >
+            <Text style={{ color: palette.text }}>→</Text>
+          </Pressable>
+        </View>
+      ) : (
         <View
           style={[
             styles.details,
@@ -338,7 +425,37 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
+  axisButton: {
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
   caption: { fontSize: 11, lineHeight: 17, fontVariant: ["tabular-nums"] },
+  compactDetails: {
+    minHeight: 72,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    padding: space.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  compactReadout: { flex: 1, alignItems: "center", gap: 2 },
+  compactDate: { fontSize: 12, lineHeight: 18, textAlign: "center" },
+  compactValue: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
+  },
+  compactArrow: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   details: { borderRadius: radius.md, borderWidth: 1, padding: 12, gap: 8 },
   dateNavigation: { flexDirection: "row", alignItems: "center", gap: 8 },
   arrow: {
