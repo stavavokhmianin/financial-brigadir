@@ -92,6 +92,8 @@ export function SimulateScreen() {
   const [failure, setFailure] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showContext, setShowContext] = useState(false);
+  const [showIncomeStress, setShowIncomeStress] = useState(false);
   const [reload, setReload] = useState(0);
   const inputRevision = useRef(0);
 
@@ -151,6 +153,11 @@ export function SimulateScreen() {
     setSubmittedPurchase(null);
     setSaved(null);
     setShowDetails(false);
+  };
+
+  const setQuickDate = (days: number) => {
+    setDate(formatDateInput(addDays(base.today, days)));
+    invalidateResult();
   };
 
   const simulate = async () => {
@@ -242,6 +249,8 @@ export function SimulateScreen() {
     setSaved(null);
     setSubmittedPurchase(null);
     setShowDetails(false);
+    setShowContext(false);
+    setShowIncomeStress(false);
   };
 
   const edit = () => {
@@ -270,140 +279,187 @@ export function SimulateScreen() {
   return (
     <Screen wide>
       {!result ? (
-        <View
-          style={{
-            flexDirection: desktop ? "row" : "column",
-            alignItems: "flex-start",
-            gap: 24,
-          }}
-        >
-          <Card
-            title={t.title}
-            icon="cart"
-            style={{
-              flex: desktop ? 1 : undefined,
-              width: desktop ? undefined : "100%",
-            }}
-          >
+        <View style={styles.simulatorShell}>
+          <Card title={t.title} icon="cart">
+            <Text style={[styles.intro, { color: palette.text }]}>
+              {t.intro}
+            </Text>
+
+            <View
+              style={[
+                styles.baseline,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            >
+              <Text style={[styles.baselineTitle, { color: palette.muted }]}>
+                {t.currentSnapshot}
+              </Text>
+              <View style={[styles.baselineMetrics, !desktop && styles.stack]}>
+                <View style={styles.metric}>
+                  <Muted>{t.expectedMinimum}</Muted>
+                  <Money
+                    minor={base.risk.min_balance_minor}
+                    approximate
+                    style={[styles.metricValue, { color: palette.text }]}
+                  />
+                </View>
+                <View style={styles.metric}>
+                  <Muted>{t.reserve}</Muted>
+                  <Money
+                    minor={base.reserve_minor}
+                    style={[styles.metricValue, { color: palette.text }]}
+                  />
+                </View>
+              </View>
+            </View>
+
             {safe.available ? (
               <View style={[styles.safe, { backgroundColor: palette.okSoft }]}>
-                <Text style={{ color: palette.text }}>
-                  {t.safeLead} {formatDay(safe.date, year)}:
+                <Text style={[styles.safeLabel, { color: palette.muted }]}>
+                  {t.safeReference} · {formatDay(safe.date, year)}
                 </Text>
                 <Money
                   minor={safe.base_minor}
                   approximate
                   style={[styles.safeValue, { color: palette.ok }]}
                 />
-                <Muted>
-                  {safe.conservative_minor > 0
-                    ? `${t.safeCareful} ${formatRubApprox(safe.conservative_minor)}`
-                    : t.safeCarefulNone}
-                </Muted>
               </View>
             ) : (
               <Muted>{t.safeUnavailable}</Muted>
             )}
-            <Field
-              label={t.amount}
-              testID="purchase-amount"
-              value={amount}
-              onChangeText={(value) => {
-                setAmount(value);
-                invalidateResult();
-              }}
-              keyboardType="decimal-pad"
-              placeholder="12 000"
-              error={errors.amount}
-            />
-            <Field
-              label={t.merchant}
-              value={merchant}
-              onChangeText={(value) => {
-                setMerchant(value);
-                invalidateResult();
-              }}
-              placeholder={t.merchantPlaceholder}
-              hint={t.contextHint}
-            />
-            <Field
-              label={t.category}
-              value={category}
-              onChangeText={(value) => {
-                setCategory(value);
-                invalidateResult();
-              }}
-              placeholder={t.categoryPlaceholder}
-            />
-            <Field
-              label={t.date}
-              value={date}
-              onChangeText={(value) => {
-                setDate(value);
-                invalidateResult();
-              }}
-              error={errors.date}
-              hint={`${t.dateRange} ${formatDay(dateRange.min, year)} — ${formatDay(dateRange.max, year)}`}
-            />
-            {salaryId && session.user.plan === "plus" ? (
-              <>
-                {incomes.length > 1 ? (
-                  <Choice
-                    label={t.delayIncome}
-                    value={salaryId}
-                    onChange={(value) => {
-                      setSalaryId(value);
-                      invalidateResult();
-                    }}
-                    options={incomes.map((income) => ({
-                      value: income.id,
-                      label: income.title,
-                    }))}
-                  />
-                ) : null}
-                <Choice
-                  label={t.delay}
-                  value={delay}
-                  onChange={(value) => {
-                    setDelay(value);
+
+            <Text style={[styles.question, { color: palette.text }]}>
+              {t.question}
+            </Text>
+            <Muted>{t.extraExpenseNote}</Muted>
+            <View style={[styles.inputGrid, !desktop && styles.stack]}>
+              <View style={styles.inputCell}>
+                <Field
+                  label={t.amount}
+                  testID="purchase-amount"
+                  value={amount}
+                  onChangeText={(value) => {
+                    setAmount(value);
                     invalidateResult();
                   }}
-                  options={DELAYS.map((value) => ({
-                    value,
-                    label:
-                      value === "0"
-                        ? t.onTime
-                        : `${t.later} ${value} ${t.days}`,
-                  }))}
+                  keyboardType="decimal-pad"
+                  placeholder="12 000"
+                  error={errors.amount}
                 />
+              </View>
+              <View style={styles.inputCell}>
+                <Field
+                  label={t.date}
+                  value={date}
+                  onChangeText={(value) => {
+                    setDate(value);
+                    invalidateResult();
+                  }}
+                  error={errors.date}
+                  hint={`${t.dateRange} ${formatDay(dateRange.min, year)} — ${formatDay(dateRange.max, year)}`}
+                />
+              </View>
+            </View>
+            <View style={styles.quickDates}>
+              <Button
+                label={t.tomorrow}
+                size="sm"
+                variant="secondary"
+                onPress={() => setQuickDate(1)}
+              />
+              <Button
+                label={t.inWeek}
+                size="sm"
+                variant="secondary"
+                onPress={() => setQuickDate(7)}
+              />
+            </View>
+
+            <Button
+              label={showContext ? t.contextHide : t.contextToggle}
+              variant="secondary"
+              onPress={() => setShowContext((value) => !value)}
+            />
+            {showContext ? (
+              <View style={styles.optionalBlock}>
+                <Muted>{t.contextHint}</Muted>
+                <Field
+                  label={t.merchant}
+                  value={merchant}
+                  onChangeText={(value) => {
+                    setMerchant(value);
+                    invalidateResult();
+                  }}
+                  placeholder={t.merchantPlaceholder}
+                />
+                <Field
+                  label={t.category}
+                  value={category}
+                  onChangeText={(value) => {
+                    setCategory(value);
+                    invalidateResult();
+                  }}
+                  placeholder={t.categoryPlaceholder}
+                />
+              </View>
+            ) : null}
+
+            {salaryId && session.user.plan === "plus" ? (
+              <>
+                <Button
+                  label={showIncomeStress ? t.incomeHide : t.incomeToggle}
+                  variant="secondary"
+                  onPress={() => {
+                    if (showIncomeStress) {
+                      setDelay("0");
+                      invalidateResult();
+                    }
+                    setShowIncomeStress((value) => !value);
+                  }}
+                />
+                {showIncomeStress ? (
+                  <View style={styles.optionalBlock}>
+                    {incomes.length > 1 ? (
+                      <Choice
+                        label={t.delayIncome}
+                        value={salaryId}
+                        onChange={(value) => {
+                          setSalaryId(value);
+                          invalidateResult();
+                        }}
+                        options={incomes.map((income) => ({
+                          value: income.id,
+                          label: income.title,
+                        }))}
+                      />
+                    ) : null}
+                    <Choice
+                      label={t.delay}
+                      value={delay}
+                      onChange={(value) => {
+                        setDelay(value);
+                        invalidateResult();
+                      }}
+                      options={DELAYS.map((value) => ({
+                        value,
+                        label:
+                          value === "0"
+                            ? t.onTime
+                            : `${t.later} ${value} ${t.days}`,
+                      }))}
+                    />
+                  </View>
+                ) : null}
               </>
-            ) : salaryId ? (
-              <Muted>{t.plusOnly}</Muted>
             ) : null}
             <Button
               testID="calculate-scenario"
               label={t.calculate}
+              trailingIcon="arrow"
               onPress={() => void simulate()}
               loading={busy}
             />
             <Muted>{t.noPayment}</Muted>
-          </Card>
-          <Card
-            title="Ваш прогноз сейчас"
-            icon="chart"
-            style={{
-              flex: desktop ? 1.2 : undefined,
-              width: desktop ? undefined : "100%",
-            }}
-          >
-            <Muted>
-              После расчёта здесь появится сравнение с новым сценарием.
-            </Muted>
-            <ForecastChart
-              points={base.points}
-              reserveMinor={base.reserve_minor}
-            />
-            <RiskScale level={base.risk_level} />
           </Card>
         </View>
       ) : null}
@@ -439,6 +495,35 @@ export function SimulateScreen() {
                   {t.riskFrom} {formatDay(verdict.date, year)}.
                 </Text>
               ) : null}
+              <View style={[styles.impactGrid, !desktop && styles.stack]}>
+                <View
+                  style={[
+                    styles.impactItem,
+                    { backgroundColor: palette.card, borderColor: palette.border },
+                  ]}
+                >
+                  <Muted>{t.impactBefore}</Muted>
+                  <Money
+                    minor={result.base.risk.min_balance_minor}
+                    approximate
+                    style={[styles.impactValue, { color: palette.text }]}
+                  />
+                </View>
+                <View
+                  style={[
+                    styles.impactItem,
+                    { backgroundColor: palette.card, borderColor: palette.border },
+                  ]}
+                >
+                  <Muted>{t.impactAfter}</Muted>
+                  <Money
+                    minor={result.result.risk.min_balance_minor}
+                    approximate
+                    style={[styles.impactValue, { color: verdictTone.color }]}
+                  />
+                </View>
+              </View>
+              <Muted>{t.impactCaption}</Muted>
               <View style={styles.reasons}>
                 <Text style={[styles.reasonTitle, { color: palette.muted }]}>
                   {t.why}
@@ -469,24 +554,6 @@ export function SimulateScreen() {
                   <Muted>{verdict.explanation}</Muted>
                 )}
               </View>
-              {base.safe_to_spend.available ? (
-                <View
-                  style={[
-                    styles.guide,
-                    {
-                      backgroundColor: palette.card,
-                      borderColor: palette.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.guideLabel, { color: palette.muted }]}>
-                    {t.currentGuide}
-                  </Text>
-                  <Text style={[styles.guideValue, { color: palette.text }]}>
-                    {formatRubApprox(base.safe_to_spend.base_minor)}
-                  </Text>
-                </View>
-              ) : null}
               {result.purchase_context ? (
                 <View
                   style={[
@@ -560,16 +627,16 @@ export function SimulateScreen() {
             onPress={() => setShowDetails((value) => !value)}
           />
 
-          <Card title={t.chartTitle} icon="chart">
-            <ForecastChart
-              points={result.result.points}
-              reserveMinor={result.result.reserve_minor}
-              compare={result.base.points}
-            />
-            <Muted>{t.chartHint}</Muted>
-          </Card>
           {showDetails ? (
             <>
+              <Card title={t.chartTitle} icon="chart">
+                <ForecastChart
+                  points={result.result.points}
+                  reserveMinor={result.result.reserve_minor}
+                  compare={result.base.points}
+                />
+                <Muted>{t.chartHint}</Muted>
+              </Card>
               <Card title={t.compareTitle} icon="sparkle">
                 <RiskScale
                   level={result.risk_level_after}
@@ -616,14 +683,51 @@ export function SimulateScreen() {
 }
 
 const styles = StyleSheet.create({
+  simulatorShell: { width: "100%", maxWidth: 840, alignSelf: "center" },
+  intro: { fontSize: 16, lineHeight: 24, fontWeight: "500" },
+  baseline: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    padding: space.md,
+    gap: space.md,
+  },
+  baselineTitle: {
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  baselineMetrics: { flexDirection: "row", gap: space.lg },
+  stack: { flexDirection: "column" },
+  metric: { flex: 1, gap: space.xs },
+  metricValue: { fontSize: 22, lineHeight: 28, fontWeight: "600" },
   safe: { gap: space.xs, borderRadius: radius.md, padding: space.md },
+  safeLabel: { fontSize: 13, lineHeight: 18, fontWeight: "500" },
   safeValue: {
     fontSize: 26,
     fontWeight: "600",
     letterSpacing: -1,
     fontVariant: ["tabular-nums"],
   },
+  question: { fontSize: 20, lineHeight: 27, fontWeight: "600" },
+  inputGrid: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
+  inputCell: { flex: 1, minWidth: 0 },
+  quickDates: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
+  optionalBlock: {
+    gap: space.md,
+    padding: space.md,
+    borderRadius: radius.md,
+  },
   verdict: { borderRadius: radius.lg, padding: space.xl, gap: space.md },
+  impactGrid: { flexDirection: "row", gap: space.md },
+  impactItem: {
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    padding: space.md,
+    gap: space.xs,
+  },
+  impactValue: { fontSize: 24, lineHeight: 32, fontWeight: "600" },
   verdictIcon: {
     width: 40,
     height: 40,
@@ -639,14 +743,6 @@ const styles = StyleSheet.create({
   },
   verdictLead: { fontSize: 16, lineHeight: 24, fontWeight: "500" },
   verdictDate: { fontSize: 14, lineHeight: 21, fontWeight: "500" },
-  guide: { borderRadius: radius.md, borderWidth: 1, padding: space.md, gap: 2 },
-  guideLabel: { fontSize: 13, fontWeight: "500" },
-  guideValue: {
-    fontSize: 22,
-    fontWeight: "600",
-    letterSpacing: -0.8,
-    fontVariant: ["tabular-nums"],
-  },
   context: {
     borderRadius: radius.md,
     borderWidth: 1,
