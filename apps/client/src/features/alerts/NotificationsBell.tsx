@@ -103,13 +103,13 @@ export function NotificationsBell({ token }: Props) {
         style={({ pressed }) => [
           styles.bell,
           {
-            backgroundColor: palette.heroChip,
-            borderColor: "rgba(255,255,255,0.14)",
+            backgroundColor: palette.card,
+            borderColor: palette.inputBorder,
             opacity: pressed ? 0.76 : 1,
           },
         ]}
       >
-        <Icon name="bell" color={palette.heroText} size={18} />
+        <Icon name="bell" color={palette.text} size={18} />
         {count > 0 ? (
           <View
             style={[styles.counter, { backgroundColor: palette.dangerSolid }]}

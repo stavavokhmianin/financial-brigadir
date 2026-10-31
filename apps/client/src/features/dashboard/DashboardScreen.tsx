@@ -39,7 +39,6 @@ import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { Money } from "@/shared/ui/money";
 import { Reveal } from "@/shared/ui/motion";
-import { ChartLegend } from "@/features/forecast/ForecastScreen";
 import { radius, space, typeScale, usePalette } from "@/shared/ui/theme";
 
 import { describeAccount, upcoming } from "./logic";
@@ -181,65 +180,34 @@ export function DashboardScreen() {
 
   return (
     <Screen wide>
-      <View style={[styles.overviewGrid, desktop && styles.horizontal]}>
-        <Hero
-          style={{
-            flex: desktop ? 1.55 : undefined,
-            padding: desktop ? 32 : 20,
-            gap: desktop ? 20 : 12,
-          }}
-        >
-          <View style={styles.heroTop}>
-            <View style={styles.heroBadges}>
-              {/* Учебный аккаунт не показывает основу синтетики как персонажа (ADR-0007). */}
-              {isLive ? (
-                <Badge
-                  label={session.user.display_name ?? ru.live.badge}
-                  tone="hero"
+      <View style={styles.topBar}>
+        <View style={styles.heroBadges}>
+          <Badge label={session.user.display_name ?? ru.live.badge} />
+          <Badge label={ru.dashboard.coverage[quality.coverage]} tone="muted" />
+        </View>
+        <View style={styles.heroActions}>
+          {token ? <NotificationsBell token={token} /> : null}
+          <DashboardMenu
+            isDemo={session.user.is_demo}
+            qualityNotes={quality.notes}
+            duplicates={data.duplicates}
+            liveControl={
+              data.live && token ? (
+                <LiveBar
+                  key={token}
+                  token={token}
+                  latest={data.live}
+                  onArrived={onArrived}
                 />
-              ) : (
-                <>
-                  <Badge
-                    label={
-                      "profile" in session
-                        ? session.profile.title
-                        : ru.pilot.badge
-                    }
-                    tone="hero"
-                  />
-                  {quality.is_demo ? (
-                    <Badge label={ru.dashboard.demoBadge} tone="hero" />
-                  ) : null}
-                </>
-              )}
-              {desktop ? (
-                <Badge
-                  label={ru.dashboard.coverage[quality.coverage]}
-                  tone="hero"
-                />
-              ) : null}
-            </View>
-            <View style={styles.heroActions}>
-              {token ? <NotificationsBell token={token} /> : null}
-              <DashboardMenu
-                isDemo={session.user.is_demo}
-                qualityNotes={quality.notes}
-                duplicates={data.duplicates}
-                liveControl={
-                  data.live && token ? (
-                    <LiveBar
-                      key={token}
-                      token={token}
-                      latest={data.live}
-                      onArrived={onArrived}
-                    />
-                  ) : undefined
-                }
-              />
-            </View>
-          </View>
+              ) : undefined
+            }
+          />
+        </View>
+      </View>
 
-          <View style={[styles.balance, !desktop && { gap: 8, paddingTop: 4 }]}>
+      <Hero style={{ padding: desktop ? 32 : 20, gap: desktop ? 24 : 16 }}>
+        <View style={[styles.heroSummary, desktop && styles.horizontal]}>
+          <View style={[styles.balance, { flex: desktop ? 1.45 : undefined }]}>
             <Text style={[typeScale.eyebrow, { color: palette.heroMuted }]}>
               {ru.dashboard.liquid}
             </Text>
@@ -250,160 +218,86 @@ export function DashboardScreen() {
                 { color: palette.heroText },
               ]}
             />
-            {desktop ? (
-              <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>
-                Деньги, которыми вы располагаете сейчас
-              </Text>
-            ) : null}
-          </View>
-          <View
-            style={[
-              styles.balanceBottom,
-              { borderColor: palette.heroBorder },
-              desktop && {
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              },
-              !desktop && { gap: 12, marginTop: 0 },
-            ]}
-          >
-            {quality.data_as_of ? (
-              <View style={styles.freshness}>
-                <Icon name="clock" color={palette.heroMuted} size={14} />
-                <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>
-                  {formatMoment(quality.data_as_of)}
-                </Text>
-              </View>
-            ) : null}
-            <Button
-              label="Добавить операцию"
-              icon="plus"
-              variant="inverse"
-              onPress={() => router.push("/add")}
-            />
-          </View>
-        </Hero>
-        <Card
-          style={{
-            flex: desktop ? 1 : undefined,
-            backgroundColor: palette.accentSoft,
-            gap: desktop ? 16 : 10,
-            padding: desktop ? 24 : 20,
-          }}
-        >
-          <View style={styles.sectionHeading}>
-            <Icon name="shield" color={palette.accent} size={20} />
-            <Text style={[typeScale.eyebrow, { color: palette.accent }]}>
-              МОЖНО ПОТРАТИТЬ
+            <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>
+              На счетах сейчас, без кредитных лимитов
             </Text>
           </View>
-          {data.forecast?.safe_to_spend.available &&
-          data.accounts.items.length > 0 ? (
-            <>
-              <Money
-                minor={data.forecast.safe_to_spend.base_minor}
-                approximate
-                style={[
-                  desktop ? typeScale.display : typeScale.title,
-                  { color: palette.text },
-                ]}
-              />
-              <Text style={[typeScale.caption, { color: palette.muted }]}>
-                На {formatDay(data.forecast.safe_to_spend.date, year)} ·
-                основной сценарий
-              </Text>
-              <View
-                style={[
-                  styles.safeDetail,
-                  { borderColor: palette.border },
-                  !desktop && {
-                    paddingVertical: 0,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  },
-                ]}
-              >
-                <Text style={[styles.heroLabel, { color: palette.muted }]}>
-                  Осторожная оценка
-                </Text>
+
+          <View
+            style={[
+              styles.safeInline,
+              { backgroundColor: palette.heroChip, borderColor: palette.heroBorder },
+              { flex: desktop ? 1 : undefined },
+            ]}
+          >
+            <Text style={[typeScale.eyebrow, { color: palette.heroMuted }]}>
+              МОЖНО ПОТРАТИТЬ ДО{" "}
+              {data.forecast?.safe_to_spend.available
+                ? formatDay(data.forecast.safe_to_spend.date, year)
+                : "—"}
+            </Text>
+            {data.forecast?.safe_to_spend.available &&
+            data.accounts.items.length > 0 ? (
+              <>
                 <Money
-                  minor={data.forecast.safe_to_spend.conservative_minor}
+                  minor={data.forecast.safe_to_spend.base_minor}
                   approximate
-                  style={[typeScale.heading, { color: palette.text }]}
+                  style={[typeScale.title, { color: palette.heroText }]}
                 />
-              </View>
-              {desktop ? (
-                <Text style={[typeScale.caption, { color: palette.muted }]}>
-                  Модельная оценка с учётом резерва, а не гарантия остатка.
-                </Text>
-              ) : null}
-            </>
-          ) : (
-            <Muted>
-              {data.accounts.items.length === 0
-                ? ru.dashboard.noAccounts
-                : "Пока недостаточно данных для оценки доступной суммы."}
-            </Muted>
-          )}
-          {!desktop ? (
-            <View
-              style={{
-                gap: 8,
-                borderTopWidth: 1,
-                borderColor: palette.inputBorder,
-                paddingTop: 10,
-              }}
-            >
-              {data.forecast && data.accounts.items.length > 0 ? (
-                <View
-                  style={[
-                    styles.decision,
-                    { backgroundColor: forecastTone?.soft, padding: 10 },
-                  ]}
+                <Text
+                  style={[styles.heroLabel, { color: palette.heroMuted }]}
                 >
-                  <Icon
-                    name={forecastTone?.icon ?? "shield"}
-                    color={forecastTone?.color ?? palette.accent}
-                    size={16}
-                  />
-                  <Text
-                    style={{
-                      color: forecastTone?.color,
-                      fontSize: 13,
-                      fontWeight: "600",
-                      flexShrink: 1,
-                    }}
-                  >
-                    {ru.forecast.level[data.forecast.risk_level]}
-                  </Text>
-                </View>
-              ) : null}
-              {next.items[0] ? (
-                <Text style={[typeScale.caption, { color: palette.text }]}>
-                  Ближайший платёж · {formatDay(next.items[0].date, year)}
-                  {"\n"}
-                  {next.items[0].title} ·{" "}
-                  {formatRub(-next.items[0].amount_minor)}
+                  Из свободных средств уже вычтены будущие платежи, обычные
+                  расходы и резерв {formatRub(data.forecast.reserve_minor)}
                 </Text>
-              ) : (
-                <Text style={[typeScale.caption, { color: palette.muted }]}>
-                  {ru.dashboard.upcomingEmpty}
+                <Text
+                  style={[styles.heroLabel, { color: palette.heroMuted }]}
+                >
+                  Осторожная оценка:{" "}
+                  {formatRubApprox(
+                    data.forecast.safe_to_spend.conservative_minor,
+                  )}
                 </Text>
-              )}
+              </>
+            ) : (
+              <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>
+                Недостаточно данных для оценки
+              </Text>
+            )}
+            <Button
+              label={ru.forecast.whatIf}
+              trailingIcon="arrow"
+              variant="inverse"
+              onPress={() =>
+                router.push(data.accounts.items.length ? "/simulate" : "/add")
+              }
+            />
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.balanceBottom,
+            { borderColor: palette.heroBorder },
+            desktop && styles.balanceBottomDesktop,
+          ]}
+        >
+          {quality.data_as_of ? (
+            <View style={styles.freshness}>
+              <Icon name="clock" color={palette.heroMuted} size={14} />
+              <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>
+                {formatMoment(quality.data_as_of)}
+              </Text>
             </View>
           ) : null}
           <Button
-            label={ru.forecast.whatIf}
-            trailingIcon="arrow"
-            variant="secondary"
-            onPress={() =>
-              router.push(data.accounts.items.length ? "/simulate" : "/add")
-            }
+            label="Добавить операцию"
+            icon="plus"
+            variant="inverse"
+            onPress={() => router.push("/add")}
           />
-        </Card>
-      </View>
+        </View>
+      </Hero>
 
       {isLive && token ? (
         <SpendingReview
@@ -416,47 +310,16 @@ export function DashboardScreen() {
       ) : null}
 
       <Reveal delay={55}>
-        <View style={[styles.overviewGrid, desktop && styles.horizontal]}>
-          <Card
-            title="Прогноз денежных потоков"
-            icon="chart"
-            style={{ flex: desktop ? 1.55 : undefined }}
-          >
-            {data.forecast && data.accounts.items.length > 0 ? (
-              <>
-                <View style={styles.sectionHeading}>
-                  <Badge
-                    label={String(data.forecast.horizon_days) + " дней вперёд"}
-                  />
-                  <Text style={[typeScale.caption, { color: palette.muted }]}>
-                    Диапазон сценариев p10–p90
-                  </Text>
-                </View>
-                <ForecastChart
-                  points={data.forecast.points}
-                  reserveMinor={data.forecast.reserve_minor}
-                />
-                <ChartLegend />
-              </>
-            ) : (
-              <Muted>
-                {data.accounts.items.length === 0
-                  ? ru.dashboard.noAccounts
-                  : ru.forecast.error}
-              </Muted>
-            )}
-          </Card>
-          <Card
-            title="Запас прочности"
-            icon="shield"
-            style={{ flex: desktop ? 1 : undefined }}
-          >
-            {data.forecast && data.accounts.items.length > 0 ? (
-              <>
+        <Card title="Прогноз на 30 дней" icon="chart">
+          {data.forecast && data.accounts.items.length > 0 ? (
+            <>
+              <View
+                style={[styles.forecastSummary, desktop && styles.horizontal]}
+              >
                 <View
                   style={[
                     styles.decision,
-                    { backgroundColor: forecastTone?.soft },
+                    { backgroundColor: forecastTone?.soft, flex: 1 },
                   ]}
                 >
                   <Icon
@@ -478,52 +341,48 @@ export function DashboardScreen() {
                     >
                       {data.forecast.risk_level === "high" &&
                       data.forecast.risk.date
-                        ? `${ru.dashboard.riskOn} ${formatDay(data.forecast.risk.date, year)}. ${ru.dashboard.riskGap} ${formatRubApprox(data.forecast.risk.shortfall_minor)}.`
-                        : data.forecast.risk_level === "high"
-                          ? ru.dashboard.reserveOften
-                          : data.forecast.risk_level === "medium"
-                            ? ru.dashboard.reserveTight
-                            : ru.dashboard.reserveKeeps}
+                        ? `Резерв может не сохраниться с ${formatDay(data.forecast.risk.date, year)}`
+                        : data.forecast.risk_level === "medium"
+                          ? "Запас сохранится, но неблагоприятный сценарий близок к резерву"
+                          : "Даже неблагоприятный сценарий остаётся выше резерва"}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.safeDetail}>
+                <View style={styles.forecastStat}>
                   <Muted>
-                    {ru.forecast.minimum} ·{" "}
+                    Минимум ·{" "}
                     {formatDay(data.forecast.risk.min_balance_date, year)}
                   </Muted>
                   <Money
                     minor={data.forecast.risk.min_balance_minor}
                     approximate
-                    style={[
-                      typeScale.title,
-                      {
-                        color:
-                          data.forecast.risk.min_balance_minor <
-                          data.forecast.reserve_minor
-                            ? palette.danger
-                            : palette.text,
-                      },
-                    ]}
+                    style={[typeScale.heading, { color: palette.text }]}
                   />
                 </View>
-                <View
-                  style={[
-                    styles.safeDetail,
-                    { borderColor: palette.border, borderTopWidth: 1 },
-                  ]}
-                >
-                  <Muted>Ваш финансовый резерв</Muted>
+                <View style={styles.forecastStat}>
+                  <Muted>Неприкосновенный резерв</Muted>
                   <Text style={[typeScale.heading, { color: palette.text }]}>
                     {formatRub(data.forecast.reserve_minor)}
                   </Text>
                 </View>
-              </>
-            ) : (
-              <Muted>Оценка риска появится после расчёта прогноза.</Muted>
-            )}
-          </Card>
-        </View>
+              </View>
+              <Text style={[typeScale.caption, { color: palette.muted }]}>
+                Линия — ожидаемый остаток; полоса вокруг неё — возможный разброс
+              </Text>
+              <ForecastChart
+                points={data.forecast.points}
+                reserveMinor={data.forecast.reserve_minor}
+                compact
+              />
+            </>
+          ) : (
+            <Muted>
+              {data.accounts.items.length === 0
+                ? ru.dashboard.noAccounts
+                : ru.forecast.error}
+            </Muted>
+          )}
+        </Card>
       </Reveal>
 
       <Reveal delay={110}>
@@ -535,7 +394,7 @@ export function DashboardScreen() {
                 <Muted>{ru.dashboard.upcomingEmpty}</Muted>
               ) : (
                 <>
-                  {next.items.map((item) => (
+                  {next.items.slice(0, 4).map((item) => (
                     <View
                       key={`${item.obligation_id}-${item.date}`}
                       style={styles.line}
@@ -570,6 +429,13 @@ export function DashboardScreen() {
                       </Text>
                     </View>
                   ))}
+                  {next.items.length > 4 ? (
+                    <Button
+                      label={`Ещё ${next.items.length - 4} в календаре`}
+                      variant="secondary"
+                      onPress={() => router.push("/calendar")}
+                    />
+                  ) : null}
                   <View
                     style={[
                       styles.line,
@@ -628,11 +494,10 @@ export function DashboardScreen() {
       </Reveal>
 
       <Card title={ru.dashboard.recentTitle} icon="wallet">
-        <Muted>{ru.dashboard.recentHint}</Muted>
         {data.transactions.length === 0 ? (
           <Muted>{ru.dashboard.recentEmpty}</Muted>
         ) : (
-          data.transactions.map((transaction) => (
+          data.transactions.slice(0, 4).map((transaction) => (
             <View key={transaction.id} style={styles.activity}>
               <View style={styles.lineMain}>
                 <Text style={[styles.lineTitle, { color: palette.text }]}>
@@ -669,6 +534,13 @@ export function DashboardScreen() {
             </View>
           ))
         )}
+        {data.transactions.length > 0 ? (
+          <Button
+            label="Вся история"
+            variant="secondary"
+            onPress={() => router.push("/calendar")}
+          />
+        ) : null}
       </Card>
     </Screen>
   );
@@ -677,11 +549,27 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   overviewGrid: { gap: space.xl },
   horizontal: { flexDirection: "row", alignItems: "stretch" },
-  sectionHeading: {
+  topBar: {
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
-    gap: space.sm,
-    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: space.md,
+  },
+  heroSummary: { gap: space.xl, alignItems: "stretch" },
+  forecastSummary: { gap: space.md, alignItems: "stretch" },
+  forecastStat: {
+    flex: 0.7,
+    minWidth: 160,
+    gap: space.xs,
+    justifyContent: "center",
+  },
+  safeInline: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    padding: space.lg,
+    gap: space.md,
+    justifyContent: "center",
   },
   balanceBottom: {
     borderTopWidth: 1,
@@ -689,12 +577,10 @@ const styles = StyleSheet.create({
     gap: space.lg,
     marginTop: space.md,
   },
-  safeDetail: { gap: space.sm, paddingVertical: space.md },
-  heroTop: {
+  balanceBottomDesktop: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    gap: space.md,
   },
   heroActions: { flexDirection: "row", gap: space.sm },
   // Бейджи сжимаются и переносятся, колокольчик остаётся в панели даже на 320–375 px.
@@ -706,13 +592,6 @@ const styles = StyleSheet.create({
   },
   balance: { gap: space.md, paddingTop: space.lg },
   heroLabel: { fontSize: 13, fontWeight: "500" },
-  amount: {
-    fontSize: 44,
-    fontWeight: "600",
-    letterSpacing: -2,
-    lineHeight: 52,
-    fontVariant: ["tabular-nums"],
-  },
   freshness: { flexDirection: "row", alignItems: "center", gap: 6 },
   decision: {
     flexDirection: "row",
@@ -721,13 +600,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: space.md,
   },
-  decisionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   decisionTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -735,9 +607,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.32,
   },
   decisionText: { fontSize: 14, lineHeight: 20 },
-  stats: { flexDirection: "row", gap: space.sm },
-  inlineChart: { gap: space.sm, paddingTop: space.xs },
-  inlineChartTitle: { fontSize: 14, fontWeight: "600" },
   line: {
     flexDirection: "row",
     justifyContent: "space-between",

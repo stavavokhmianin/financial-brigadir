@@ -242,77 +242,84 @@ export function ForecastChart({
           {formatDay(points[points.length - 1]!.day)}
         </Text>
       </View>
-      <View
-        style={[
-          styles.details,
-          { borderColor: palette.border, backgroundColor: palette.background },
-        ]}
-      >
-        <View style={styles.dateNavigation}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Предыдущая дата прогноза"
-            accessibilityState={{ disabled: index === 0 }}
-            disabled={index === 0}
-            onPress={() => select(index - 1)}
-            style={[
-              styles.arrow,
-              {
-                borderColor: palette.inputBorder,
-                opacity: index === 0 ? 0.4 : 1,
-              },
-            ]}
-          >
-            <Text style={{ color: palette.text }}>←</Text>
-          </Pressable>
-          <Text
-            style={[
-              styles.caption,
-              { color: palette.text, flex: 1, textAlign: "center" },
-            ]}
-          >
-            {formatDay(selected.day)}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Следующая дата прогноза"
-            accessibilityState={{ disabled: index === points.length - 1 }}
-            disabled={index === points.length - 1}
-            onPress={() => select(index + 1)}
-            style={[
-              styles.arrow,
-              {
-                borderColor: palette.inputBorder,
-                opacity: index === points.length - 1 ? 0.4 : 1,
-              },
-            ]}
-          >
-            <Text style={{ color: palette.text }}>→</Text>
-          </Pressable>
+      {compact ? null : (
+        <View
+          style={[
+            styles.details,
+            {
+              borderColor: palette.border,
+              backgroundColor: palette.background,
+            },
+          ]}
+        >
+          <View style={styles.dateNavigation}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Предыдущая дата прогноза"
+              accessibilityState={{ disabled: index === 0 }}
+              disabled={index === 0}
+              onPress={() => select(index - 1)}
+              style={[
+                styles.arrow,
+                {
+                  borderColor: palette.inputBorder,
+                  opacity: index === 0 ? 0.4 : 1,
+                },
+              ]}
+            >
+              <Text style={{ color: palette.text }}>←</Text>
+            </Pressable>
+            <Text
+              style={[
+                styles.caption,
+                { color: palette.text, flex: 1, textAlign: "center" },
+              ]}
+            >
+              {formatDay(selected.day)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Следующая дата прогноза"
+              accessibilityState={{ disabled: index === points.length - 1 }}
+              disabled={index === points.length - 1}
+              onPress={() => select(index + 1)}
+              style={[
+                styles.arrow,
+                {
+                  borderColor: palette.inputBorder,
+                  opacity: index === points.length - 1 ? 0.4 : 1,
+                },
+              ]}
+            >
+              <Text style={{ color: palette.text }}>→</Text>
+            </Pressable>
+          </View>
+          <View accessibilityLiveRegion="polite" style={styles.readout}>
+            <Text
+              style={[
+                styles.value,
+                {
+                  color: selectedBar.belowReserve
+                    ? palette.danger
+                    : palette.text,
+                },
+              ]}
+            >
+              {formatRub(selected.p50_minor)}
+            </Text>
+            <Text style={[styles.caption, { color: palette.muted }]}>
+              p50 · основной сценарий
+            </Text>
+            <Text style={[styles.caption, { color: palette.muted }]}>
+              p10–p90: {formatRub(selected.p10_minor)} …{" "}
+              {formatRub(selected.p90_minor)}
+            </Text>
+            <Text style={[styles.caption, { color: palette.danger }]}>
+              — Резерв {formatRub(reserveMinor)}
+            </Text>
+          </View>
         </View>
-        <View accessibilityLiveRegion="polite" style={styles.readout}>
-          <Text
-            style={[
-              styles.value,
-              {
-                color: selectedBar.belowReserve ? palette.danger : palette.text,
-              },
-            ]}
-          >
-            {formatRub(selected.p50_minor)}
-          </Text>
-          <Text style={[styles.caption, { color: palette.muted }]}>
-            p50 · основной сценарий
-          </Text>
-          <Text style={[styles.caption, { color: palette.muted }]}>
-            p10–p90: {formatRub(selected.p10_minor)} …{" "}
-            {formatRub(selected.p90_minor)}
-          </Text>
-          <Text style={[styles.caption, { color: palette.danger }]}>
-            — Резерв {formatRub(reserveMinor)}
-          </Text>
-        </View>
-      </View>
+      )}
     </View>
   );
 }

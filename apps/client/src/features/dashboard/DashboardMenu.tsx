@@ -78,13 +78,13 @@ export function DashboardMenu({
         style={({ pressed }) => [
           styles.trigger,
           {
-            backgroundColor: palette.heroChip,
-            borderColor: "rgba(255,255,255,0.14)",
+            backgroundColor: palette.card,
+            borderColor: palette.inputBorder,
             opacity: pressed ? 0.76 : 1,
           },
         ]}
       >
-        <Icon name="user" color={palette.heroText} size={18} />
+        <Icon name="user" color={palette.text} size={18} />
       </Pressable>
 
       <Modal
