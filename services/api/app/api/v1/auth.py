@@ -4,7 +4,6 @@ import secrets
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.adapters.synthetic import SyntheticDataAdapter
@@ -45,8 +44,9 @@ def _out(
     responses=error_responses(409, 422),
 )
 def register(body: RegisterIn, db: DbSession, settings: AppSettings) -> UserSessionOut:
-    if db.scalar(select(User.id).where(User.email == body.email)) is not None:
-        raise APIError(status.HTTP_409_CONFLICT, "email_exists", "Этот email уже зарегистрирован")
+    # Argon2 и выбор синтетической основы не должны удерживать read-транзакцию SQLite:
+    # две одновременные регистрации иначе обе читают, а затем одна не может стать писателем.
+    hashed_password = password_hash(body.password)
     seed = secrets.randbelow(2**31)
     available = [item["id"] for item in adapter.profiles() if adapter.is_available(item["id"])]
     profile_id = live.pick_profile(available, seed)
@@ -63,7 +63,7 @@ def register(body: RegisterIn, db: DbSession, settings: AppSettings) -> UserSess
             ),
             display_name=body.display_name,
             email=body.email,
-            password_hash=password_hash(body.password),
+            password_hash=hashed_password,
         )
     except IntegrityError as exc:
         db.rollback()

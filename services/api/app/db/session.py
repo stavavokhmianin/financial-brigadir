@@ -12,8 +12,16 @@ def make_engine(url: str) -> Engine:
     if not url.startswith("sqlite"):
         return create_engine(url, pool_pre_ping=True, hide_parameters=True)
 
-    kwargs: dict[str, Any] = {"connect_args": {"check_same_thread": False}}
-    if url in ("sqlite://", "sqlite:///:memory:"):
+    in_memory = url in ("sqlite://", "sqlite:///:memory:")
+    kwargs: dict[str, Any] = {
+        "connect_args": {
+            "check_same_thread": False,
+            # Создание учебного профиля пишет историю одной транзакцией. На файловом
+            # SQLite параллельный запрос должен дождаться писателя, а не отдавать 500.
+            "timeout": 30,
+        }
+    }
+    if in_memory:
         kwargs["poolclass"] = StaticPool  # одна in-memory БД на весь engine
     engine = create_engine(url, hide_parameters=True, **kwargs)
 
@@ -21,6 +29,12 @@ def make_engine(url: str) -> Engine:
     def _enable_fk(dbapi_connection: Any, _record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        if not in_memory:
+            # Читатели не блокируют писателя и наоборот; одновременно всё равно пишет
+            # только один запрос, что соответствует назначению демо-стенда.
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.close()
 
     return engine
