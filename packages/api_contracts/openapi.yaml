@@ -1412,6 +1412,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/alerts/read:
+    post:
+      tags:
+      - alerts
+      summary: Отметить показанные предупреждения прочитанными после открытия колокольчика
+      operationId: markAlertsRead
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertsReadRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertsReadOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
   /api/v1/alerts/analytics:
     get:
       tags:
@@ -2044,6 +2077,12 @@ components:
           - type: string
           - type: 'null'
           title: Feedback
+        read_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Read At
         created_at:
           type: string
           format: date-time
@@ -2060,6 +2099,7 @@ components:
       - shortfall_minor
       - forecast_id
       - feedback
+      - read_at
       - created_at
       title: AlertOut
     AlertsOut:
@@ -2073,6 +2113,35 @@ components:
       required:
       - items
       title: AlertsOut
+    AlertsReadOut:
+      properties:
+        read_count:
+          type: integer
+          title: Read Count
+        read_at:
+          type: string
+          format: date-time
+          title: Read At
+      type: object
+      required:
+      - read_count
+      - read_at
+      title: AlertsReadOut
+      description: 'Результат открытия ленты: только показанные события становятся прочитанными.'
+    AlertsReadRequest:
+      properties:
+        alert_ids:
+          items:
+            type: string
+          type: array
+          maxItems: 100
+          minItems: 1
+          title: Alert Ids
+      type: object
+      required:
+      - alert_ids
+      title: AlertsReadRequest
+      description: Идентификаторы событий, которые клиент действительно показал в открытой панели.
     BankConsentOut:
       properties:
         id:

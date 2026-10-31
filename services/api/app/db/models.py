@@ -486,6 +486,7 @@ class Alert(Base):
     feedback: Mapped[str | None] = mapped_column(String(32))
     # Текст по шаблону 11.4 (тезис, дата, причина, действие, ограничение модели).
     message: Mapped[str | None] = mapped_column(String(500))
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

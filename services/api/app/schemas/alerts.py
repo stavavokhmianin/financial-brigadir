@@ -20,11 +20,25 @@ class AlertOut(APIModel):
     shortfall_minor: NonNegativeMinor | None
     forecast_id: str | None
     feedback: str | None
+    read_at: datetime | None
     created_at: datetime
 
 
 class AlertsOut(APIModel):
     items: list[AlertOut]
+
+
+class AlertsReadRequest(APIModel):
+    """Идентификаторы событий, которые клиент действительно показал в открытой панели."""
+
+    alert_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class AlertsReadOut(APIModel):
+    """Результат открытия ленты: только показанные события становятся прочитанными."""
+
+    read_count: int
+    read_at: datetime
 
 
 class AlertFeedback(APIModel):

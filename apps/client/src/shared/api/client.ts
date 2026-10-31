@@ -241,6 +241,13 @@ export const api = {
 
   listAlerts: (token: string) => request<Schemas["AlertsOut"]>("/api/v1/alerts", { token }),
 
+  markAlertsRead: (token: string, alertIds: string[]) =>
+    request<Schemas["AlertsReadOut"]>("/api/v1/alerts/read", {
+      method: "POST",
+      token,
+      body: { alert_ids: alertIds },
+    }),
+
   getAlertAnalytics: (token: string) =>
     request<AlertAnalytics>("/api/v1/alerts/analytics", { token }),
 

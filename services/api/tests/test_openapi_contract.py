@@ -20,6 +20,7 @@ REQUIRED = {  # раздел 22.2
     ("get", "/api/v1/forecasts/{forecast_id}"),
     ("post", "/api/v1/scenarios"),
     ("get", "/api/v1/alerts"),
+    ("post", "/api/v1/alerts/read"),
     ("patch", "/api/v1/notification-settings"),
     ("post", "/api/v1/connectors/bank-mock/sync"),
     ("get", "/api/v1/health"),

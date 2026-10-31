@@ -36,6 +36,34 @@ def test_forecast_with_risk_creates_one_alert_and_suppresses_repeat(
     assert [a["id"] for a in _alerts(client, headers, action="send")] == [first["id"]]
 
 
+def test_opening_alerts_marks_only_sent_events_read(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    client.post("/api/v1/forecasts", headers=headers, json={})
+    client.post("/api/v1/forecasts", headers=headers, json={})
+    before = _alerts(client, headers)
+    assert len(before) == 2
+    assert all(item["read_at"] is None for item in before)
+
+    marked = client.post(
+        "/api/v1/alerts/read", headers=headers, json={"alert_ids": [item["id"] for item in before]}
+    )
+    assert marked.status_code == 200
+    assert marked.json()["read_count"] == 1
+
+    after = _alerts(client, headers)
+    sent = next(item for item in after if item["action"] == "send")
+    suppressed = next(item for item in after if item["action"] == "suppress")
+    assert sent["read_at"] is not None
+    assert suppressed["read_at"] is None
+    assert (
+        client.post(
+            "/api/v1/alerts/read", headers=headers, json={"alert_ids": [sent["id"]]}
+        ).json()["read_count"]
+        == 0
+    )
+
+
 def test_scenario_does_not_alert(client: TestClient, headers: dict[str, str]) -> None:
     purchase = {"type": "expense", "amount_minor": 1_200_000, "date": "2026-10-20"}
     client.post("/api/v1/forecasts", headers=headers, json={"scenario": purchase})

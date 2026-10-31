@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
@@ -17,7 +18,14 @@ from app.modules.alerts import (
     to_out,
 )
 from app.modules.forecasting import current_as_of
-from app.schemas.alerts import AlertAnalyticsOut, AlertFeedback, AlertOut, AlertsOut
+from app.schemas.alerts import (
+    AlertAnalyticsOut,
+    AlertFeedback,
+    AlertOut,
+    AlertsOut,
+    AlertsReadOut,
+    AlertsReadRequest,
+)
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -41,6 +49,41 @@ def list_alerts(
         query = query.where(Alert.action == action)
     rows = db.scalars(query.order_by(Alert.created_at.desc(), Alert.id.desc()).limit(limit))
     return AlertsOut(items=[to_out(a) for a in rows])
+
+
+@router.post(
+    "/read",
+    operation_id="markAlertsRead",
+    summary="Отметить показанные предупреждения прочитанными после открытия колокольчика",
+    responses=error_responses(401),
+)
+def mark_alerts_read(
+    body: AlertsReadRequest, user: CurrentUser, db: DbSession
+) -> AlertsReadOut:
+    now = datetime.now(UTC)
+    rows = list(
+        db.scalars(
+            select(Alert).where(
+                Alert.user_id == user.id,
+                Alert.action == AlertAction.SEND,
+                Alert.read_at.is_(None),
+                Alert.id.in_(body.alert_ids),
+            )
+        )
+    )
+    for alert in rows:
+        alert.read_at = now
+    if rows:
+        db.add(
+            AuditEvent(
+                user_id=user.id,
+                action="alerts_read",
+                object_type="alert",
+                meta={"count": len(rows)},
+            )
+        )
+    db.commit()
+    return AlertsReadOut(read_count=len(rows), read_at=now)
 
 
 @router.get(

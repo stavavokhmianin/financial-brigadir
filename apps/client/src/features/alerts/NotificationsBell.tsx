@@ -15,7 +15,7 @@ interface Props {
 
 /**
  * Уведомления живут в панели поверх главной, а не в самостоятельном разделе.
- * Пока сервер не хранит read_at, счётчик показывает активные отправленные события.
+ * Счётчик показывает только ещё не открытые отправленные события.
  */
 export function NotificationsBell({ token }: Props) {
   const palette = usePalette();
@@ -28,11 +28,14 @@ export function NotificationsBell({ token }: Props) {
   const load = useCallback(async () => {
     try {
       const response = await api.listAlerts(token);
-      setItems(response.items.filter((item) => item.action === "send"));
+      const sent = response.items.filter((item) => item.action === "send");
+      setItems(sent);
       setHidden(response.items.filter((item) => item.action !== "send").length);
+      return sent;
     } catch {
       setItems([]);
       setHidden(0);
+      return null;
     }
   }, [token]);
 
@@ -40,7 +43,27 @@ export function NotificationsBell({ token }: Props) {
     void load();
   }, [load]);
 
-  const count = items?.length ?? 0;
+  const count = items?.filter((item) => item.read_at === null).length ?? 0;
+
+  const openPanel = async () => {
+    setOpen(true);
+    const visible = await load();
+    const unreadIds = visible?.filter((item) => item.read_at === null).map((item) => item.id) ?? [];
+    if (unreadIds.length === 0) return;
+    try {
+      const marked = await api.markAlertsRead(token, unreadIds);
+      if (marked.read_count > 0) {
+        const read = new Set(unreadIds);
+        setItems((previous) =>
+          previous?.map((item) =>
+            read.has(item.id) ? { ...item, read_at: marked.read_at } : item,
+          ) ?? [],
+        );
+      }
+    } catch {
+      // Панель остаётся полезной и без обновления счётчика; повторим при следующем открытии.
+    }
+  };
 
   const muteEvent = async (id: string) => {
     try {
@@ -59,10 +82,7 @@ export function NotificationsBell({ token }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`${ru.alerts.bell}${count > 0 ? `: ${count}` : ""}`}
         accessibilityState={{ expanded: open }}
-        onPress={() => {
-          setOpen(true);
-          void load();
-        }}
+        onPress={() => void openPanel()}
         style={({ pressed }) => [
           styles.bell,
           {

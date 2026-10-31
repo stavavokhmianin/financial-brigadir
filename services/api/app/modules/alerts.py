@@ -237,6 +237,7 @@ def to_out(alert: Alert) -> AlertOut:
         shortfall_minor=alert.shortfall_minor,
         forecast_id=alert.forecast_run_id,
         feedback=alert.feedback,
+        read_at=alert.read_at,
         created_at=alert.created_at,
     )
 
