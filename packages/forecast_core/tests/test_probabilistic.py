@@ -119,7 +119,7 @@ def test_safe_amount_is_exact_boundary_of_formula_9_4() -> None:
 
 def test_short_history_falls_back_to_deterministic_model() -> None:
     result = run_monte_carlo(_snap(history=_noisy(days=10)))
-    assert result.model_version == "baseline-0.1"
+    assert result.model_version == "baseline-0.2"
     assert "simulation_skipped" in result.flags
     assert result.gap_probability is None
 

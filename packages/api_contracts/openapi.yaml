@@ -4369,6 +4369,17 @@ components:
         excluded_large:
           type: integer
           title: Excluded Large
+        recency_half_life_days:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Recency Half Life Days
+          description: Период полураспада веса истории; null у сравнительного median baseline
+        income_phase_aware:
+          type: boolean
+          title: Income Phase Aware
+          description: Есть ли достаточно истории доходов для фаз денежного цикла
+          default: false
       type: object
       required:
       - estimator

@@ -23,7 +23,7 @@ def _forecast(client: TestClient, headers: dict[str, str], **body: Any) -> dict[
 
 def test_demo_forecast_matches_golden_story(client: TestClient, headers: dict[str, str]) -> None:
     data = _forecast(client, headers)
-    assert data["model_version"] == "mc-0.2"
+    assert data["model_version"] == "mc-0.3"
     assert data["today"] == "2026-10-19"
     assert data["start_balance_minor"] == 5_500_000
     assert data["reserve_minor"] == 500_000
@@ -41,6 +41,9 @@ def test_demo_forecast_matches_golden_story(client: TestClient, headers: dict[st
     rent_day = next(p for p in data["points"] if p["day"] == "2026-10-23")
     assert rent_day["outflow_minor"] == 3_000_000
     assert data["spending"]["estimator"] == "mean" and data["spending"]["history_days"] >= 90
+    assert data["spending"]["recency_half_life_days"] is None
+    # Фаза включается только при повторяемом эффекте минимум в двух доходных циклах.
+    assert data["spending"]["income_phase_aware"] is False
 
 
 def test_purchase_scenario_raises_risk_without_touching_history(

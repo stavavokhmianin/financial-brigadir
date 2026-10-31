@@ -20,10 +20,12 @@
 
 import random
 from dataclasses import replace
-from datetime import timedelta
+from datetime import date, timedelta
 
 from forecast_core.baseline import (
+    MIN_PHASE_SAMPLES,
     P50_MIN_PROBABILITY,
+    RECENCY_HALF_LIFE_DAYS,
     SHORT_HISTORY_DAYS,
     DayPoint,
     ForecastResult,
@@ -34,7 +36,7 @@ from forecast_core.baseline import (
 )
 from forecast_core.types import ForecastInputSnapshot, ObligationStatus
 
-MODEL_VERSION = "mc-0.2"
+MODEL_VERSION = "mc-0.3"
 DEFAULT_SIMULATIONS = 1000
 ON_TIME_SHARE = 0.6  # допущение; уточняется по истории поступлений
 INFERRED_INCLUSION = 0.9
@@ -58,10 +60,15 @@ def run_monte_carlo(
         fallback = run_baseline(snapshot)
         return replace(fallback, flags=(*fallback.flags, "simulation_skipped"))
 
-    pools: list[list[int]] = [[] for _ in range(7)]
+    pools: list[list[tuple[date, int]]] = [[] for _ in range(7)]
+    phase_pools: dict[tuple[int, int], list[tuple[date, int]]] = {}
     for day, total in spending.daily_history:
-        pools[day.weekday()].append(total)
-    everything = [total for _, total in spending.daily_history]
+        row = (day, total)
+        pools[day.weekday()].append(row)
+        phase = spending.phase(day)
+        if phase is not None:
+            phase_pools.setdefault((phase, day.weekday()), []).append(row)
+    everything = list(spending.daily_history)
     pools = [pool or everything for pool in pools]
     large = list(spending.large_amounts_minor)
     large_rate = len(large) / spending.history_days
@@ -72,7 +79,6 @@ def run_monte_carlo(
     trajectories: list[tuple[int, ...]] = []
     below = [0] * horizon
     gaps = 0
-    weekdays = [day.weekday() for day in plan.days]
 
     for simulation in range(simulations):
         flow = [0] * horizon
@@ -107,7 +113,29 @@ def run_monte_carlo(
         path: list[int] = []
         for i in range(horizon):
             rng = _rng(seed, simulation, "spending", plan.days[i].isoformat())
-            balance += flow[i] - rng.choice(pools[weekdays[i]])
+            phase = spending.phase(plan.days[i])
+            pool = (
+                phase_pools.get((phase, plan.days[i].weekday()), [])
+                if phase is not None and spending.phase_daily_minor[phase] is not None
+                else []
+            )
+            if len(pool) < MIN_PHASE_SAMPLES:
+                pool = pools[plan.days[i].weekday()]
+            values = [value for _, value in pool]
+            weights = (
+                [
+                    0.5 ** (max(0, (plan.today - source_day).days) / RECENCY_HALF_LIFE_DAYS)
+                    for source_day, _ in pool
+                ]
+                if spending.recency_half_life_days is not None
+                else None
+            )
+            sampled = (
+                rng.choice(values)
+                if weights is None
+                else rng.choices(values, weights=weights, k=1)[0]
+            )
+            balance += flow[i] - sampled
             if large and rng.random() < large_rate:
                 balance -= rng.choice(large)
             columns[i].append(balance)

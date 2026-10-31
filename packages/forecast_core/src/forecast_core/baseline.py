@@ -14,9 +14,11 @@
 """
 
 import math
+from bisect import bisect_right
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from itertools import pairwise
 from statistics import mean, median
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -34,7 +36,7 @@ from forecast_core.types import (
     TxType,
 )
 
-MODEL_VERSION = "baseline-0.1"
+MODEL_VERSION = "baseline-0.2"
 HISTORY_WINDOW_DAYS = 91
 SHORT_HISTORY_DAYS = 28
 MIN_HISTORY_DAYS = 7
@@ -62,9 +64,75 @@ LIQUID_TYPES = frozenset({AccountType.DEBIT, AccountType.CASH, AccountType.SAVIN
 P50_MIN_PROBABILITY = 0.5
 P10_MIN_PROBABILITY = 0.9
 P90_MIN_PROBABILITY = 0.3
+RECENCY_HALF_LIFE_DAYS = 56
+MIN_PHASE_SAMPLES = 6
+MIN_PHASE_RATIO = 0.5
 
 
 Estimator = Literal["mean", "median"]
+
+
+def _income_phase(day: date, income_days: Sequence[date]) -> int | None:
+    """0 — до 3 дней после дохода, 1 — 4–10, 2 — 11–20, 3 — позднее."""
+    index = bisect_right(income_days, day) - 1
+    if index < 0:
+        return None
+    distance = (day - income_days[index]).days
+    if distance <= 3:
+        return 0
+    if distance <= 10:
+        return 1
+    if distance <= 20:
+        return 2
+    return 3
+
+
+def _weighted_mean(rows: Sequence[tuple[date, int]], today: date) -> int:
+    """Свежие дни весомее; 56 дней назад наблюдение имеет половину веса."""
+    if not rows:
+        return 0
+    weighted = [
+        (value, 0.5 ** (max(0, (today - day).days) / RECENCY_HALF_LIFE_DAYS)) for day, value in rows
+    ]
+    total_weight = sum(weight for _, weight in weighted)
+    return round(sum(value * weight for value, weight in weighted) / total_weight)
+
+
+def _stable_recent_trend(rows: Sequence[tuple[date, int]], today: date) -> bool:
+    """Свежесть включается лишь при согласованном сдвиге последних четырёх недель."""
+    recent = [(day, value) for day, value in rows if 1 <= (today - day).days <= 28]
+    previous = [(day, value) for day, value in rows if 29 <= (today - day).days <= 56]
+    if len(recent) < 21 or len(previous) < 21:
+        return False
+    recent_mean = mean(value for _, value in recent)
+    previous_mean = mean(value for _, value in previous)
+    if previous_mean <= 0:
+        return recent_mean > 0
+    change = recent_mean / previous_mean - 1
+    if abs(change) < 0.5:
+        return False
+    direction = 1 if change > 0 else -1
+    agreeing = 0
+    compared = 0
+    for weekday in range(7):
+        fresh = [value for day, value in recent if day.weekday() == weekday]
+        old = [value for day, value in previous if day.weekday() == weekday]
+        if not fresh or not old:
+            continue
+        compared += 1
+        if (mean(fresh) - mean(old)) * direction > 0:
+            agreeing += 1
+    return compared == 7 and agreeing == 7
+
+
+def _stable_income_schedule(income_days: Sequence[date]) -> bool:
+    """Фаза имеет смысл только для достаточно регулярного цикла поступлений."""
+    if len(income_days) < 3:
+        return False
+    recent = income_days[-4:]
+    gaps = [(right - left).days for left, right in pairwise(recent)]
+    typical = median(gaps)
+    return 10 <= typical <= 40 and all(abs(gap - typical) <= 5 for gap in gaps)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,13 +145,30 @@ class SpendingModel:
     band_low_minor: tuple[int, ...]  # насколько траты за k дней могут быть ниже p50
     band_high_minor: tuple[int, ...]  # и выше p50
     card_daily_minor: int
+    income_anchors: tuple[date, ...]
+    phase_daily_minor: tuple[int | None, ...]
+    phase_weekday_daily_minor: tuple[tuple[int | None, ...], ...]
+    recency_half_life_days: int | None
     # Для симуляции (уровень 2): дневные траты истории и исключённые крупные покупки.
     daily_history: tuple[tuple[date, int], ...] = ()
     large_amounts_minor: tuple[int, ...] = ()
     excluded_one_off: int = 0  # отмечены пользователем как разовые
 
     def daily(self, day: date) -> int:
-        return self.weekday_daily_minor[day.weekday()]
+        base = self.weekday_daily_minor[day.weekday()]
+        phase = self.phase(day)
+        if phase is not None:
+            exact = self.phase_weekday_daily_minor[phase][day.weekday()]
+            if exact is not None:
+                # Иерархическое сглаживание: узкий срез не вытесняет устойчивый weekday.
+                return round(base * 0.5 + exact * 0.5)
+            fallback = self.phase_daily_minor[phase]
+            if fallback is not None:
+                return round(base * 0.75 + fallback * 0.25)
+        return base
+
+    def phase(self, day: date) -> int | None:
+        return _income_phase(day, self.income_anchors)
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,14 +236,28 @@ def build_spending_model(
     tz: ZoneInfo,
     horizon_days: int,
     estimator: Estimator = "mean",
+    future_income_anchors: Iterable[date] = (),
 ) -> SpendingModel:
+    transactions = list(history)
     window_start = today - timedelta(days=HISTORY_WINDOW_DAYS)
     candidates: list[tuple[date, int, bool]] = []
     card_daily: dict[date, int] = {}
     earliest: date | None = None
     excluded_obligation_like = 0
     excluded_one_off = 0
-    for tx in history:
+    actual_income_anchors = sorted(
+        {
+            _local_date(tx, tz)
+            for tx in transactions
+            if tx.status == TxStatus.POSTED
+            and tx.type == TxType.INCOME
+            and tx.amount_minor > 0
+            and tx.account_id in liquid_ids
+            and _local_date(tx, tz) < today
+        }
+    )
+    income_anchors = tuple(sorted({*actual_income_anchors, *future_income_anchors}))
+    for tx in transactions:
         if tx.status != TxStatus.POSTED:
             continue
         day = _local_date(tx, tz)
@@ -194,12 +293,60 @@ def build_spending_model(
         totals[day] = totals.get(day, 0) + amount
     daily = [totals[d] for d in days]
 
-    by_weekday: list[list[int]] = [[] for _ in range(7)]
+    rows = [(day, totals[day]) for day in days]
+    by_weekday: list[list[tuple[date, int]]] = [[] for _ in range(7)]
     for day in days:
-        by_weekday[day.weekday()].append(totals[day])
-    center = mean if estimator == "mean" else median
-    overall = int(center(daily)) if daily else 0
-    weekday_daily = tuple(int(center(values)) if values else overall for values in by_weekday)
+        by_weekday[day.weekday()].append((day, totals[day]))
+
+    use_recency = estimator == "mean" and _stable_recent_trend(rows, today)
+
+    def estimate(values: Sequence[tuple[date, int]]) -> int:
+        if use_recency:
+            return _weighted_mean(values, today)
+        if estimator == "mean":
+            return round(mean(value for _, value in values)) if values else 0
+        return round(median(value for _, value in values)) if values else 0
+
+    overall = estimate(rows)
+    weekday_daily = tuple(estimate(values) if values else overall for values in by_weekday)
+
+    by_phase: list[list[tuple[date, int]]] = [[] for _ in range(4)]
+    by_cycle: dict[int, list[tuple[date, int]]] = {}
+    phase_by_cycle: list[dict[int, list[tuple[date, int]]]] = [{} for _ in range(4)]
+    for day, value in rows:
+        cycle = bisect_right(actual_income_anchors, day) - 1
+        if cycle < 0:
+            continue
+        phase = _income_phase(day, actual_income_anchors)
+        if phase is None:
+            continue
+        by_phase[phase].append((day, value))
+        by_cycle.setdefault(cycle, []).append((day, value))
+        phase_by_cycle[phase].setdefault(cycle, []).append((day, value))
+
+    def stable_phase(phase: int) -> bool:
+        """Фаза включается лишь при одном направлении эффекта минимум в трёх циклах."""
+        ratios: list[float] = []
+        for cycle, phase_rows in phase_by_cycle[phase].items():
+            cycle_center = mean(value for _, value in by_cycle[cycle])
+            if cycle_center > 0:
+                ratios.append(mean(value for _, value in phase_rows) / cycle_center)
+        return len(ratios) >= 3 and (
+            all(ratio >= 1 + MIN_PHASE_RATIO for ratio in ratios)
+            or all(ratio <= 1 - MIN_PHASE_RATIO for ratio in ratios)
+        )
+
+    stable_schedule = _stable_income_schedule(actual_income_anchors)
+    phase_daily = tuple(
+        estimate(values)
+        if estimator == "mean"
+        and stable_schedule
+        and len(values) >= MIN_PHASE_SAMPLES
+        and stable_phase(phase)
+        else None
+        for phase, values in enumerate(by_phase)
+    )
+    phase_weekday = tuple(tuple(None for _ in range(7)) for _ in range(4))
 
     # Коридор: квантили сумм за k подряд идущих дней истории (скользящее окно).
     prefix = [0]
@@ -213,7 +360,7 @@ def build_spending_model(
         if k <= len(daily):
             sums = sorted(prefix[i + k] - prefix[i] for i in range(len(daily) - k + 1))
             q10, q90 = _quantile(sums, 0.1), _quantile(sums, 0.9)
-            middle = int(center(sums))
+            middle = int(mean(sums) if estimator == "mean" else median(sums))
             dev_low, dev_high = max(0, middle - q10), max(0, q90 - middle)
             last_valid = (k, dev_low, dev_high)
         elif last_valid is not None:
@@ -235,6 +382,10 @@ def build_spending_model(
         band_low_minor=tuple(low),
         band_high_minor=tuple(high),
         card_daily_minor=card_mean,
+        income_anchors=income_anchors,
+        phase_daily_minor=phase_daily,
+        phase_weekday_daily_minor=phase_weekday,
+        recency_half_life_days=RECENCY_HALF_LIFE_DAYS if use_recency else None,
         daily_history=tuple((d, totals[d]) for d in days),
         large_amounts_minor=tuple(large_amounts),
         excluded_one_off=excluded_one_off,
@@ -318,11 +469,49 @@ def prepare_plan(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
     obligation_categories = set(DEFAULT_OBLIGATION_CATEGORIES) | {
         o.kind for o in snapshot.obligations
     }
-    spending = build_spending_model(
-        snapshot.history, liquid_ids, card_ids, obligation_categories, today, tz, horizon, estimator
-    )
     start = liquid_balance_minor(snapshot.accounts, snapshot.currency)
     flags: list[str] = []
+
+    incomes: list[IncomeHit] = []
+    shifts = {shift.income_id: shift.shift_days for shift in snapshot.income_shifts}
+    for income in snapshot.incomes:
+        shift = timedelta(days=shifts.get(income.id, 0))
+        shifted_from = income.date_from + shift
+        spread = income.date_to - income.date_from
+        for first in occurrences(shifted_from, income.recurrence, today - spread, end):
+            # Окно уже открылось, и доход пришёл: он в остатке, повторно его не ждём.
+            if first <= today and _income_received(
+                snapshot.history, income, liquid_ids, (first - shift, today), tz
+            ):
+                continue
+            incomes.append(
+                IncomeHit(
+                    income.id,
+                    first - shift,
+                    first,
+                    first + spread,
+                    income.amount_min_minor,
+                    income.amount_max_minor,
+                    income.probability,
+                    income.title or income.kind,
+                )
+            )
+
+    spending = build_spending_model(
+        snapshot.history,
+        liquid_ids,
+        card_ids,
+        obligation_categories,
+        today,
+        tz,
+        horizon,
+        estimator,
+        (
+            hit.first
+            for hit in incomes
+            if hit.probability >= P50_MIN_PROBABILITY and hit.first > today
+        ),
+    )
 
     obligations: list[ObligationHit] = []
     for obligation in snapshot.obligations:
@@ -355,31 +544,6 @@ def prepare_plan(snapshot: ForecastInputSnapshot, estimator: Estimator = "mean")
                     obligation.status,
                     obligation.kind,
                     obligation.title or obligation.kind,
-                )
-            )
-
-    incomes: list[IncomeHit] = []
-    shifts = {shift.income_id: shift.shift_days for shift in snapshot.income_shifts}
-    for income in snapshot.incomes:
-        shift = timedelta(days=shifts.get(income.id, 0))
-        shifted_from = income.date_from + shift
-        spread = income.date_to - income.date_from
-        for first in occurrences(shifted_from, income.recurrence, today - spread, end):
-            # Окно уже открылось, и доход пришёл: он в остатке, повторно его не ждём.
-            if first <= today and _income_received(
-                snapshot.history, income, liquid_ids, (first - shift, today), tz
-            ):
-                continue
-            incomes.append(
-                IncomeHit(
-                    income.id,
-                    first - shift,
-                    first,
-                    first + spread,
-                    income.amount_min_minor,
-                    income.amount_max_minor,
-                    income.probability,
-                    income.title or income.kind,
                 )
             )
 

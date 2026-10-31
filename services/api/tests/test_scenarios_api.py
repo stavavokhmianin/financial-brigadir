@@ -4,6 +4,9 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.db.models import ForecastRun
 
 
 @pytest.fixture
@@ -105,6 +108,22 @@ def test_base_is_recomputed_when_data_changed(client: TestClient, headers: dict[
     assert data["base_recomputed"] is True
     assert data["base"]["forecast_id"] != base["forecast_id"]
     assert data["base"]["risk"]["min_balance_minor"] < base["risk"]["min_balance_minor"]
+
+
+def test_base_is_recomputed_when_model_version_changed(
+    client: TestClient,
+    headers: dict[str, str],
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    base = _base(client, headers)
+    with db_session_factory() as db:
+        run = db.get(ForecastRun, base["forecast_id"])
+        assert run is not None and run.result is not None
+        run.result = {**run.result, "model_version": "mc-0.2"}
+        db.commit()
+    data = _scenario(client, headers, base["forecast_id"], PURCHASE).json()
+    assert data["base_recomputed"] is True
+    assert data["base"]["model_version"] == "mc-0.3"
 
 
 def test_scenario_errors(client: TestClient, headers: dict[str, str]) -> None:

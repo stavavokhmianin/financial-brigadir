@@ -53,6 +53,7 @@ from forecast_core import (
     snapshot_fingerprint,
 )
 from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
+from forecast_core.probabilistic import MODEL_VERSION as PROBABILISTIC_MODEL_VERSION
 from forecast_core.probabilistic import run_monte_carlo
 from forecast_core.recurring import merchant_key
 from forecast_core.scenarios import compare, safe_to_spend
@@ -346,6 +347,10 @@ def build_output(
             daily_by_weekday_minor=list(result.spending.weekday_daily_minor),
             history_days=result.spending.history_days,
             excluded_large=result.spending.excluded_large,
+            recency_half_life_days=result.spending.recency_half_life_days,
+            income_phase_aware=any(
+                value is not None for value in result.spending.phase_daily_minor
+            ),
         ),
         scenario=scenario,
         safe_to_spend=SafeSpendOut(
@@ -462,7 +467,11 @@ def create_scenario(db: Session, user: User, request: ScenarioRequest) -> Scenar
     base_result = run_monte_carlo(base_prepared.snapshot)
     scenario_result = run_monte_carlo(scenario_prepared.snapshot)
 
-    recomputed = snapshot_fingerprint(base_prepared.snapshot) != base_run.input_fingerprint
+    stored_model = base_run.result.get("model_version") if base_run.result else None
+    recomputed = (
+        snapshot_fingerprint(base_prepared.snapshot) != base_run.input_fingerprint
+        or stored_model != PROBABILISTIC_MODEL_VERSION
+    )
     if recomputed or base_run.scenario:
         base_run, base_output = _store(db, user, base_prepared, base_result, [])
     else:

@@ -105,6 +105,13 @@ class SpendingModelOut(APIModel):
     daily_by_weekday_minor: list[NonNegativeMinor] = Field(description="Понедельник — первый")
     history_days: int
     excluded_large: int
+    recency_half_life_days: int | None = Field(
+        default=None,
+        description="Период полураспада веса истории; null у сравнительного median baseline",
+    )
+    income_phase_aware: bool = Field(
+        default=False, description="Есть ли достаточно истории доходов для фаз денежного цикла"
+    )
 
 
 class SafeSpendOut(APIModel):

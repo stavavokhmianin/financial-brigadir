@@ -188,6 +188,46 @@ def test_large_one_off_purchase_is_excluded_from_daily_model() -> None:
     assert "large_expenses_excluded" in result.flags
 
 
+def test_recent_spending_has_more_weight_than_old_behavior() -> None:
+    history = tuple(
+        _tx(
+            f"trend-{days_ago}",
+            -(2_000 if days_ago <= 28 else 200) * RUB,
+            TxType.EXPENSE,
+            days_ago=days_ago,
+        )
+        for days_ago in range(1, 57)
+    )
+    result = run_baseline(_snapshot(history=history, incomes=(), obligations=()))
+    assert result.spending.recency_half_life_days == 56
+    assert min(result.spending.weekday_daily_minor) > 1_100 * RUB
+    assert abs(result.spending.daily(date(2026, 10, 20)) - 2_000 * RUB) < abs(
+        1_100 * RUB - 2_000 * RUB
+    )
+
+
+def test_main_forecast_uses_phase_after_income() -> None:
+    history: list[HistoricalTransaction] = []
+    for cycle, income_age in enumerate((90, 60, 30), start=1):
+        history.append(_tx(f"salary-{cycle}", 60_000 * RUB, TxType.INCOME, income_age))
+        for offset in range(1, 30):
+            history.append(
+                _tx(
+                    f"cycle-{cycle}-{offset}",
+                    -(2_000 if offset <= 3 else 400) * RUB,
+                    TxType.EXPENSE,
+                    income_age - offset,
+                )
+            )
+    result = run_baseline(_snapshot(history=tuple(history), obligations=()))
+    before_income = result.spending.daily(date(2026, 10, 25))
+    after_income = result.spending.daily(date(2026, 10, 27))
+    weekday_only = result.spending.weekday_daily_minor[date(2026, 10, 27).weekday()]
+    assert any(value is not None for value in result.spending.phase_daily_minor)
+    assert after_income > before_income * 1.05
+    assert abs(after_income - 2_000 * RUB) < abs(weekday_only - 2_000 * RUB)
+
+
 def test_credit_card_payment_grows_with_card_spending() -> None:
     card_history = tuple(
         _tx(f"c{i}", -500 * RUB, TxType.CREDIT_PURCHASE, days_ago=i, account="credit")
