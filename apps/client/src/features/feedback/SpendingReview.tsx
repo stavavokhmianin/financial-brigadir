@@ -50,7 +50,7 @@ export function SpendingReview({
         <View style={styles.launchText}>
           <Text style={[styles.launchTitle, { color: palette.text }]}>Разобрать покупки</Text>
           <Text style={[styles.launchHint, { color: palette.muted }]}>
-            Листайте карточки — один короткий ответ на покупку
+            Обычная или разовая? Пара тапов — и готово
           </Text>
         </View>
         <Icon name="arrow" color={palette.accent} size={18} />

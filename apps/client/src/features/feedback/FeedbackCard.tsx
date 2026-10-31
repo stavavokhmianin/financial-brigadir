@@ -9,7 +9,7 @@ import {
   type LabelResult,
   type TxLabel,
 } from "@/shared/api/client";
-import { formatDay, formatRub, formatRubApprox, plural } from "@/shared/format";
+import { formatDay, formatRub, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import {
   Badge,
@@ -24,8 +24,6 @@ import {
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
-
-import { effectLines } from "./logic";
 
 interface Applied {
   id: string;
@@ -206,6 +204,7 @@ function Item({
 }) {
   const palette = usePalette();
   const [showNote, setShowNote] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const tx = item.transaction;
   return (
     <View style={[styles.item, { borderColor: palette.border }]}>
@@ -285,6 +284,20 @@ function Item({
               />
             ))}
           </View>
+        </>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showMore }}
+        onPress={() => setShowMore((value) => !value)}
+        hitSlop={8}
+      >
+        <Text style={[styles.moreToggle, { color: palette.accent }]}>
+          {showMore ? "Скрыть варианты" : "Другой вариант"}
+        </Text>
+      </Pressable>
+      {showMore ? (
+        <View style={styles.moreBlock}>
           <View accessibilityRole="radiogroup" style={styles.secondaryChoices}>
             {(["mandatory", "reducible"] as const).map((label) => (
               <Answer
@@ -297,27 +310,27 @@ function Item({
               />
             ))}
           </View>
-        </>
-      )}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: showNote }}
-        onPress={() => setShowNote((value) => !value)}
-        hitSlop={8}
-      >
-        <Text style={[styles.noteToggle, { color: palette.accent }]}>
-          {showNote ? "Скрыть комментарий" : ru.feedback.note}
-        </Text>
-      </Pressable>
-      {showNote ? (
-        <Field
-          label={ru.feedback.note}
-          value={userNote}
-          onChangeText={onUserNoteChange}
-          placeholder={ru.feedback.notePlaceholder}
-          hint={ru.feedback.noteHint}
-          multiline
-        />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showNote }}
+            onPress={() => setShowNote((value) => !value)}
+            hitSlop={8}
+          >
+            <Text style={[styles.noteToggle, { color: palette.accent }]}>
+              {showNote ? "Скрыть комментарий" : ru.feedback.note}
+            </Text>
+          </Pressable>
+          {showNote ? (
+            <Field
+              label={ru.feedback.note}
+              value={userNote}
+              onChangeText={onUserNoteChange}
+              placeholder={ru.feedback.notePlaceholder}
+              hint={ru.feedback.noteHint}
+              multiline
+            />
+          ) : null}
+        </View>
       ) : null}
       <View style={styles.skipRow}>
         <Pressable
@@ -399,7 +412,6 @@ function AppliedNote({
   onUndo: () => void;
 }) {
   const palette = usePalette();
-  const lines = effectLines(applied.result.effect, formatRubApprox);
   const title =
     applied.result.transaction.description ??
     applied.result.transaction.category ??
@@ -415,30 +427,11 @@ function AppliedNote({
           {`${title}: ${ru.feedback.applied[applied.label ?? "none"]}`}
         </Text>
       </View>
-      {lines.length === 0 ? (
-        <Muted>{ru.feedback.unchanged}</Muted>
-      ) : (
-        <Muted>{ru.feedback.labelEffect}</Muted>
-      )}
-      {lines.length === 0
-        ? null
-        : lines.map((line) =>
-            line.kind === "risk" ? (
-              <Text
-                key="risk"
-                style={[styles.appliedLine, { color: palette.text }]}
-              >
-                {`${ru.feedback.risk}: ${ru.feedback.levels[line.from]} → ${ru.feedback.levels[line.to]}`}
-              </Text>
-            ) : (
-              <Text
-                key={line.kind}
-                style={[styles.appliedLine, { color: palette.text }]}
-              >
-                {`${ru.feedback[line.kind]}: ${line.from} → ${line.to}`}
-              </Text>
-            ),
-          )}
+      <Muted>
+        {applied.label === null
+          ? "Ответ отменён. Можно выбрать заново."
+          : "Готово — прогноз обновлён, можно идти дальше."}
+      </Muted>
       {applied.label !== null ? (
         <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={8}>
           <Text style={[styles.undo, { color: palette.accent }]}>
@@ -523,6 +516,14 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
   },
   secondaryChoiceText: { fontSize: 13, fontWeight: "500", textAlign: "center" },
+  moreToggle: {
+    minHeight: 44,
+    paddingVertical: 12,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  moreBlock: { gap: space.sm },
   noteToggle: {
     minHeight: 44,
     paddingVertical: 12,
@@ -548,7 +549,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   appliedTitle: { flex: 1, fontSize: 14, fontWeight: "700", lineHeight: 20 },
-  appliedLine: { fontSize: 14, lineHeight: 20 },
   undo: {
     minHeight: 44,
     minWidth: 44,

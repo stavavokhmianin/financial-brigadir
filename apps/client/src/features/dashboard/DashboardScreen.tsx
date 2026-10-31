@@ -29,6 +29,7 @@ import {
   Badge,
   Button,
   Card,
+  Choice,
   ErrorState,
   Hero,
   LoadingState,
@@ -67,6 +68,9 @@ export function DashboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
   const [hasRecurring, setHasRecurring] = useState<boolean | null>(null);
+  const [detailsTab, setDetailsTab] = useState<
+    "upcoming" | "accounts" | "activity"
+  >("upcoming");
   const token = session?.access_token;
   const asOf = session?.data_quality.data_as_of ?? null;
   const isLive = Boolean(session && "live" in session && session.live);
@@ -179,8 +183,30 @@ export function DashboardScreen() {
     : null;
 
   return (
-    <Screen wide>
-      <View style={[styles.dashboardHeader, desktop && styles.horizontal]}>
+    <Screen
+      wide
+      headerActions={
+        <View style={styles.heroActions}>
+          {token ? <NotificationsBell token={token} /> : null}
+          <DashboardMenu
+            isDemo={session.user.is_demo}
+            qualityNotes={quality.notes}
+            duplicates={data.duplicates}
+            liveControl={
+              data.live && token ? (
+                <LiveBar
+                  key={token}
+                  token={token}
+                  latest={data.live}
+                  onArrived={onArrived}
+                />
+              ) : undefined
+            }
+          />
+        </View>
+      }
+    >
+      <View style={styles.dashboardHeader}>
         <View style={styles.headingBlock}>
           <Text style={[typeScale.eyebrow, { color: palette.muted }]}>
             ЛИЧНЫЙ КАПИТАЛ
@@ -204,24 +230,6 @@ export function DashboardScreen() {
               tone="muted"
             />
           </View>
-        </View>
-        <View style={styles.heroActions}>
-          {token ? <NotificationsBell token={token} /> : null}
-          <DashboardMenu
-            isDemo={session.user.is_demo}
-            qualityNotes={quality.notes}
-            duplicates={data.duplicates}
-            liveControl={
-              data.live && token ? (
-                <LiveBar
-                  key={token}
-                  token={token}
-                  latest={data.live}
-                  onArrived={onArrived}
-                />
-              ) : undefined
-            }
-          />
         </View>
       </View>
 
@@ -406,10 +414,18 @@ export function DashboardScreen() {
       </Reveal>
 
       <Reveal delay={110}>
-        <View style={[styles.overviewGrid, desktop && styles.horizontal]}>
-          <View style={{ flex: desktop ? 1.55 : undefined, minWidth: 0 }}>
-            {" "}
-            <Card title={ru.dashboard.upcomingTitle} icon="calendar">
+        <Card title="Финансовые детали" icon="wallet">
+          <Choice
+            value={detailsTab}
+            onChange={setDetailsTab}
+            options={[
+              { value: "upcoming", label: "Ближайшее" },
+              { value: "accounts", label: "Счета" },
+              { value: "activity", label: "Операции" },
+            ]}
+          />
+          {detailsTab === "upcoming" ? (
+            <View style={styles.detailContent}>
               {next.items.length === 0 ? (
                 <Muted>{ru.dashboard.upcomingEmpty}</Muted>
               ) : (
@@ -477,11 +493,12 @@ export function DashboardScreen() {
                   </View>
                 </>
               )}
-            </Card>
-          </View>
-          <View style={{ flex: desktop ? 1 : undefined, minWidth: 0 }}>
-            {" "}
-            <Card title={ru.dashboard.accountsTitle} icon="wallet">
+            </View>
+          ) : detailsTab === "accounts" ? (
+            <View style={styles.detailContent}>
+              {data.accounts.items.length === 0 ? (
+                <Muted>{ru.dashboard.noAccounts}</Muted>
+              ) : null}
               {data.accounts.items.map((account) => {
                 const line = describeAccount(account);
                 return (
@@ -513,72 +530,81 @@ export function DashboardScreen() {
                   </View>
                 );
               })}
-            </Card>
-          </View>
-        </View>
-      </Reveal>
-
-      <Card title={ru.dashboard.recentTitle} icon="wallet">
-        {data.transactions.length === 0 ? (
-          <Muted>{ru.dashboard.recentEmpty}</Muted>
-        ) : (
-          data.transactions.slice(0, 4).map((transaction) => (
-            <View key={transaction.id} style={styles.activity}>
-              <View style={styles.lineMain}>
-                <Text style={[styles.lineTitle, { color: palette.text }]}>
-                  {transaction.description ??
-                    transaction.category ??
-                    ru.feedback.fallbackTitle}
-                </Text>
-                <Muted>{formatMoment(transaction.occurred_at)}</Muted>
-                {transaction.user_note ? (
-                  <Text style={[styles.activityNote, { color: palette.muted }]}>
-                    {`${ru.dashboard.personalNote}: ${transaction.user_note}`}
-                  </Text>
-                ) : null}
-                {transaction.label ? (
-                  <View style={styles.activityBadge}>
-                    <Badge
-                      label={ru.feedback.labels[transaction.label]}
-                      tone="muted"
-                    />
-                  </View>
-                ) : null}
-              </View>
-              <Text
-                style={[
-                  styles.lineAmount,
-                  {
-                    color:
-                      transaction.amount_minor > 0 ? palette.ok : palette.text,
-                  },
-                ]}
-              >
-                {formatRub(transaction.amount_minor)}
-              </Text>
             </View>
-          ))
-        )}
-        {data.transactions.length > 0 ? (
-          <Button
-            label="Вся история"
-            variant="secondary"
-            onPress={() => router.push("/calendar")}
-          />
-        ) : null}
-      </Card>
+          ) : (
+            <View style={styles.detailContent}>
+              {data.transactions.length === 0 ? (
+                <Muted>{ru.dashboard.recentEmpty}</Muted>
+              ) : (
+                data.transactions.slice(0, 4).map((transaction) => (
+                  <View key={transaction.id} style={styles.activity}>
+                    <View style={styles.lineMain}>
+                      <Text
+                        style={[styles.lineTitle, { color: palette.text }]}
+                      >
+                        {transaction.description ??
+                          transaction.category ??
+                          ru.feedback.fallbackTitle}
+                      </Text>
+                      <Muted>{formatMoment(transaction.occurred_at)}</Muted>
+                      {transaction.user_note ? (
+                        <Text
+                          style={[
+                            styles.activityNote,
+                            { color: palette.muted },
+                          ]}
+                        >
+                          {`${ru.dashboard.personalNote}: ${transaction.user_note}`}
+                        </Text>
+                      ) : null}
+                      {transaction.label ? (
+                        <View style={styles.activityBadge}>
+                          <Badge
+                            label={ru.feedback.labels[transaction.label]}
+                            tone="muted"
+                          />
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.lineAmount,
+                        {
+                          color:
+                            transaction.amount_minor > 0
+                              ? palette.ok
+                              : palette.text,
+                        },
+                      ]}
+                    >
+                      {formatRub(transaction.amount_minor)}
+                    </Text>
+                  </View>
+                ))
+              )}
+              {data.transactions.length > 0 ? (
+                <Button
+                  label="Вся история"
+                  variant="secondary"
+                  onPress={() => router.push("/calendar")}
+                />
+              ) : null}
+            </View>
+          )}
+        </Card>
+      </Reveal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  overviewGrid: { gap: space.xl },
   horizontal: { flexDirection: "row", alignItems: "stretch" },
   dashboardHeader: {
     justifyContent: "space-between",
     gap: space.lg,
   },
   headingBlock: { flex: 1, gap: space.sm },
+  detailContent: { gap: space.md },
   heroSummary: { gap: space.xl, alignItems: "stretch" },
   forecastSummary: { gap: space.md, alignItems: "stretch" },
   forecastStat: {

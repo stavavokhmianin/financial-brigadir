@@ -164,12 +164,18 @@ export function Choice<T extends string>({
 export function Screen({
   children,
   wide,
+  headerActions,
 }: {
   children: ReactNode;
   topInset?: boolean;
   wide?: boolean;
+  headerActions?: ReactNode;
 }) {
-  return <AppShell wide={wide}>{children}</AppShell>;
+  return (
+    <AppShell wide={wide} headerActions={headerActions}>
+      {children}
+    </AppShell>
+  );
 }
 export function Notice({ text }: { text: string }) {
   const palette = usePalette();

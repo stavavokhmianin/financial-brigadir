@@ -73,9 +73,11 @@ const pages: Record<string, [string, string, string]> = {
 export function AppShell({
   children,
   wide = false,
+  headerActions,
 }: {
   children: ReactNode;
   wide?: boolean;
+  headerActions?: ReactNode;
 }) {
   const palette = usePalette();
   const { mode, toggle } = useTheme();
@@ -111,24 +113,29 @@ export function AppShell({
               Финансовый{"\n"}бригадир
             </Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              mode === "dark" ? "Включить светлую тему" : "Включить тёмную тему"
-            }
-            onPress={toggle}
-            style={({ pressed }) => [
-              styles.theme,
-              {
-                backgroundColor: pressed ? palette.track : palette.surface,
-                borderColor: palette.border,
-              },
-            ]}
-          >
-            <Text style={{ color: palette.accent, fontSize: 20 }}>
-              {mode === "dark" ? "☼" : "◐"}
-            </Text>
-          </Pressable>
+          <View style={styles.topActions}>
+            {headerActions}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                mode === "dark"
+                  ? "Включить светлую тему"
+                  : "Включить тёмную тему"
+              }
+              onPress={toggle}
+              style={({ pressed }) => [
+                styles.theme,
+                {
+                  backgroundColor: pressed ? palette.track : palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Text style={{ color: palette.accent, fontSize: 20 }}>
+                {mode === "dark" ? "☼" : "◐"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
       <ScrollView
@@ -198,6 +205,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 },
+  topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   brandName: {
     fontSize: 13,
     lineHeight: 16,
