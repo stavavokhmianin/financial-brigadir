@@ -1,3 +1,4 @@
+import { Redirect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError, type Meta } from "@/shared/api/client";
@@ -13,7 +14,7 @@ import { ServerCard } from "./ServerCard";
 export function StartScreen() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { expired } = useSession();
+  const { expired, session } = useSession();
   const notice = expired ? <Notice text={ru.server.expired} /> : null;
 
   const load = useCallback(() => {
@@ -32,6 +33,8 @@ export function StartScreen() {
   }, []);
 
   useEffect(() => load(), [load]);
+
+  if (session) return <Redirect href="/dashboard" />;
 
   if (meta?.mode === "pilot" && meta.pilot_terms_version) {
     return <PilotSignInScreen termsVersion={meta.pilot_terms_version} notice={notice} />;

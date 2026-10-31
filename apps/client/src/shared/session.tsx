@@ -10,8 +10,29 @@ import {
 
 import { setSessionExpiredListener, type Session } from "./api/client";
 
-// Токен держим только в памяти: после перезапуска демо начинается заново,
-// участник пилота входит снова по своему коду.
+const STORAGE_KEY = "brigadir-session";
+
+function loadStoredSession(): Session | null {
+  if (typeof window === "undefined") return null;
+  try {
+    // sessionStorage читаем один раз для бесшовного перехода со старой версии клиента.
+    const saved = window.localStorage.getItem(STORAGE_KEY) ??
+      window.sessionStorage.getItem(STORAGE_KEY);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved) as Session;
+    if (!parsed.expires_at || Date.parse(parsed.expires_at) <= Date.now()) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    window.localStorage.setItem(STORAGE_KEY, saved);
+    window.sessionStorage.removeItem(STORAGE_KEY);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 interface SessionState {
   session: Session | null;
   setSession: (session: Session | null) => void;
@@ -22,22 +43,15 @@ interface SessionState {
 const SessionContext = createContext<SessionState | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSessionState] = useState<Session | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const saved = window.sessionStorage.getItem("brigadir-session");
-      return saved ? (JSON.parse(saved) as Session) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [session, setSessionState] = useState<Session | null>(loadStoredSession);
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     setSessionExpiredListener(() => {
       setSessionState(null);
       if (typeof window !== "undefined") {
-        window.sessionStorage.removeItem("brigadir-session");
+        window.localStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem(STORAGE_KEY);
       }
       setExpired(true);
       if (router.canDismiss()) router.dismissAll();
@@ -54,8 +68,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setExpired(false);
         setSessionState(next);
         if (typeof window !== "undefined") {
-          if (next) window.sessionStorage.setItem("brigadir-session", JSON.stringify(next));
-          else window.sessionStorage.removeItem("brigadir-session");
+          if (next) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          else window.localStorage.removeItem(STORAGE_KEY);
+          window.sessionStorage.removeItem(STORAGE_KEY);
         }
       },
     }),
