@@ -1,10 +1,19 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 
 import { api, type AlertItem } from "@/shared/api/client";
 import { formatMoment } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { Badge, Muted } from "@/shared/ui/components";
+import { useReducedMotion } from "@/shared/ui/motion";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { elevation, radius, space, usePalette } from "@/shared/ui/theme";
@@ -19,6 +28,8 @@ interface Props {
  */
 export function NotificationsBell({ token }: Props) {
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AlertItem[] | null>(null);
   // Что сервис решил не показывать (повтор того же риска, тихие часы, лимит): подавление
@@ -48,16 +59,19 @@ export function NotificationsBell({ token }: Props) {
   const openPanel = async () => {
     setOpen(true);
     const visible = await load();
-    const unreadIds = visible?.filter((item) => item.read_at === null).map((item) => item.id) ?? [];
+    const unreadIds =
+      visible?.filter((item) => item.read_at === null).map((item) => item.id) ??
+      [];
     if (unreadIds.length === 0) return;
     try {
       const marked = await api.markAlertsRead(token, unreadIds);
       if (marked.read_count > 0) {
         const read = new Set(unreadIds);
-        setItems((previous) =>
-          previous?.map((item) =>
-            read.has(item.id) ? { ...item, read_at: marked.read_at } : item,
-          ) ?? [],
+        setItems(
+          (previous) =>
+            previous?.map((item) =>
+              read.has(item.id) ? { ...item, read_at: marked.read_at } : item,
+            ) ?? [],
         );
       }
     } catch {
@@ -68,8 +82,10 @@ export function NotificationsBell({ token }: Props) {
   const muteEvent = async (id: string) => {
     try {
       const updated = await api.sendAlertFeedback(token, id, "disable_event");
-      setItems((previous) =>
-        previous?.map((item) => (item.id === updated.id ? updated : item)) ?? [],
+      setItems(
+        (previous) =>
+          previous?.map((item) => (item.id === updated.id ? updated : item)) ??
+          [],
       );
     } catch {
       // Событие останется в панели: пользователь сможет повторить действие.
@@ -82,6 +98,7 @@ export function NotificationsBell({ token }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`${ru.alerts.bell}${count > 0 ? `: ${count}` : ""}`}
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         onPress={() => void openPanel()}
         style={({ pressed }) => [
           styles.bell,
@@ -94,19 +111,29 @@ export function NotificationsBell({ token }: Props) {
       >
         <Icon name="bell" color={palette.heroText} size={18} />
         {count > 0 ? (
-          <View style={[styles.counter, { backgroundColor: palette.danger }]}> 
+          <View
+            style={[styles.counter, { backgroundColor: palette.dangerSolid }]}
+          >
             <Text style={styles.counterText}>{count > 9 ? "9+" : count}</Text>
           </View>
         ) : null}
       </Pressable>
 
       <Modal
-        animationType="fade"
+        animationType={reducedMotion ? "none" : "fade"}
         onRequestClose={() => setOpen(false)}
         transparent
         visible={open}
       >
-        <View style={styles.overlay}>
+        <View
+          style={[
+            styles.overlay,
+            {
+              paddingTop: insets.top + space.lg,
+              paddingBottom: insets.bottom + space.lg,
+            },
+          ]}
+        >
           <Pressable
             accessibilityLabel={ru.alerts.close}
             accessibilityRole="button"
@@ -124,7 +151,10 @@ export function NotificationsBell({ token }: Props) {
             <View style={styles.panelHead}>
               <View style={styles.panelTitle}>
                 <Icon name="bell" color={palette.muted} size={16} />
-                <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+                <Text
+                  accessibilityRole="header"
+                  style={[styles.title, { color: palette.text }]}
+                >
                   {ru.alerts.panelTitle}
                 </Text>
               </View>
@@ -133,51 +163,66 @@ export function NotificationsBell({ token }: Props) {
                 onPress={() => setOpen(false)}
                 hitSlop={8}
               >
-                <Text style={[styles.close, { color: palette.muted }]}>{ru.alerts.close}</Text>
+                <Text style={[styles.close, { color: palette.muted }]}>
+                  {ru.alerts.close}
+                </Text>
               </Pressable>
             </View>
 
-            {items === null ? (
-              <ActivityIndicator color={palette.accent} />
-            ) : items.length === 0 ? (
-              <Muted>{ru.alerts.empty}</Muted>
-            ) : (
-              items.slice(0, 5).map((item) => (
-                <View key={item.id} style={[styles.item, { borderColor: palette.border }]}> 
-                  <View style={styles.itemHead}>
-                    <Badge
-                      label={item.priority === "critical" ? ru.alerts.critical : ru.alerts.normal}
-                      tone={item.priority === "critical" ? "warning" : "muted"}
-                    />
-                    <Muted>{formatMoment(item.created_at)}</Muted>
+            <ScrollView contentContainerStyle={{ gap: space.md }}>
+              {items === null ? (
+                <ActivityIndicator color={palette.accent} />
+              ) : items.length === 0 ? (
+                <Muted>{ru.alerts.empty}</Muted>
+              ) : (
+                items.slice(0, 5).map((item) => (
+                  <View
+                    key={item.id}
+                    style={[styles.item, { borderColor: palette.border }]}
+                  >
+                    <View style={styles.itemHead}>
+                      <Badge
+                        label={
+                          item.priority === "critical"
+                            ? ru.alerts.critical
+                            : ru.alerts.normal
+                        }
+                        tone={
+                          item.priority === "critical" ? "warning" : "muted"
+                        }
+                      />
+                      <Muted>{formatMoment(item.created_at)}</Muted>
+                    </View>
+                    <Text style={[styles.message, { color: palette.text }]}>
+                      {item.message ?? item.reason_text}
+                    </Text>
+                    {item.reason === "expected_recurring" ? (
+                      item.feedback === "disable_event" ? (
+                        <Muted>{ru.alerts.eventMuted}</Muted>
+                      ) : (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => void muteEvent(item.id)}
+                          hitSlop={8}
+                        >
+                          <Text
+                            style={[styles.mute, { color: palette.accent }]}
+                          >
+                            {ru.alerts.disableEvent}
+                          </Text>
+                        </Pressable>
+                      )
+                    ) : null}
                   </View>
-                  <Text style={[styles.message, { color: palette.text }]}>
-                    {item.message ?? item.reason_text}
-                  </Text>
-                  {item.reason === "expected_recurring" ? (
-                    item.feedback === "disable_event" ? (
-                      <Muted>{ru.alerts.eventMuted}</Muted>
-                    ) : (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => void muteEvent(item.id)}
-                        hitSlop={8}
-                      >
-                        <Text style={[styles.mute, { color: palette.accent }]}>
-                          {ru.alerts.disableEvent}
-                        </Text>
-                      </Pressable>
-                    )
-                  ) : null}
-                </View>
-              ))
-            )}
+                ))
+              )}
 
-            {hidden > 0 ? (
-              <View style={[styles.footer, { borderColor: palette.border }]}>
-                <Muted>{`${ru.alerts.hiddenSummary}: ${hidden}`}</Muted>
-              </View>
-            ) : null}
+              {hidden > 0 ? (
+                <View style={[styles.footer, { borderColor: palette.border }]}>
+                  <Muted>{`${ru.alerts.hiddenSummary}: ${hidden}`}</Muted>
+                </View>
+              ) : null}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -187,8 +232,8 @@ export function NotificationsBell({ token }: Props) {
 
 const styles = StyleSheet.create({
   bell: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
@@ -208,7 +253,7 @@ const styles = StyleSheet.create({
   counterText: { color: "#ffffff", fontSize: 10, fontWeight: "600" },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.42)",
+    backgroundColor: "rgba(2,16,36,0.78)",
     padding: space.lg,
     alignItems: "flex-end",
     justifyContent: "flex-start",
@@ -216,19 +261,48 @@ const styles = StyleSheet.create({
   panel: {
     width: "100%",
     maxWidth: 420,
-    maxHeight: "82%",
+    maxHeight: "90%",
+    overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.lg,
     padding: space.lg,
     gap: space.md,
   },
-  panelHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  panelHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   panelTitle: { flexDirection: "row", alignItems: "center", gap: space.sm },
   title: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32 },
-  close: { fontSize: 14, fontWeight: "500" },
-  item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
-  itemHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
+  close: {
+    minHeight: 44,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  item: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+    gap: space.sm,
+  },
+  itemHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.sm,
+  },
   message: { fontSize: 14, lineHeight: 21 },
-  mute: { fontSize: 13, lineHeight: 19, fontWeight: "500" },
-  footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
+  mute: {
+    minHeight: 44,
+    paddingVertical: 12,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "500",
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+    gap: space.sm,
+  },
 });

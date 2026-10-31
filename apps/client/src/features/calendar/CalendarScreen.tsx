@@ -1,13 +1,21 @@
 import { Redirect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { api, ApiError } from "@/shared/api/client";
 import { addDays, formatDay, formatRub, localDate } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
-import { Badge, Button, Card, ErrorState, LoadingState, Muted, Screen } from "@/shared/ui/components";
-import { space, usePalette } from "@/shared/ui/theme";
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  LoadingState,
+  Muted,
+  Screen,
+} from "@/shared/ui/components";
+import { radius, space, typeScale, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
 import { buildCalendar, type CalendarDay, type CalendarItem } from "./logic";
@@ -17,13 +25,17 @@ const PAST_DAYS = 7;
 const FUTURE_DAYS = 30;
 
 function statusLabel(item: CalendarItem): string {
-  if (item.kind === "past") return item.status === "pending" ? t.pending : t.done;
-  if (item.kind === "income") return item.status === "confirmed" ? t.incomeConfirmed : t.incomeExpected;
+  if (item.kind === "past")
+    return item.status === "pending" ? t.pending : t.done;
+  if (item.kind === "income")
+    return item.status === "confirmed" ? t.incomeConfirmed : t.incomeExpected;
   return ru.status[item.status as keyof typeof ru.status] ?? item.status;
 }
 
 export function CalendarScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktop = width >= 960;
   const palette = usePalette();
   const { session } = useSession();
   const token = session?.access_token;
@@ -44,7 +56,14 @@ export function CalendarScreen() {
         api.listObligations(token, addDays(today, 1), to),
         api.listIncomes(token, addDays(today, 1), to),
       ]);
-      setDays(buildCalendar(txs.items, obligations.calendar, incomes.calendar, (iso) => localDate(iso)));
+      setDays(
+        buildCalendar(
+          txs.items,
+          obligations.calendar,
+          incomes.calendar,
+          (iso) => localDate(iso),
+        ),
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
     }
@@ -76,7 +95,7 @@ export function CalendarScreen() {
   const future = days?.filter((day) => day.date > today) ?? [];
 
   return (
-    <Screen>
+    <Screen wide>
       <Card title={t.title} icon="calendar">
         <Muted>{t.lead}</Muted>
         <View style={styles.legend}>
@@ -85,19 +104,49 @@ export function CalendarScreen() {
           <Badge label={t.legendPredicted} tone="warning" />
         </View>
       </Card>
-      {error ? <ErrorState title={t.error} message={error} onRetry={() => void load()} /> : null}
+      {error ? (
+        <ErrorState
+          title={t.error}
+          message={error}
+          onRetry={() => void load()}
+        />
+      ) : null}
       {days === null && !error ? <LoadingState label={t.loading} /> : null}
       {days?.length === 0 ? <Muted>{t.empty}</Muted> : null}
-      {past.length > 0 ? (
-        <Card title={t.pastTitle} icon="clock">
-          {past.map(renderDay)}
-        </Card>
-      ) : null}
-      {future.length > 0 ? (
-        <Card title={t.futureTitle} icon="calendar">
-          {future.map(renderDay)}
-        </Card>
-      ) : null}
+      <View
+        style={{
+          flexDirection: desktop ? "row-reverse" : "column-reverse",
+          gap: 24,
+          alignItems: "flex-start",
+        }}
+      >
+        <View
+          style={{
+            flex: desktop ? 1 : undefined,
+            width: desktop ? undefined : "100%",
+            minWidth: 0,
+          }}
+        >
+          {past.length > 0 ? (
+            <Card title={t.pastTitle} icon="clock">
+              {past.map(renderDay)}
+            </Card>
+          ) : null}
+        </View>
+        <View
+          style={{
+            flex: desktop ? 1.2 : undefined,
+            width: desktop ? undefined : "100%",
+            minWidth: 0,
+          }}
+        >
+          {future.length > 0 ? (
+            <Card title={t.futureTitle} icon="calendar">
+              {future.map(renderDay)}
+            </Card>
+          ) : null}
+        </View>
+      </View>
       <Button label={t.add} onPress={() => router.push("/add")} />
     </Screen>
   );
@@ -108,9 +157,22 @@ export function CalendarScreen() {
     return (
       <View
         key={day.date}
-        style={[styles.day, index > 0 ? [styles.dayDivider, { borderColor: palette.border }] : null]}
+        style={[
+          styles.day,
+          index > 0
+            ? [styles.dayDivider, { borderColor: palette.border }]
+            : null,
+        ]}
       >
-        <View style={styles.dayHeader}>
+        <View
+          style={[
+            styles.dayHeader,
+            {
+              backgroundColor:
+                day.date === today ? palette.accentSoft : palette.track,
+            },
+          ]}
+        >
           <Text style={[styles.dayTitle, { color: palette.text }]}>
             {formatDay(day.date, year)}
             {day.date === today ? ` · ${t.today}` : ""}
@@ -119,7 +181,9 @@ export function CalendarScreen() {
             <Text
               style={[
                 styles.amount,
-                { color: day.expectedNetMinor < 0 ? palette.danger : palette.ok },
+                {
+                  color: day.expectedNetMinor < 0 ? palette.danger : palette.ok,
+                },
               ]}
             >
               {formatRub(day.expectedNetMinor)}
@@ -131,10 +195,7 @@ export function CalendarScreen() {
           return (
             <View
               key={item.key}
-              style={[
-                styles.item,
-                item.kind === "past" ? { opacity: 0.7 } : null,
-              ]}
+              style={[styles.item, { borderColor: palette.border }]}
             >
               <View
                 style={[
@@ -150,24 +211,32 @@ export function CalendarScreen() {
                 ]}
               />
               <View style={styles.itemMain}>
-                <Text style={[styles.itemTitle, { color: palette.text }]}>{item.title}</Text>
+                <Text style={[styles.itemTitle, { color: palette.text }]}>
+                  {item.title}
+                </Text>
                 <Muted>
                   {statusLabel(item)}
-                  {item.windowTo ? ` · ${t.until} ${formatDay(item.windowTo, year)}` : ""}
+                  {item.windowTo
+                    ? ` · ${t.until} ${formatDay(item.windowTo, year)}`
+                    : ""}
                 </Muted>
                 {item.confirmableId ? (
                   <View style={styles.actions}>
                     <Button
                       label={t.confirm}
                       size="sm"
-                      onPress={() => void decide(item.confirmableId ?? "", "confirmed")}
+                      onPress={() =>
+                        void decide(item.confirmableId ?? "", "confirmed")
+                      }
                       loading={busyId === item.confirmableId}
                     />
                     <Button
                       label={t.dismiss}
                       size="sm"
                       variant="secondary"
-                      onPress={() => void decide(item.confirmableId ?? "", "canceled")}
+                      onPress={() =>
+                        void decide(item.confirmableId ?? "", "canceled")
+                      }
                       disabled={busyId === item.confirmableId}
                     />
                   </View>
@@ -175,7 +244,9 @@ export function CalendarScreen() {
               </View>
               <Text style={[styles.amount, { color: palette.text }]}>
                 {formatRub(item.amountMinor)}
-                {item.amountMaxMinor ? `…${formatRub(item.amountMaxMinor)}` : ""}
+                {item.amountMaxMinor
+                  ? `…${formatRub(item.amountMaxMinor)}`
+                  : ""}
               </Text>
             </View>
           );
@@ -188,13 +259,42 @@ export function CalendarScreen() {
 const styles = StyleSheet.create({
   legend: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
   day: { gap: space.md },
-  dayDivider: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md },
-  dayHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  dayDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+  },
+  dayHeader: {
+    padding: 12,
+    borderRadius: radius.md,
+    gap: 12,
+    flexWrap: "wrap",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   dayTitle: { fontSize: 14, fontWeight: "600", letterSpacing: -0.28 },
-  item: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
+  item: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: space.md,
+  },
   dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
   itemMain: { flex: 1, gap: 2 },
   itemTitle: { fontSize: 14, fontWeight: "500" },
-  amount: { fontSize: 14, fontWeight: "500", textAlign: "right", fontVariant: ["tabular-nums"] },
-  actions: { flexDirection: "row", gap: space.sm, marginTop: space.sm, flexWrap: "wrap" },
+  amount: {
+    maxWidth: "42%",
+    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "right",
+    fontVariant: ["tabular-nums"],
+  },
+  actions: {
+    flexDirection: "row",
+    gap: space.sm,
+    marginTop: space.sm,
+    flexWrap: "wrap",
+  },
 });

@@ -55,7 +55,10 @@ export function LiveBar({ token, latest, onArrived }: Props) {
   useFocusEffect(
     useCallback(() => {
       const timer = setInterval(() => {
-        api.getLiveState(token).then((next) => apply(next), () => undefined);
+        api.getLiveState(token).then(
+          (next) => apply(next),
+          () => undefined,
+        );
       }, POLL_MS);
       return () => clearInterval(timer);
     }, [token, apply]),
@@ -78,6 +81,7 @@ export function LiveBar({ token, latest, onArrived }: Props) {
         accessibilityRole="button"
         accessibilityLabel={ru.live.controls}
         accessibilityState={{ expanded }}
+        aria-expanded={expanded}
         onPress={() => setExpanded((value) => !value)}
         style={({ pressed }) => [styles.row, { opacity: pressed ? 0.76 : 1 }]}
       >
@@ -86,14 +90,20 @@ export function LiveBar({ token, latest, onArrived }: Props) {
         </View>
         <View style={styles.main}>
           <Muted>{ru.live.badge}</Muted>
-          <Text accessibilityRole="summary" style={[styles.moment, { color: palette.text }]}>
+          <Text
+            accessibilityRole="summary"
+            style={[styles.moment, { color: palette.text }]}
+          >
             {formatMoment(state.virtual_now)}
           </Text>
         </View>
         {state.finished ? null : state.paused ? (
           <Badge label={ru.live.paused} tone="warning" />
         ) : fresh > 0 ? (
-          <Badge label={`+${fresh} ${plural(fresh, ru.live.arrived)}`} tone="ok" />
+          <Badge
+            label={`+${fresh} ${plural(fresh, ru.live.arrived)}`}
+            tone="ok"
+          />
         ) : (
           <Text style={[styles.toggle, { color: palette.accent }]}>
             {expanded ? ru.live.hideControls : ru.live.showControls}
@@ -114,7 +124,11 @@ export function LiveBar({ token, latest, onArrived }: Props) {
                 disabled={busy}
                 onPress={() => void act(state.paused ? "resume" : "pause")}
               />
-              <Pill label={ru.live.nextDay} disabled={busy} onPress={() => void act("next-day")} />
+              <Pill
+                label={ru.live.nextDay}
+                disabled={busy}
+                onPress={() => void act("next-day")}
+              />
               {busy ? <ActivityIndicator color={palette.accent} /> : null}
             </View>
           </View>
@@ -156,7 +170,12 @@ function Pill({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: space.md },
+  row: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+  },
   icon: {
     width: 36,
     height: 36,
@@ -166,11 +185,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   main: { flex: 1, gap: 2 },
-  moment: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32, fontVariant: ["tabular-nums"] },
+  moment: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.32,
+    fontVariant: ["tabular-nums"],
+  },
   toggle: { fontSize: 13, fontWeight: "500" },
   controlPanel: { gap: space.sm, paddingTop: space.sm },
-  actions: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+    flexWrap: "wrap",
+  },
   pill: {
+    minHeight: 44,
+    justifyContent: "center",
     borderRadius: radius.pill,
     borderWidth: 1,
     paddingHorizontal: space.lg,

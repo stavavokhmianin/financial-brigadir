@@ -73,7 +73,11 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
     setSkipped(new Set());
   }, [refreshKey]);
 
-  const mark = async (id: string, label: TxLabel | null, note?: string | null) => {
+  const mark = async (
+    id: string,
+    label: TxLabel | null,
+    note?: string | null,
+  ) => {
     setSaving(id);
     setSaveError(null);
     try {
@@ -91,8 +95,10 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
   const year = data?.items[0]?.transaction.occurred_at
     ? Number(data.items[0].transaction.occurred_at.slice(0, 4))
     : undefined;
-  const visible = data?.items.filter((item) => !skipped.has(item.transaction.id)) ?? [];
-  const safeCursor = visible.length === 0 ? 0 : Math.min(cursor, visible.length - 1);
+  const visible =
+    data?.items.filter((item) => !skipped.has(item.transaction.id)) ?? [];
+  const safeCursor =
+    visible.length === 0 ? 0 : Math.min(cursor, visible.length - 1);
   const current = visible[safeCursor] ?? null;
 
   useEffect(() => {
@@ -113,11 +119,22 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
     <Card title={ru.feedback.title} icon="sparkle">
       <Muted>{ru.feedback.lead}</Muted>
 
-      {applied ? <AppliedNote applied={applied} onUndo={() => void mark(applied.id, null)} /> : null}
-      {saveError ? <Muted>{`${ru.feedback.saveError}: ${saveError}`}</Muted> : null}
+      {applied ? (
+        <AppliedNote
+          applied={applied}
+          onUndo={() => void mark(applied.id, null)}
+        />
+      ) : null}
+      {saveError ? (
+        <Muted>{`${ru.feedback.saveError}: ${saveError}`}</Muted>
+      ) : null}
 
       {error ? (
-        <ErrorState title={ru.feedback.error} message={error} onRetry={() => void load()} />
+        <ErrorState
+          title={ru.feedback.error}
+          message={error}
+          onRetry={() => void load()}
+        />
       ) : data === null ? (
         <LoadingState label={ru.feedback.loading} />
       ) : current === null ? (
@@ -146,7 +163,10 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
         <View style={[styles.footer, { borderColor: palette.border }]}>
           {data.reducible_30d_minor > 0 ? (
             <>
-              <Stat label={ru.feedback.reducible} value={formatRub(data.reducible_30d_minor)} />
+              <Stat
+                label={ru.feedback.reducible}
+                value={formatRub(data.reducible_30d_minor)}
+              />
               <Muted>{ru.feedback.reducibleNote}</Muted>
             </>
           ) : null}
@@ -194,11 +214,19 @@ function Item({
         <Muted>{`${position} ${ru.feedback.of} ${total} · ${ru.feedback.optional}`}</Muted>
         {total > 1 ? (
           <View style={styles.pager}>
-            <Pressable accessibilityRole="button" onPress={onPrevious} hitSlop={8}>
-              <Text style={[styles.pagerAction, { color: palette.accent }]}>{ru.feedback.previous}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onPrevious}
+              hitSlop={8}
+            >
+              <Text style={[styles.pagerAction, { color: palette.accent }]}>
+                {ru.feedback.previous}
+              </Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onNext} hitSlop={8}>
-              <Text style={[styles.pagerAction, { color: palette.accent }]}>{ru.feedback.next}</Text>
+              <Text style={[styles.pagerAction, { color: palette.accent }]}>
+                {ru.feedback.next}
+              </Text>
             </Pressable>
           </View>
         ) : null}
@@ -211,14 +239,18 @@ function Item({
           <Muted>{formatDay(tx.occurred_at.slice(0, 10), year)}</Muted>
         </View>
         <View style={styles.itemSide}>
-          <Text style={[styles.amount, { color: palette.text }]}>{formatRub(tx.amount_minor)}</Text>
+          <Text style={[styles.amount, { color: palette.text }]}>
+            {formatRub(tx.amount_minor)}
+          </Text>
           <Badge
             label={ru.feedback.reasons[item.reason]}
             tone={item.reason === "large" ? "warning" : "muted"}
           />
         </View>
       </View>
-      <Text style={[styles.question, { color: palette.text }]}>{ru.feedback.question}</Text>
+      <Text style={[styles.question, { color: palette.text }]}>
+        {ru.feedback.question}
+      </Text>
       <Muted>{ru.feedback.questionHint}</Muted>
       <Field
         label={ru.feedback.note}
@@ -238,13 +270,15 @@ function Item({
               accessibilityRole="radio"
               accessibilityLabel={`${ru.feedback.labels[label]}: ${tx.description ?? ""}`}
               accessibilityState={{ checked: tx.label === label, disabled }}
+              aria-checked={tx.label === label}
               disabled={disabled}
               onPress={() => onMark(label)}
               style={({ pressed, hovered }: PressState) => [
                 styles.chip,
                 {
                   borderColor: palette.border,
-                  backgroundColor: pressed || hovered ? palette.track : palette.card,
+                  backgroundColor:
+                    pressed || hovered ? palette.track : palette.card,
                   opacity: disabled ? 0.5 : 1,
                 },
               ]}
@@ -257,18 +291,38 @@ function Item({
         </View>
       )}
       <View style={styles.skipRow}>
-        <Pressable accessibilityRole="button" disabled={disabled} onPress={onSkip} hitSlop={8}>
-          <Text style={[styles.skip, { color: palette.muted }]}>{ru.feedback.skip}</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={onSkip}
+          hitSlop={8}
+        >
+          <Text style={[styles.skip, { color: palette.muted }]}>
+            {ru.feedback.skip}
+          </Text>
         </Pressable>
-        <Pressable accessibilityRole="button" disabled={disabled} onPress={onSkip} hitSlop={8}>
-          <Text style={[styles.skip, { color: palette.muted }]}>{ru.feedback.unknown}</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={onSkip}
+          hitSlop={8}
+        >
+          <Text style={[styles.skip, { color: palette.muted }]}>
+            {ru.feedback.unknown}
+          </Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-function AppliedNote({ applied, onUndo }: { applied: Applied; onUndo: () => void }) {
+function AppliedNote({
+  applied,
+  onUndo,
+}: {
+  applied: Applied;
+  onUndo: () => void;
+}) {
   const palette = usePalette();
   const lines = effectLines(applied.result.effect, formatRubApprox);
   const title =
@@ -276,7 +330,10 @@ function AppliedNote({ applied, onUndo }: { applied: Applied; onUndo: () => void
     applied.result.transaction.category ??
     ru.feedback.fallbackTitle;
   return (
-    <View accessibilityLiveRegion="polite" style={[styles.applied, { backgroundColor: palette.okSoft }]}>
+    <View
+      accessibilityLiveRegion="polite"
+      style={[styles.applied, { backgroundColor: palette.okSoft }]}
+    >
       <View style={styles.appliedHead}>
         <Icon name="check" color={palette.ok} size={18} />
         <Text style={[styles.appliedTitle, { color: palette.text }]}>
@@ -291,19 +348,27 @@ function AppliedNote({ applied, onUndo }: { applied: Applied; onUndo: () => void
       {lines.length === 0
         ? null
         : lines.map((line) =>
-          line.kind === "risk" ? (
-            <Text key="risk" style={[styles.appliedLine, { color: palette.text }]}>
-              {`${ru.feedback.risk}: ${ru.feedback.levels[line.from]} → ${ru.feedback.levels[line.to]}`}
-            </Text>
-          ) : (
-            <Text key={line.kind} style={[styles.appliedLine, { color: palette.text }]}>
-              {`${ru.feedback[line.kind]}: ${line.from} → ${line.to}`}
-            </Text>
-          ),
-        )}
+            line.kind === "risk" ? (
+              <Text
+                key="risk"
+                style={[styles.appliedLine, { color: palette.text }]}
+              >
+                {`${ru.feedback.risk}: ${ru.feedback.levels[line.from]} → ${ru.feedback.levels[line.to]}`}
+              </Text>
+            ) : (
+              <Text
+                key={line.kind}
+                style={[styles.appliedLine, { color: palette.text }]}
+              >
+                {`${ru.feedback[line.kind]}: ${line.from} → ${line.to}`}
+              </Text>
+            ),
+          )}
       {applied.label !== null ? (
         <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={8}>
-          <Text style={[styles.undo, { color: palette.accent }]}>{ru.feedback.undo}</Text>
+          <Text style={[styles.undo, { color: palette.accent }]}>
+            {ru.feedback.undo}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -311,30 +376,77 @@ function AppliedNote({ applied, onUndo }: { applied: Applied; onUndo: () => void
 }
 
 const styles = StyleSheet.create({
-  item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
-  progressRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.sm },
+  item: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+    gap: space.sm,
+  },
+  progressRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: space.sm,
+  },
   pager: { flexDirection: "row", gap: space.md },
-  pagerAction: { fontSize: 13, fontWeight: "500" },
+  pagerAction: {
+    minHeight: 44,
+    minWidth: 44,
+    paddingVertical: 12,
+    fontSize: 13,
+    fontWeight: "500",
+  },
   itemHead: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
   itemMain: { flex: 1, gap: 2 },
   itemSide: { alignItems: "flex-end", gap: space.xs },
   itemTitle: { fontSize: 14, fontWeight: "500" },
   amount: { fontSize: 14, fontWeight: "500", fontVariant: ["tabular-nums"] },
-  question: { fontSize: 16, fontWeight: "600", lineHeight: 22, letterSpacing: -0.32, paddingTop: space.xs },
+  question: {
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 22,
+    letterSpacing: -0.32,
+    paddingTop: space.xs,
+  },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   chip: {
+    minHeight: 44,
+    justifyContent: "center",
     borderWidth: 1,
     borderRadius: radius.pill,
     paddingHorizontal: space.md,
     paddingVertical: 6,
   },
   chipText: { fontSize: 13, fontWeight: "500" },
-  skipRow: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
-  skip: { fontSize: 13, fontWeight: "500", paddingVertical: space.xs },
+  skipRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: space.md,
+  },
+  skip: {
+    minHeight: 44,
+    minWidth: 44,
+    fontSize: 13,
+    fontWeight: "500",
+    paddingVertical: space.xs,
+  },
   applied: { borderRadius: radius.md, padding: space.md, gap: space.xs },
-  appliedHead: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },
+  appliedHead: {
+    flexDirection: "row",
+    gap: space.sm,
+    alignItems: "flex-start",
+  },
   appliedTitle: { flex: 1, fontSize: 14, fontWeight: "700", lineHeight: 20 },
   appliedLine: { fontSize: 14, lineHeight: 20 },
-  undo: { fontSize: 14, fontWeight: "500", paddingTop: space.xs },
-  footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.xs },
+  undo: {
+    minHeight: 44,
+    minWidth: 44,
+    fontSize: 14,
+    fontWeight: "500",
+    paddingTop: space.xs,
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+    gap: space.xs,
+  },
 });

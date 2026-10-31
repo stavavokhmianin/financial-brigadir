@@ -17,6 +17,7 @@ import {
   Button,
   Card,
   Choice,
+  EmptyState,
   ErrorState,
   LoadingState,
   Muted,
@@ -25,7 +26,13 @@ import {
 import { radius, space, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
-import { groupHidden, QUIET_PRESETS, quietPresetOf, timesLabel, type QuietPreset } from "./logic";
+import {
+  groupHidden,
+  QUIET_PRESETS,
+  quietPresetOf,
+  timesLabel,
+  type QuietPreset,
+} from "./logic";
 
 const t = ru.alerts;
 type Mode = "quiet" | "smart" | "active";
@@ -66,7 +73,10 @@ export function AlertsScreen() {
     return <Redirect href="/" />;
   }
 
-  const feedback = async (id: string, value: "useful" | "not_relevant" | "disable_type") => {
+  const feedback = async (
+    id: string,
+    value: "useful" | "not_relevant" | "disable_type",
+  ) => {
     try {
       await api.sendAlertFeedback(token, id, value);
       await load();
@@ -75,7 +85,9 @@ export function AlertsScreen() {
     }
   };
 
-  const updateSettings = async (patch: Parameters<typeof api.updateNotificationSettings>[1]) => {
+  const updateSettings = async (
+    patch: Parameters<typeof api.updateNotificationSettings>[1],
+  ) => {
     try {
       await api.updateNotificationSettings(token, patch);
       await load();
@@ -87,7 +99,11 @@ export function AlertsScreen() {
   if (error) {
     return (
       <Screen>
-        <ErrorState title={t.error} message={error} onRetry={() => void load()} />
+        <ErrorState
+          title={t.error}
+          message={error}
+          onRetry={() => void load()}
+        />
       </Screen>
     );
   }
@@ -102,15 +118,23 @@ export function AlertsScreen() {
   const shown = state.items.filter((a) => a.action === "send");
   const hidden = state.items.filter((a) => a.action !== "send");
   const settings = state.settings;
-  const quiet = quietPresetOf(settings.quiet_hours_start ?? null, settings.quiet_hours_end ?? null);
+  const quiet = quietPresetOf(
+    settings.quiet_hours_start ?? null,
+    settings.quiet_hours_end ?? null,
+  );
 
   return (
     <Screen>
       <Card title={t.title} icon="bell">
         <Muted>{t.lead}</Muted>
-        {shown.length === 0 ? <Muted>{t.empty}</Muted> : null}
+        {shown.length === 0 ? (
+          <EmptyState title="Вы в курсе" message={t.empty} icon="bell" />
+        ) : null}
         {shown.map((alert) => (
-          <View key={alert.id} style={[styles.alert, { borderColor: palette.border }]}>
+          <View
+            key={alert.id}
+            style={[styles.alert, { borderColor: palette.border }]}
+          >
             <View style={styles.row}>
               <Badge
                 label={alert.priority === "critical" ? t.critical : t.normal}
@@ -118,10 +142,13 @@ export function AlertsScreen() {
               />
               <Muted>{formatMoment(alert.created_at)}</Muted>
             </View>
-            <Text style={[styles.message, { color: palette.text }]}>{alert.message}</Text>
+            <Text style={[styles.message, { color: palette.text }]}>
+              {alert.message}
+            </Text>
             {alert.feedback ? (
               <Muted>
-                {t.thanks}: {t.feedback[alert.feedback as keyof typeof t.feedback]}
+                {t.thanks}:{" "}
+                {t.feedback[alert.feedback as keyof typeof t.feedback]}
               </Muted>
             ) : (
               <View style={styles.row}>
@@ -158,7 +185,9 @@ export function AlertsScreen() {
                 <Text style={{ color: palette.text }}>
                   {alert.action === "defer" ? t.deferred : t.suppressed}
                   {count > 1 ? ` ${timesLabel(count)}` : ""}
-                  {alert.risk_date ? ` · ${t.riskOn} ${formatDay(alert.risk_date)}` : ""}
+                  {alert.risk_date
+                    ? ` · ${t.riskOn} ${formatDay(alert.risk_date)}`
+                    : ""}
                 </Text>
                 <Muted>{alert.reason_text}</Muted>
               </View>
@@ -183,7 +212,10 @@ export function AlertsScreen() {
           value={quiet}
           onChange={(preset) => {
             const [start, end] = QUIET_PRESETS[preset];
-            void updateSettings({ quiet_hours_start: start, quiet_hours_end: end });
+            void updateSettings({
+              quiet_hours_start: start,
+              quiet_hours_end: end,
+            });
           }}
           options={[
             { value: "off", label: t.quiet.off },
@@ -193,18 +225,25 @@ export function AlertsScreen() {
         />
         <Choice<Limit>
           label={t.limit}
-          value={String(Math.min(settings.max_noncritical_per_week, 3)) as Limit}
-          onChange={(value) => void updateSettings({ max_noncritical_per_week: Number(value) })}
-          options={(["0", "1", "2", "3"] as const).map((value) => ({ value, label: value }))}
+          value={
+            String(Math.min(settings.max_noncritical_per_week, 3)) as Limit
+          }
+          onChange={(value) =>
+            void updateSettings({ max_noncritical_per_week: Number(value) })
+          }
+          options={(["0", "1", "2", "3"] as const).map((value) => ({
+            value,
+            label: value,
+          }))}
         />
         <Muted>{t.limitHint}</Muted>
       </Card>
 
       <Card title={t.statsTitle} icon="chart">
         <Muted>
-          {t.stats.decisions}: {state.analytics.total_decisions} · {t.stats.sent7}:{" "}
-          {state.analytics.sent_last_7_days} · {t.stats.suppressed}:{" "}
-          {state.analytics.by_action.suppress ?? 0}
+          {t.stats.decisions}: {state.analytics.total_decisions} ·{" "}
+          {t.stats.sent7}: {state.analytics.sent_last_7_days} ·{" "}
+          {t.stats.suppressed}: {state.analytics.by_action.suppress ?? 0}
         </Muted>
         <Muted>{t.inAppOnly}</Muted>
       </Card>
@@ -213,8 +252,18 @@ export function AlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  alert: { borderWidth: 1, borderRadius: radius.md, padding: space.md, gap: space.sm },
-  row: { flexDirection: "row", gap: space.sm, alignItems: "center", flexWrap: "wrap" },
+  alert: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: space.md,
+    gap: space.sm,
+  },
+  row: {
+    flexDirection: "row",
+    gap: space.sm,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
   message: { fontSize: 14, lineHeight: 21 },
   hidden: { gap: 2 },
 });

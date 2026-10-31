@@ -1,9 +1,11 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { ru } from "@/shared/i18n/ru";
 import { Muted } from "@/shared/ui/components";
+import { useReducedMotion } from "@/shared/ui/motion";
 import { Icon, type IconName } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { elevation, radius, space, usePalette } from "@/shared/ui/theme";
@@ -16,24 +18,51 @@ interface Props {
 }
 
 /** Служебные действия живут в одной панели и не конкурируют с финансовым содержанием. */
-export function DashboardMenu({ isDemo, liveControl, qualityNotes, duplicates }: Props) {
+export function DashboardMenu({
+  isDemo,
+  liveControl,
+  qualityNotes,
+  duplicates,
+}: Props) {
   const router = useRouter();
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
 
-  const go = (path: "/calendar" | "/add" | "/import" | "/alerts" | "/plans" | "/bank" | "/privacy" | "/duplicates") => {
+  const go = (
+    path:
+      | "/calendar"
+      | "/add"
+      | "/import"
+      | "/alerts"
+      | "/plans"
+      | "/bank"
+      | "/privacy"
+      | "/duplicates",
+  ) => {
     setOpen(false);
     router.push(path);
   };
 
-  const actions: { label: string; icon: IconName; path: Parameters<typeof go>[0] }[] = [
+  const actions: {
+    label: string;
+    icon: IconName;
+    path: Parameters<typeof go>[0];
+  }[] = [
     { label: ru.dashboard.calendar, icon: "calendar", path: "/calendar" },
     { label: ru.dashboard.add, icon: "plus", path: "/add" },
     { label: ru.dashboard.importCsv, icon: "upload", path: "/import" },
     { label: ru.alerts.settingsTitle, icon: "bell", path: "/alerts" },
     { label: ru.dashboard.plans, icon: "crown", path: "/plans" },
     ...(isDemo
-      ? [{ label: ru.dashboard.bankMock, icon: "bank" as const, path: "/bank" as const }]
+      ? [
+          {
+            label: ru.dashboard.bankMock,
+            icon: "bank" as const,
+            path: "/bank" as const,
+          },
+        ]
       : []),
     { label: ru.dashboard.privacy, icon: "shield", path: "/privacy" },
   ];
@@ -44,6 +73,7 @@ export function DashboardMenu({ isDemo, liveControl, qualityNotes, duplicates }:
         accessibilityRole="button"
         accessibilityLabel={ru.dashboard.menu}
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.trigger,
@@ -57,8 +87,21 @@ export function DashboardMenu({ isDemo, liveControl, qualityNotes, duplicates }:
         <Icon name="user" color={palette.heroText} size={18} />
       </Pressable>
 
-      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={styles.overlay}>
+      <Modal
+        transparent
+        visible={open}
+        animationType={reducedMotion ? "none" : "fade"}
+        onRequestClose={() => setOpen(false)}
+      >
+        <View
+          style={[
+            styles.overlay,
+            {
+              paddingTop: insets.top + space.lg,
+              paddingBottom: insets.bottom + space.lg,
+            },
+          ]}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={ru.alerts.close}
@@ -74,24 +117,47 @@ export function DashboardMenu({ isDemo, liveControl, qualityNotes, duplicates }:
             ]}
           >
             <View style={styles.head}>
-              <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+              <Text
+                accessibilityRole="header"
+                style={[styles.title, { color: palette.text }]}
+              >
                 {ru.dashboard.menuTitle}
               </Text>
-              <Pressable accessibilityRole="button" onPress={() => setOpen(false)} hitSlop={8}>
-                <Text style={[styles.close, { color: palette.muted }]}>{ru.alerts.close}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setOpen(false)}
+                hitSlop={8}
+              >
+                <Text style={[styles.close, { color: palette.muted }]}>
+                  {ru.alerts.close}
+                </Text>
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={styles.content}>
               {liveControl}
               {qualityNotes.length > 0 || duplicates > 0 ? (
-                <View style={[styles.quality, { backgroundColor: palette.warningBg }]}> 
-                  <Text style={[styles.qualityTitle, { color: palette.warning }]}>
+                <View
+                  style={[
+                    styles.quality,
+                    { backgroundColor: palette.warningBg },
+                  ]}
+                >
+                  <Text
+                    style={[styles.qualityTitle, { color: palette.warning }]}
+                  >
                     {ru.dashboard.dataQuality}
                   </Text>
-                  {qualityNotes.map((note) => <Muted key={note}>{note}</Muted>)}
+                  {qualityNotes.map((note) => (
+                    <Muted key={note}>{note}</Muted>
+                  ))}
                   {duplicates > 0 ? (
-                    <Pressable accessibilityRole="button" onPress={() => go("/duplicates")}>
-                      <Text style={[styles.qualityLink, { color: palette.accent }]}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => go("/duplicates")}
+                    >
+                      <Text
+                        style={[styles.qualityLink, { color: palette.accent }]}
+                      >
                         {`${ru.duplicates.dashboardTitle}: ${duplicates}`}
                       </Text>
                     </Pressable>
@@ -108,12 +174,15 @@ export function DashboardMenu({ isDemo, liveControl, qualityNotes, duplicates }:
                       styles.action,
                       {
                         borderColor: palette.border,
-                        backgroundColor: pressed || hovered ? palette.track : palette.card,
+                        backgroundColor:
+                          pressed || hovered ? palette.track : palette.card,
                       },
                     ]}
                   >
                     <Icon name={action.icon} color={palette.muted} size={18} />
-                    <Text style={[styles.actionText, { color: palette.text }]}>{action.label}</Text>
+                    <Text style={[styles.actionText, { color: palette.text }]}>
+                      {action.label}
+                    </Text>
                     <Icon name="arrow" color={palette.muted} size={16} />
                   </Pressable>
                 ))}
@@ -128,8 +197,8 @@ export function DashboardMenu({ isDemo, liveControl, qualityNotes, duplicates }:
 
 const styles = StyleSheet.create({
   trigger: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
@@ -137,7 +206,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.42)",
+    backgroundColor: "rgba(2,16,36,0.78)",
     padding: space.lg,
     alignItems: "flex-end",
     justifyContent: "flex-start",
@@ -159,11 +228,22 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(127,127,127,0.24)",
   },
   title: { fontSize: 17, fontWeight: "600", letterSpacing: -0.3 },
-  close: { fontSize: 14, fontWeight: "500" },
+  close: {
+    minHeight: 44,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: "500",
+  },
   content: { padding: space.lg, gap: space.lg },
   quality: { borderRadius: radius.md, padding: space.md, gap: space.xs },
   qualityTitle: { fontSize: 13, fontWeight: "600" },
-  qualityLink: { fontSize: 13, fontWeight: "500", paddingTop: space.xs },
+  qualityLink: {
+    minHeight: 44,
+    paddingVertical: 12,
+    fontSize: 13,
+    fontWeight: "500",
+    paddingTop: space.xs,
+  },
   actions: { gap: 0 },
   action: {
     minHeight: 48,

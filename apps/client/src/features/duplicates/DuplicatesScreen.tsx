@@ -6,7 +6,15 @@ import { api, ApiError, type DuplicatePair } from "@/shared/api/client";
 import { formatMoment, formatRub } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
-import { Button, Card, ErrorState, LoadingState, Muted, Screen } from "@/shared/ui/components";
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Muted,
+  Screen,
+} from "@/shared/ui/components";
 import { space, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
@@ -37,7 +45,10 @@ export function DuplicatesScreen() {
     return <Redirect href="/" />;
   }
 
-  const decide = async (id: string, decision: "duplicate" | "not_duplicate") => {
+  const decide = async (
+    id: string,
+    decision: "duplicate" | "not_duplicate",
+  ) => {
     setBusy(id);
     try {
       await api.resolveDuplicate(token, id, decision);
@@ -54,9 +65,17 @@ export function DuplicatesScreen() {
       <Card title={t.title} icon="alert">
         <Muted>{t.lead}</Muted>
       </Card>
-      {error ? <ErrorState title={t.error} message={error} onRetry={() => void load()} /> : null}
+      {error ? (
+        <ErrorState
+          title={t.error}
+          message={error}
+          onRetry={() => void load()}
+        />
+      ) : null}
       {pairs === null && !error ? <LoadingState label={t.loading} /> : null}
-      {pairs?.length === 0 ? <Muted>{t.empty}</Muted> : null}
+      {pairs?.length === 0 ? (
+        <EmptyState title="Всё проверено" message={t.empty} icon="check" />
+      ) : null}
       {pairs?.map((pair) => (
         <Card key={pair.transaction.id}>
           <Text style={[styles.title, { color: palette.text }]}>
@@ -69,7 +88,9 @@ export function DuplicatesScreen() {
               <Muted>{index === 0 ? t.first : t.second}</Muted>
               <Muted>
                 {formatMoment(tx.occurred_at)}
-                {tx.booked_at ? ` · ${t.booked} ${formatMoment(tx.booked_at)}` : ""}
+                {tx.booked_at
+                  ? ` · ${t.booked} ${formatMoment(tx.booked_at)}`
+                  : ""}
               </Muted>
             </View>
           ))}
@@ -97,5 +118,10 @@ export function DuplicatesScreen() {
 const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: "600", letterSpacing: -0.32 },
   row: { gap: 2 },
-  actions: { flexDirection: "row", gap: space.sm, flexWrap: "wrap", paddingTop: space.xs },
+  actions: {
+    flexDirection: "row",
+    gap: space.sm,
+    flexWrap: "wrap",
+    paddingTop: space.xs,
+  },
 });

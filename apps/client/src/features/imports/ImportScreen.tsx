@@ -2,11 +2,17 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { api, ApiError, type Account, type ImportResult } from "@/shared/api/client";
+import {
+  api,
+  ApiError,
+  type Account,
+  type ImportResult,
+} from "@/shared/api/client";
 import { formatMoment, formatRub } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
 import {
+  Badge,
   Button,
   Card,
   Choice,
@@ -69,7 +75,10 @@ export function ImportScreen() {
         accountId,
         content,
         mode,
-        idempotencyKey: mode === "import" ? `import-${preview?.fingerprint ?? ""}` : undefined,
+        idempotencyKey:
+          mode === "import"
+            ? `import-${preview?.fingerprint ?? ""}`
+            : undefined,
       });
       if (mode === "preview") {
         setPreview(response);
@@ -95,9 +104,21 @@ export function ImportScreen() {
 
   return (
     <Screen>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <Badge label="01 · Выписка" tone={!preview ? "ok" : "muted"} />
+        <Badge
+          label="02 · Проверка"
+          tone={
+            preview && previewedContent === content && !result ? "ok" : "muted"
+          }
+        />
+        <Badge label="03 · Готово" tone={result ? "ok" : "muted"} />
+      </View>
       <Card title={ru.imports.title} icon="upload">
         <Muted>{ru.imports.lead}</Muted>
-        {accounts === null && !error ? <LoadingState label={ru.imports.loadingAccounts} /> : null}
+        {accounts === null && !error ? (
+          <LoadingState label={ru.imports.loadingAccounts} />
+        ) : null}
         {accounts !== null ? (
           <Choice
             label={ru.imports.account}
@@ -141,7 +162,8 @@ export function ImportScreen() {
       {preview && previewedContent === content ? (
         <Card title={ru.imports.previewTitle} icon="check">
           <Muted>
-            {ru.imports.rows}: {preview.rows_total} · {ru.imports.rejected}: {preview.rows_rejected}
+            {ru.imports.rows}: {preview.rows_total} · {ru.imports.rejected}:{" "}
+            {preview.rows_rejected}
             {preview.period_from && preview.period_to
               ? ` · ${preview.period_from} — ${preview.period_to}`
               : ""}
@@ -155,7 +177,9 @@ export function ImportScreen() {
           {preview.preview.map((row) => (
             <View key={row.row} style={styles.line}>
               <View style={styles.lineMain}>
-                <Text style={{ color: palette.text }}>{row.description || row.category || "—"}</Text>
+                <Text style={{ color: palette.text }}>
+                  {row.description || row.category || "—"}
+                </Text>
                 <Muted>
                   {row.occurred_at ? formatMoment(row.occurred_at) : ""} ·{" "}
                   {ru.txType[row.type as keyof typeof ru.txType] ?? row.type}
@@ -170,7 +194,10 @@ export function ImportScreen() {
             </View>
           ))}
           {preview.issues.map((issue) => (
-            <Text key={`${issue.row}-${issue.code}`} style={{ color: palette.danger }}>
+            <Text
+              key={`${issue.row}-${issue.code}`}
+              style={{ color: palette.danger }}
+            >
               {ru.imports.row} {issue.row}: {issue.message}
             </Text>
           ))}
@@ -184,7 +211,14 @@ export function ImportScreen() {
       ) : null}
 
       {result ? (
-        <Card title={result.already_imported ? ru.imports.alreadyTitle : ru.imports.doneTitle} icon="check">
+        <Card
+          title={
+            result.already_imported
+              ? ru.imports.alreadyTitle
+              : ru.imports.doneTitle
+          }
+          icon="check"
+        >
           {result.already_imported ? (
             // Сервер вернул итог прошлой загрузки этого же файла: новых операций нет.
             <Muted>
@@ -192,11 +226,15 @@ export function ImportScreen() {
             </Muted>
           ) : (
             <Muted>
-              {ru.imports.imported}: {result.rows_imported} · {ru.imports.duplicates}:{" "}
-              {result.rows_duplicate} · {ru.imports.rejected}: {result.rows_rejected}
+              {ru.imports.imported}: {result.rows_imported} ·{" "}
+              {ru.imports.duplicates}: {result.rows_duplicate} ·{" "}
+              {ru.imports.rejected}: {result.rows_rejected}
             </Muted>
           )}
-          <Button label={ru.imports.toDashboard} onPress={() => router.replace("/dashboard")} />
+          <Button
+            label={ru.imports.toDashboard}
+            onPress={() => router.replace("/dashboard")}
+          />
         </Card>
       ) : null}
     </Screen>
@@ -205,7 +243,11 @@ export function ImportScreen() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: space.md, flexWrap: "wrap" },
-  line: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
+  line: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: space.md,
+  },
   lineMain: { flex: 1, gap: 2 },
   amount: { fontWeight: "600" },
 });

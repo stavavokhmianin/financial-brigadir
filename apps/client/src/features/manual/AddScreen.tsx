@@ -1,19 +1,33 @@
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
-
 import { api, ApiError, type Account } from "@/shared/api/client";
 import { localDate } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import { parseDateInput, parseRubInput } from "@/shared/input";
 import { useSession } from "@/shared/session";
-import { Button, Card, Choice, ErrorState, Field, Muted, Screen } from "@/shared/ui/components";
+import {
+  Button,
+  Card,
+  Choice,
+  ErrorState,
+  Field,
+  Muted,
+  Screen,
+  SuccessState,
+} from "@/shared/ui/components";
 import { usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
 
 type Section = "account" | "obligation" | "income";
 type AccountType = "debit" | "cash" | "savings" | "credit_card" | "deposit";
-type ObligationKind = "rent" | "loan" | "utilities" | "subscription" | "installment" | "manual";
+type ObligationKind =
+  | "rent"
+  | "loan"
+  | "utilities"
+  | "subscription"
+  | "installment"
+  | "manual";
 type IncomeKind = "salary" | "advance" | "freelance" | "other";
 type Repeat = "once" | "monthly";
 
@@ -71,15 +85,22 @@ function AccountForm({ token, onDone }: FormProps) {
 
   return (
     <>
-      <Field label={t.name} value={name} onChangeText={setName} error={errors.name} />
+      <Field
+        label={t.name}
+        value={name}
+        onChangeText={setName}
+        error={errors.name}
+      />
       <Choice
         label={t.type}
         value={type}
         onChange={setType}
-        options={(Object.keys(ru.accountType) as AccountType[]).map((value) => ({
-          value,
-          label: ru.accountType[value],
-        }))}
+        options={(Object.keys(ru.accountType) as AccountType[]).map(
+          (value) => ({
+            value,
+            label: ru.accountType[value],
+          }),
+        )}
       />
       <Field
         label={type === "credit_card" ? t.debtHint : t.balance}
@@ -134,7 +155,8 @@ function ObligationForm({ token, today, accounts, onDone }: FormProps) {
         amount_minor: parsedAmount.value,
         due_date: parsedDue.value,
         recurrence: repeat === "monthly" ? "monthly" : "none",
-        recurrence_day: repeat === "monthly" ? Number(parsedDue.value.slice(8, 10)) : null,
+        recurrence_day:
+          repeat === "monthly" ? Number(parsedDue.value.slice(8, 10)) : null,
         account_id: accountId,
       });
       setTitle("");
@@ -150,15 +172,22 @@ function ObligationForm({ token, today, accounts, onDone }: FormProps) {
 
   return (
     <>
-      <Field label={t.title} value={title} onChangeText={setTitle} error={errors.title} />
+      <Field
+        label={t.title}
+        value={title}
+        onChangeText={setTitle}
+        error={errors.title}
+      />
       <Choice
         label={t.kind}
         value={kind}
         onChange={setKind}
-        options={(Object.keys(t.obligationKinds) as ObligationKind[]).map((value) => ({
-          value,
-          label: t.obligationKinds[value],
-        }))}
+        options={(Object.keys(t.obligationKinds) as ObligationKind[]).map(
+          (value) => ({
+            value,
+            label: t.obligationKinds[value],
+          }),
+        )}
       />
       <Field
         label={t.amount}
@@ -220,7 +249,13 @@ function IncomeForm({ token, today, onDone }: FormProps) {
     if (!parsedFrom.ok) next.from = parsedFrom.error;
     if (parsedTo && !parsedTo.ok) next.to = parsedTo.error;
     setErrors(next);
-    if (!parsedAmount.ok || !parsedFrom.ok || (parsedTo && !parsedTo.ok) || !title.trim()) return;
+    if (
+      !parsedAmount.ok ||
+      !parsedFrom.ok ||
+      (parsedTo && !parsedTo.ok) ||
+      !title.trim()
+    )
+      return;
     setBusy(true);
     setFailure(null);
     try {
@@ -247,7 +282,12 @@ function IncomeForm({ token, today, onDone }: FormProps) {
 
   return (
     <>
-      <Field label={t.title} value={title} onChangeText={setTitle} error={errors.title} />
+      <Field
+        label={t.title}
+        value={title}
+        onChangeText={setTitle}
+        error={errors.title}
+      />
       <Choice
         label={t.kind}
         value={kind}
@@ -349,9 +389,13 @@ export function AddScreen() {
         {section === "account" ? <AccountForm {...props} /> : null}
         {section === "obligation" ? <ObligationForm {...props} /> : null}
         {section === "income" ? <IncomeForm {...props} /> : null}
-        {notice ? <Text style={{ color: palette.ok }}>{notice}</Text> : null}
+        {notice ? <SuccessState message={notice} /> : null}
       </Card>
-      <Button label={t.toCalendar} variant="secondary" onPress={() => router.push("/calendar")} />
+      <Button
+        label={t.toCalendar}
+        variant="secondary"
+        onPress={() => router.push("/calendar")}
+      />
     </Screen>
   );
 }

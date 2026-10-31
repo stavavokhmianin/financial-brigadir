@@ -1,6 +1,11 @@
-import { StyleSheet, Text as NativeText, type TextProps, type TextStyle } from "react-native";
+import {
+  StyleSheet,
+  Text as NativeText,
+  type TextProps,
+  type TextStyle,
+} from "react-native";
 
-import { fonts } from "./theme";
+import { fonts, typeScale } from "./theme";
 
 // Как в Geist: заголовки и цифры — 600, жирнее 700 не бывает.
 const FAMILY: Record<string, string> = {
@@ -21,11 +26,24 @@ const FAMILY: Record<string, string> = {
  * Text приложения: Geist с начертанием по fontWeight. Вес переводится в семейство,
  * потому что Android не синтезирует жирность для подключённых шрифтов.
  */
-export function Text({ style, ...props }: TextProps) {
+export function Text({
+  style,
+  variant,
+  ...props
+}: TextProps & { variant?: keyof typeof typeScale }) {
+  style = [variant ? typeScale[variant] : null, style];
   const flat: TextStyle = StyleSheet.flatten(style) ?? {};
   if (flat.fontFamily && !flat.fontFamily.startsWith("Geist")) {
     return <NativeText style={style} {...props} />;
   }
-  const family = flat.fontFamily ?? FAMILY[String(flat.fontWeight ?? "400")] ?? fonts.regular;
-  return <NativeText style={[style, { fontFamily: family, fontWeight: undefined }]} {...props} />;
+  const family =
+    flat.fontFamily ??
+    FAMILY[String(flat.fontWeight ?? "400")] ??
+    fonts.regular;
+  return (
+    <NativeText
+      style={[style, { fontFamily: family, fontWeight: undefined }]}
+      {...props}
+    />
+  );
 }

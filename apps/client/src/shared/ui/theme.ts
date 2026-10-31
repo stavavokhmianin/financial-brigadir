@@ -1,120 +1,148 @@
-import { Platform, useColorScheme, type ViewStyle } from "react-native";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
+import { Platform, type ViewStyle } from "react-native";
 
-// Визуальный язык «Бригадира» в духе Geist: монохромная основа (чёрный, белый, нейтральные
-// серые), тонкие границы вместо теней, синий — только для ссылок и графика. Цвет состояний
-// несёт смысл: зелёный — «запас есть», красный — «ниже резерва», янтарный — «внимание».
-export interface Palette {
-  background: string;
-  card: string;
-  text: string;
-  muted: string;
-  /** Подсказка в пустом поле: заметно светлее введённого текста. */
-  placeholder: string;
-  /** Ореол вокруг поля в фокусе. */
-  focusRing: string;
-  border: string;
-  /**
-   * Рамка поля ввода. Темнее декоративной `border`: у пустого поля это единственное, что
-   * показывает, куда печатать (WCAG 1.4.11 — не меньше 3:1 к фону).
-   */
-  inputBorder: string;
-  /** Подложка трека шкал, разделители внутри карточек. */
-  track: string;
-  accent: string;
-  accentSoft: string;
-  accentText: string;
-  /** Главное действие: инвертированная поверхность (чёрная в светлой теме, белая в тёмной). */
-  primary: string;
-  primaryText: string;
-  danger: string;
-  dangerSoft: string;
-  /** Заливка кнопки необратимого действия; текст на ней белый в обеих темах. */
-  dangerSolid: string;
-  warning: string;
-  warningBg: string;
-  ok: string;
-  okSoft: string;
-  /** Контрастная поверхность: карточка баланса, первый экран, Plus. */
-  hero: string;
-  heroBorder: string;
-  heroText: string;
-  heroMuted: string;
-  heroChip: string;
-  shadow: string;
+export const blue = {
+  midnight: "#021024",
+  deep: "#052659",
+  steel: "#5483B3",
+  soft: "#7DA0CA",
+  ice: "#C1E8FF",
+} as const;
+export const palettes = {
+  dark: {
+    background: blue.midnight,
+    surface: "#071B35",
+    surfaceElevated: "#0C2849",
+    foreground: "#F1F8FF",
+    foregroundMuted: "#A5BDDA",
+    border: "#244260",
+    accent: blue.ice,
+    accentHover: "#E1F4FF",
+    primaryAction: blue.ice,
+    chart: blue.ice,
+    chartBand: blue.steel,
+    overlay: "rgba(2,16,36,0.78)",
+    shadow: "#010812",
+    card: "#071B35",
+    text: "#F1F8FF",
+    muted: "#A5BDDA",
+    placeholder: "#8EA9C9",
+    focusRing: "rgba(193,232,255,0.3)",
+    inputBorder: "#5483B3",
+    track: "#102C4B",
+    accentSoft: "#143A60",
+    accentText: blue.midnight,
+    primary: blue.ice,
+    primaryText: blue.midnight,
+    danger: "#FFADB4",
+    dangerSoft: "#3B2033",
+    dangerSolid: "#B52E45",
+    warning: "#F4CB88",
+    warningBg: "#332B22",
+    ok: "#8EDAC1",
+    okSoft: "#143833",
+    hero: blue.deep,
+    heroBorder: "#305780",
+    heroText: "#F1F8FF",
+    heroMuted: "#C0D5EF",
+    heroChip: "rgba(193,232,255,0.12)",
+  },
+  light: {
+    background: "#EFF5FC",
+    surface: "#FFFFFF",
+    surfaceElevated: "#E2EFFA",
+    foreground: blue.midnight,
+    foregroundMuted: "#455E7C",
+    border: "#C4D6E8",
+    accent: blue.deep,
+    accentHover: "#14457B",
+    primaryAction: blue.deep,
+    chart: blue.deep,
+    chartBand: blue.steel,
+    overlay: "rgba(2,16,36,0.55)",
+    shadow: blue.deep,
+    card: "#FFFFFF",
+    text: blue.midnight,
+    muted: "#455E7C",
+    placeholder: "#526C8B",
+    focusRing: "rgba(5,38,89,0.16)",
+    inputBorder: "#6484A8",
+    track: "#E2EDF8",
+    accentSoft: "#D9EBFA",
+    accentText: "#FFFFFF",
+    primary: blue.deep,
+    primaryText: "#FFFFFF",
+    danger: "#AF243E",
+    dangerSoft: "#FCECEF",
+    dangerSolid: "#AF243E",
+    warning: "#815208",
+    warningBg: "#FFF2DC",
+    ok: "#16674E",
+    okSoft: "#E3F4EE",
+    hero: blue.deep,
+    heroBorder: "#305780",
+    heroText: "#F1F8FF",
+    heroMuted: "#C0D5EF",
+    heroChip: "rgba(193,232,255,0.12)",
+  },
+} as const;
+export type Palette = { [K in keyof typeof palettes.dark]: string };
+type ThemeMode = "dark" | "light";
+const ThemeContext = createContext<{ mode: ThemeMode; toggle: () => void }>({
+  mode: "dark",
+  toggle: () => {},
+});
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    try {
+      return Platform.OS === "web" &&
+        globalThis.localStorage?.getItem("brigadir.theme") === "light"
+        ? "light"
+        : "dark";
+    } catch {
+      return "dark";
+    }
+  });
+  const toggle = () =>
+    setMode((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      try {
+        if (Platform.OS === "web")
+          globalThis.localStorage?.setItem("brigadir.theme", next);
+      } catch {
+        /* Storage can be disabled. */
+      }
+      return next;
+    });
+  return createElement(
+    ThemeContext.Provider,
+    { value: { mode, toggle } },
+    children,
+  );
 }
-
-const light: Palette = {
-  background: "#fafafa",
-  card: "#ffffff",
-  text: "#171717",
-  muted: "#666666",
-  // Контраст текста к фону — не меньше 4.5:1 (WCAG 1.4.3), подсказка в поле — тоже текст.
-  placeholder: "#737373",
-  focusRing: "rgba(0,0,0,0.12)",
-  border: "#ebebeb",
-  inputBorder: "#8f8f8f",
-  track: "#f2f2f2",
-  // Чуть темнее #0070f3: ссылка на голубой плашке accentSoft иначе даёт 4.1:1.
-  accent: "#0062d1",
-  accentSoft: "#ebf5ff",
-  accentText: "#ffffff",
-  primary: "#171717",
-  primaryText: "#ffffff",
-  danger: "#c52b30",
-  dangerSoft: "#fff0f0",
-  dangerSolid: "#c52b30",
-  warning: "#aa4d00",
-  warningBg: "#fff6e5",
-  ok: "#107d32",
-  okSoft: "#ebfaef",
-  hero: "#0a0a0a",
-  heroBorder: "#0a0a0a",
-  heroText: "#ededed",
-  heroMuted: "#a1a1a1",
-  heroChip: "rgba(255,255,255,0.1)",
-  shadow: "#000000",
-};
-
-const dark: Palette = {
-  background: "#000000",
-  card: "#0a0a0a",
-  text: "#ededed",
-  muted: "#a1a1a1",
-  placeholder: "#808080",
-  focusRing: "rgba(255,255,255,0.18)",
-  border: "#2e2e2e",
-  inputBorder: "#666666",
-  track: "#1a1a1a",
-  accent: "#52a8ff",
-  accentSoft: "#0d1a2b",
-  accentText: "#ffffff",
-  primary: "#ededed",
-  primaryText: "#0a0a0a",
-  danger: "#ff6166",
-  dangerSoft: "#2a1314",
-  // Белый текст на красной кнопке — 5.2:1 (с #e5484d было 3.9:1).
-  dangerSolid: "#c8373c",
-  warning: "#ff990a",
-  warningBg: "#2a1a05",
-  ok: "#62c073",
-  okSoft: "#0e2414",
-  hero: "#0a0a0a",
-  heroBorder: "#2e2e2e",
-  heroText: "#ededed",
-  heroMuted: "#a1a1a1",
-  heroChip: "rgba(255,255,255,0.08)",
-  shadow: "#000000",
-};
-
+export const useTheme = () => useContext(ThemeContext);
 export function usePalette(): Palette {
-  return useColorScheme() === "dark" ? dark : light;
+  return palettes[useTheme().mode];
 }
 
-export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
-
-export const radius = { sm: 6, md: 8, lg: 12, xl: 16, pill: 999 } as const;
-
-/** Начертания Geist; вес задаётся семейством, а не fontWeight (так надёжнее на Android). */
+export const space = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 48,
+  section: 64,
+} as const;
+export const radius = { sm: 10, md: 14, lg: 24, xl: 32, pill: 999 } as const;
 export const fonts = {
   regular: "Geist_400Regular",
   medium: "Geist_500Medium",
@@ -123,20 +151,42 @@ export const fonts = {
   mono: "GeistMono_400Regular",
   monoMedium: "GeistMono_500Medium",
 } as const;
-
-/**
- * Еле заметная тень поверх границы — как у карточек Geist. В тёмной теме тень не видна,
- * поэтому глубину там дают только границы.
- */
+export const typeScale = {
+  hero: { fontSize: 64, lineHeight: 72, letterSpacing: -3, fontWeight: "600" },
+  display: {
+    fontSize: 40,
+    lineHeight: 48,
+    letterSpacing: -1.6,
+    fontWeight: "600",
+  },
+  title: {
+    fontSize: 28,
+    lineHeight: 36,
+    letterSpacing: -0.9,
+    fontWeight: "600",
+  },
+  heading: {
+    fontSize: 18,
+    lineHeight: 26,
+    letterSpacing: -0.4,
+    fontWeight: "600",
+  },
+  body: { fontSize: 15, lineHeight: 23 },
+  caption: { fontSize: 12, lineHeight: 18, letterSpacing: 0.1 },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 18,
+    letterSpacing: 1.6,
+    fontFamily: fonts.mono,
+  },
+} as const;
+export const motion = {
+  quick: 160,
+  enter: 360,
+  update: 280,
+  stagger: 55,
+} as const;
 export function elevation(palette: Palette, level: 1 | 2 | 3 = 1): ViewStyle {
-  const blur = { 1: 2, 2: 8, 3: 24 }[level];
-  const y = { 1: 1, 2: 4, 3: 12 }[level];
-  const opacity = { 1: 0.04, 2: 0.06, 3: 0.12 }[level];
-  if (Platform.OS === "android") return { elevation: { 1: 0, 2: 1, 3: 6 }[level] };
-  return {
-    shadowColor: palette.shadow,
-    shadowOpacity: opacity,
-    shadowRadius: blur / 2,
-    shadowOffset: { width: 0, height: y },
-  };
+  if (Platform.OS === "android") return { elevation: level * 2 };
+  return { boxShadow: `0 ${level * 6}px ${level * 18}px ${palette.shadow}26` };
 }

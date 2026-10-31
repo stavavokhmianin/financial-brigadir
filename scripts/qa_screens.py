@@ -172,15 +172,13 @@ def profile_pass(run: Run, profile: str) -> None:
         timeout=15_000
     )
     profile_slug = re.sub(r"\W+", "-", profile.lower())
-    page.screenshot(
-        path=str(run.out / f"{profile_slug}-alerts.png"), full_page=True
-    )
+    page.screenshot(path=str(run.out / f"{profile_slug}-alerts.png"), full_page=True)
     run.close_panel()
 
     run.tap("Данные и настройки")
-    duplicates = page.get_by_role(
-        "button", name=re.compile("^Есть операции для проверки")
-    ).filter(visible=True)
+    duplicates = page.get_by_role("button", name=re.compile("^Есть операции для проверки")).filter(
+        visible=True
+    )
     if duplicates.count():
         run.screen(f"{profile}: дубли", duplicates.first.inner_text().strip(), None)
     else:
@@ -225,9 +223,7 @@ def live_pass(run: Run) -> None:
     # Показываем по одному вопросу. Разбираем оставшиеся регулярные кандидаты,
     # после чего становится доступна одна нейтральная метка обычной траты.
     for _ in range(5):
-        reject = page.get_by_role("button", name=re.compile("^Не регулярный:")).filter(
-            visible=True
-        )
+        reject = page.get_by_role("button", name=re.compile("^Не регулярный:")).filter(visible=True)
         if reject.count() == 0:
             break
         reject.first.click()
@@ -258,12 +254,15 @@ def main() -> int:
         action="store_true",
         help="Проверить только ускоренный учебный аккаунт после уже пройденных профилей",
     )
+    parser.add_argument(
+        "--channel", default=None, help="Playwright browser channel, e.g. chromium or chrome"
+    )
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        browser = playwright.chromium.launch(channel=args.channel)
         page = browser.new_page(viewport=VIEWPORT, locale="ru-RU")
         page.goto(args.web)
         run = Run(page, out)

@@ -9,7 +9,13 @@ import {
 } from "@/shared/api/client";
 import { formatDay, formatRub, formatRubApprox, plural } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
-import { Badge, Button, Card, Muted, type PressState } from "@/shared/ui/components";
+import {
+  Badge,
+  Button,
+  Card,
+  Muted,
+  type PressState,
+} from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette } from "@/shared/ui/theme";
@@ -28,7 +34,12 @@ interface Props {
 }
 
 /** «Похоже на регулярный платёж» (FR-11): повторения, которых нет в календаре. */
-export function RecurringCard({ token, refreshKey, onConfirmed, onAvailabilityChange }: Props) {
+export function RecurringCard({
+  token,
+  refreshKey,
+  onConfirmed,
+  onAvailabilityChange,
+}: Props) {
   const [items, setItems] = useState<RecurringCandidate[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +124,9 @@ function Candidate({
     <View style={[styles.item, { borderColor: palette.border }]}>
       <View style={styles.head}>
         <View style={styles.main}>
-          <Text style={[styles.title, { color: palette.text }]}>{item.title}</Text>
+          <Text style={[styles.title, { color: palette.text }]}>
+            {item.title}
+          </Text>
           <Muted>{when}</Muted>
         </View>
         <Text style={[styles.amount, { color: palette.text }]}>{amount}</Text>
@@ -142,12 +155,15 @@ function Candidate({
             styles.reject,
             {
               borderColor: palette.border,
-              backgroundColor: pressed || hovered ? palette.track : palette.card,
+              backgroundColor:
+                pressed || hovered ? palette.track : palette.card,
               opacity: disabled ? 0.5 : 1,
             },
           ]}
         >
-          <Text style={[styles.rejectText, { color: palette.text }]}>{t.reject}</Text>
+          <Text style={[styles.rejectText, { color: palette.text }]}>
+            {t.reject}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -158,7 +174,10 @@ function Confirmed({ result }: { result: RecurringConfirm }) {
   const palette = usePalette();
   const lines = effectLines(result.effect, formatRubApprox);
   return (
-    <View accessibilityLiveRegion="polite" style={[styles.done, { backgroundColor: palette.okSoft }]}>
+    <View
+      accessibilityLiveRegion="polite"
+      style={[styles.done, { backgroundColor: palette.okSoft }]}
+    >
       <View style={styles.doneHead}>
         <Icon name="check" color={palette.ok} size={18} />
         <Text style={[styles.doneTitle, { color: palette.text }]}>
@@ -166,7 +185,11 @@ function Confirmed({ result }: { result: RecurringConfirm }) {
         </Text>
       </View>
       <Muted>{t.addedNote}</Muted>
-      {lines.length === 0 ? <Muted>{t.unchanged}</Muted> : <Muted>{t.effect}</Muted>}
+      {lines.length === 0 ? (
+        <Muted>{t.unchanged}</Muted>
+      ) : (
+        <Muted>{t.effect}</Muted>
+      )}
       {lines.map((line) => (
         <Text key={line.kind} style={[styles.line, { color: palette.text }]}>
           {line.kind === "risk"
@@ -179,7 +202,11 @@ function Confirmed({ result }: { result: RecurringConfirm }) {
 }
 
 const styles = StyleSheet.create({
-  item: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.sm },
+  item: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+    gap: space.sm,
+  },
   head: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
   main: { flex: 1, gap: 2 },
   title: { fontSize: 14, fontWeight: "500" },
@@ -188,9 +215,14 @@ const styles = StyleSheet.create({
   doneHead: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },
   doneTitle: { flex: 1, fontSize: 14, fontWeight: "700", lineHeight: 20 },
   line: { fontSize: 14, lineHeight: 20 },
-  actions: { flexDirection: "row", gap: space.sm, flexWrap: "wrap", paddingTop: space.xs },
+  actions: {
+    flexDirection: "row",
+    gap: space.sm,
+    flexWrap: "wrap",
+    paddingTop: space.xs,
+  },
   reject: {
-    minHeight: 32,
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: radius.sm,
     paddingHorizontal: space.md,

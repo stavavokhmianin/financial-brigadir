@@ -6,7 +6,15 @@ import { api, ApiError } from "@/shared/api/client";
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
 import { Logo } from "@/shared/ui/brand";
-import { Button, Card, ErrorState, Field, Hero, Muted, Screen } from "@/shared/ui/components";
+import {
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Hero,
+  Muted,
+  Screen,
+} from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { radius, space, usePalette } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/text";
@@ -55,12 +63,19 @@ export function PilotSignInScreen({
       <Hero>
         <View style={styles.brandRow}>
           <Logo onHero />
-          <Text style={[styles.brandName, { color: palette.heroText }]}>{ru.appName}</Text>
+          <Text style={[styles.brandName, { color: palette.heroText }]}>
+            {ru.appName}
+          </Text>
         </View>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.heroText }]}>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: palette.heroText }]}
+        >
           {ru.demo.title}
         </Text>
-        <Text style={[styles.lead, { color: palette.heroMuted }]}>{t.lead}</Text>
+        <Text style={[styles.lead, { color: palette.heroMuted }]}>
+          {t.lead}
+        </Text>
       </Hero>
       <Card title={t.termsTitle} icon="shield">
         {t.terms.map((line) => (
@@ -71,6 +86,7 @@ export function PilotSignInScreen({
         </Muted>
         <Pressable
           accessibilityRole="checkbox"
+          aria-checked={accepted}
           accessibilityState={{ checked: accepted }}
           onPress={() => setAccepted(!accepted)}
           style={styles.check}
@@ -84,9 +100,13 @@ export function PilotSignInScreen({
               },
             ]}
           >
-            {accepted ? <Icon name="check" color={palette.primaryText} size={14} /> : null}
+            {accepted ? (
+              <Icon name="check" color={palette.primaryText} size={14} />
+            ) : null}
           </View>
-          <Text style={[styles.checkText, { color: palette.text }]}>{t.accept}</Text>
+          <Text style={[styles.checkText, { color: palette.text }]}>
+            {t.accept}
+          </Text>
         </Pressable>
       </Card>
       <Card title={t.codeTitle} icon="user">
@@ -115,9 +135,21 @@ export function PilotSignInScreen({
 const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: space.md },
   brandName: { fontSize: 15, fontWeight: "600", letterSpacing: -0.3 },
-  title: { fontSize: 34, fontWeight: "600", lineHeight: 40, letterSpacing: -1.4, paddingTop: space.lg },
+  title: {
+    fontSize: 34,
+    fontWeight: "600",
+    lineHeight: 40,
+    letterSpacing: -1.4,
+    paddingTop: space.lg,
+  },
   lead: { fontSize: 16, lineHeight: 24 },
-  check: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.xs },
+  check: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+    paddingVertical: space.xs,
+  },
   box: {
     width: 20,
     height: 20,

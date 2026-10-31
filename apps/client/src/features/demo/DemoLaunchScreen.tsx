@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { api, ApiError, type DemoProfile } from "@/shared/api/client";
 import { DEMO_SEED } from "@/shared/config";
@@ -20,7 +20,7 @@ import {
 } from "@/shared/ui/components";
 import { Icon, type IconName } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
-import { radius, space, usePalette } from "@/shared/ui/theme";
+import { blue, radius, space, typeScale, usePalette } from "@/shared/ui/theme";
 
 const DEFAULT_PROFILE = "young_specialist";
 
@@ -44,6 +44,8 @@ function messageOf(error: unknown): string {
 
 export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktop = width >= 960;
   const palette = usePalette();
   const { setSession } = useSession();
   const [profiles, setProfiles] = useState<DemoProfile[] | null>(null);
@@ -86,7 +88,10 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
     setStarting(true);
     setStartError(null);
     try {
-      const session = await api.createDemoSession({ profile_id: selected, seed: DEMO_SEED });
+      const session = await api.createDemoSession({
+        profile_id: selected,
+        seed: DEMO_SEED,
+      });
       setSession(session);
       router.replace("/dashboard");
     } catch (error) {
@@ -97,101 +102,219 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   };
 
   return (
-    <Screen topInset>
+    <Screen topInset wide>
       {notice}
-      <Hero>
-        <View style={styles.brandRow}>
-          <Logo onHero />
-          <Text style={[styles.brandName, { color: palette.heroText }]}>{ru.appName}</Text>
-        </View>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.heroText }]}>
-          {ru.demo.title}
-        </Text>
-        <Text style={[styles.lead, { color: palette.heroMuted }]}>{ru.demo.lead}</Text>
-        <View style={styles.features}>
-          {FEATURES.map((feature) => (
-            <View key={feature.label} style={[styles.feature, { backgroundColor: palette.heroChip }]}>
-              <Icon name={feature.icon} color={palette.heroText} size={16} />
-              <Text style={[styles.featureText, { color: palette.heroText }]}>{feature.label}</Text>
+      <Hero style={{ padding: desktop ? 48 : 24 }}>
+        <View
+          style={{
+            flexDirection: desktop ? "row" : "column",
+            gap: 32,
+            alignItems: "center",
+          }}
+        >
+          <View style={{ flex: 1, gap: 24, minWidth: 0 }}>
+            <Text style={[typeScale.eyebrow, { color: palette.heroMuted }]}>
+              СПОКОЙСТВИЕ НАЧИНАЕТСЯ С ЯСНОСТИ
+            </Text>
+            <View style={styles.brandRow}>
+              <Logo onHero />
+              <Text style={[styles.brandName, { color: palette.heroText }]}>
+                {ru.appName}
+              </Text>
             </View>
-          ))}
-        </View>
-        <Button
-          variant="inverse"
-          trailingIcon="arrow"
-          label={startingLive ? ru.live.starting : ru.live.start}
-          onPress={() => void startLive()}
-          loading={startingLive}
-          disabled={starting}
-        />
-      </Hero>
-
-      {startError ? (
-        <ErrorState title={ru.demo.loadError} message={startError} hint={ru.demo.serverHint} />
-      ) : null}
-
-      {showProfiles ? <Card title={ru.demo.profilesTitle}>
-        <Muted>{ru.demo.profilesLead}</Muted>
-        {loadError ? (
-          <ErrorState
-            title={ru.demo.loadError}
-            message={loadError}
-            hint={ru.demo.serverHint}
-            onRetry={() => void load()}
-          />
-        ) : profiles === null ? (
-          <LoadingState label={ru.demo.loading} />
-        ) : profiles.length === 0 ? (
-          <Muted>{ru.demo.empty}</Muted>
-        ) : (
-          <View accessibilityRole="radiogroup" style={styles.list}>
-            {profiles.map((profile) => {
-              const active = profile.id === selected;
-              return (
-                <Pressable
-                  key={profile.id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active, disabled: !profile.mvp }}
-                  disabled={!profile.mvp || starting || startingLive}
-                  onPress={() => setSelected(profile.id)}
-                  style={({ hovered }: PressState) => [
-                    styles.option,
-                    {
-                      borderColor:
-                        active ? palette.text : hovered && profile.mvp ? palette.muted : palette.border,
-                      backgroundColor: palette.card,
-                      opacity: profile.mvp ? 1 : 0.5,
-                    },
+            <Text
+              accessibilityRole="header"
+              style={[
+                desktop ? typeScale.hero : typeScale.display,
+                { color: palette.heroText },
+              ]}
+            >
+              {ru.demo.title}
+            </Text>
+            <Text style={[styles.lead, { color: palette.heroMuted }]}>
+              {ru.demo.lead}
+            </Text>
+            <View style={styles.features}>
+              {FEATURES.map((feature) => (
+                <View
+                  key={feature.label}
+                  style={[
+                    styles.feature,
+                    { backgroundColor: palette.heroChip },
                   ]}
                 >
+                  <Icon
+                    name={feature.icon}
+                    color={palette.heroText}
+                    size={16}
+                  />
+                  <Text
+                    style={[styles.featureText, { color: palette.heroText }]}
+                  >
+                    {feature.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Button
+              variant="inverse"
+              trailingIcon="arrow"
+              label={startingLive ? ru.live.starting : ru.live.start}
+              onPress={() => void startLive()}
+              loading={startingLive}
+              disabled={starting}
+            />
+          </View>
+          {desktop ? (
+            <View
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{ width: 360, height: 390, justifyContent: "center" }}
+            >
+              {[blue.midnight, blue.deep, blue.steel, blue.soft, blue.ice].map(
+                (color, i) => (
                   <View
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: active ? palette.primary : palette.track },
+                    key={color}
+                    style={{
+                      position: "absolute",
+                      top: 20 + i * 56,
+                      left: 10 + i * 3,
+                      width: 320,
+                      height: 130,
+                      borderRadius: 65,
+                      backgroundColor: color,
+                      borderWidth: 1,
+                      borderColor: "rgba(193,232,255,0.2)",
+                      boxShadow: "0 12px 28px rgba(2,16,36,0.3)",
+                      transform: [{ rotate: "-12deg" }],
+                    }}
+                  />
+                ),
+              )}
+            </View>
+          ) : null}
+        </View>
+      </Hero>
+      <View style={{ flexDirection: desktop ? "row" : "column", gap: 16 }}>
+        {[
+          [
+            "01",
+            "Соберите картину",
+            "Счета, поступления и обязательства — в одном пространстве.",
+          ],
+          [
+            "02",
+            "Посмотрите вперёд",
+            "Узнайте, когда запас денег может опуститься ниже резерва.",
+          ],
+          [
+            "03",
+            "Решайте спокойнее",
+            "Проверьте влияние покупки на прогноз до оплаты.",
+          ],
+        ].map(([number, title, text]) => (
+          <Card key={number} style={{ flex: desktop ? 1 : undefined }}>
+            <Text style={[typeScale.eyebrow, { color: palette.muted }]}>
+              {number}
+            </Text>
+            <Text style={[typeScale.heading, { color: palette.text }]}>
+              {title}
+            </Text>
+            <Muted>{text}</Muted>
+          </Card>
+        ))}
+      </View>
+
+      {startError ? (
+        <ErrorState
+          title={ru.demo.loadError}
+          message={startError}
+          hint={ru.demo.serverHint}
+        />
+      ) : null}
+
+      {showProfiles ? (
+        <Card title={ru.demo.profilesTitle}>
+          <Muted>{ru.demo.profilesLead}</Muted>
+          {loadError ? (
+            <ErrorState
+              title={ru.demo.loadError}
+              message={loadError}
+              hint={ru.demo.serverHint}
+              onRetry={() => void load()}
+            />
+          ) : profiles === null ? (
+            <LoadingState label={ru.demo.loading} />
+          ) : profiles.length === 0 ? (
+            <Muted>{ru.demo.empty}</Muted>
+          ) : (
+            <View accessibilityRole="radiogroup" style={styles.list}>
+              {profiles.map((profile) => {
+                const active = profile.id === selected;
+                return (
+                  <Pressable
+                    key={profile.id}
+                    accessibilityRole="radio"
+                    aria-checked={active}
+                    accessibilityState={{
+                      checked: active,
+                      disabled: !profile.mvp,
+                    }}
+                    disabled={!profile.mvp || starting || startingLive}
+                    onPress={() => setSelected(profile.id)}
+                    style={({ hovered }: PressState) => [
+                      styles.option,
+                      {
+                        borderColor: active
+                          ? palette.text
+                          : hovered && profile.mvp
+                            ? palette.muted
+                            : palette.border,
+                        backgroundColor: palette.card,
+                        opacity: profile.mvp ? 1 : 0.5,
+                      },
                     ]}
                   >
-                    <Icon
-                      name={PROFILE_ICON[profile.id] ?? "user"}
-                      color={active ? palette.primaryText : palette.muted}
-                      size={20}
-                    />
-                  </View>
-                  <View style={styles.optionBody}>
-                    <View style={styles.optionHeader}>
-                      <Text style={[styles.optionTitle, { color: palette.text }]}>
-                        {profile.title}
-                      </Text>
-                      {active ? <Badge label={ru.demo.selected} tone="ok" /> : null}
-                      {!profile.mvp ? <Badge label={ru.demo.afterMvp} /> : null}
+                    <View
+                      style={[
+                        styles.avatar,
+                        {
+                          backgroundColor: active
+                            ? palette.primary
+                            : palette.track,
+                        },
+                      ]}
+                    >
+                      <Icon
+                        name={PROFILE_ICON[profile.id] ?? "user"}
+                        color={active ? palette.primaryText : palette.muted}
+                        size={20}
+                      />
                     </View>
-                    <Muted>{profile.description}</Muted>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
-      </Card> : null}
+                    <View style={styles.optionBody}>
+                      <View style={styles.optionHeader}>
+                        <Text
+                          style={[styles.optionTitle, { color: palette.text }]}
+                        >
+                          {profile.title}
+                        </Text>
+                        {active ? (
+                          <Badge label={ru.demo.selected} tone="ok" />
+                        ) : null}
+                        {!profile.mvp ? (
+                          <Badge label={ru.demo.afterMvp} />
+                        ) : null}
+                      </View>
+                      <Muted>{profile.description}</Muted>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </Card>
+      ) : null}
 
       {showProfiles ? (
         <Button
@@ -203,8 +326,14 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
           disabled={profiles === null || profiles.length === 0 || startingLive}
         />
       ) : (
-        <Pressable accessibilityRole="button" onPress={() => setShowProfiles(true)}>
-          <Text style={[styles.technical, { color: palette.muted }]}>Технические сценарии демо</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowProfiles(true)}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text style={[styles.technical, { color: palette.muted }]}>
+            Технические сценарии демо
+          </Text>
         </Pressable>
       )}
       <Muted>{ru.demo.disclaimer}</Muted>
@@ -215,9 +344,20 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
 const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: space.md },
   brandName: { fontSize: 15, fontWeight: "600", letterSpacing: -0.3 },
-  title: { fontSize: 34, fontWeight: "600", lineHeight: 40, letterSpacing: -1.4, paddingTop: space.lg },
+  title: {
+    fontSize: 34,
+    fontWeight: "600",
+    lineHeight: 40,
+    letterSpacing: -1.4,
+    paddingTop: space.lg,
+  },
   lead: { fontSize: 16, lineHeight: 24 },
-  features: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingVertical: space.xs },
+  features: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    paddingVertical: space.xs,
+  },
   feature: {
     flexDirection: "row",
     alignItems: "center",
@@ -237,9 +377,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.md,
   },
-  avatar: { width: 42, height: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   optionBody: { flex: 1, gap: space.xs },
-  optionHeader: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  optionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+    flexWrap: "wrap",
+  },
   optionTitle: { fontSize: 15, fontWeight: "600", letterSpacing: -0.2 },
-  technical: { textAlign: "center", fontSize: 12, textDecorationLine: "underline" },
+  technical: {
+    textAlign: "center",
+    fontSize: 12,
+    textDecorationLine: "underline",
+  },
 });
