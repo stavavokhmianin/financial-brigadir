@@ -151,6 +151,9 @@ export const ru = {
   },
   dashboard: {
     screenTitle: "Главная",
+    menu: "Данные и настройки",
+    menuTitle: "Данные и настройки",
+    dataQuality: "Качество данных",
     liquid: "Свободные средства",
     dataAsOf: "Данные на",
     coverage: {

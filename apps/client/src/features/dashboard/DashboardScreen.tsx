@@ -27,7 +27,6 @@ import {
 import { ru } from "@/shared/i18n/ru";
 import { useSession } from "@/shared/session";
 import {
-  ActionTile,
   Badge,
   Button,
   Card,
@@ -35,15 +34,15 @@ import {
   Hero,
   LoadingState,
   Muted,
-  Notice,
   Screen,
   Stat,
 } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
-import { fonts, radius, space, usePalette } from "@/shared/ui/theme";
+import { radius, space, usePalette } from "@/shared/ui/theme";
 
 import { describeAccount, upcoming } from "./logic";
+import { DashboardMenu } from "./DashboardMenu";
 
 const WINDOW_DAYS = 30;
 
@@ -65,6 +64,7 @@ export function DashboardScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
+  const [hasRecurring, setHasRecurring] = useState<boolean | null>(null);
   const token = session?.access_token;
   const asOf = session?.data_quality.data_as_of ?? null;
   const isLive = Boolean(session && "live" in session && session.live);
@@ -160,7 +160,19 @@ export function DashboardScreen() {
             )}
             <Badge label={ru.dashboard.coverage[quality.coverage]} tone="hero" />
           </View>
-          {token ? <NotificationsBell token={token} /> : null}
+          <View style={styles.heroActions}>
+            {token ? <NotificationsBell token={token} /> : null}
+            <DashboardMenu
+              isDemo={session.user.is_demo}
+              qualityNotes={quality.notes}
+              duplicates={data.duplicates}
+              liveControl={
+                data.live && token ? (
+                  <LiveBar key={token} token={token} latest={data.live} onArrived={onArrived} />
+                ) : undefined
+              }
+            />
+          </View>
         </View>
         <View style={styles.balance}>
           <Text style={[styles.heroLabel, { color: palette.heroMuted }]}>{ru.dashboard.liquid}</Text>
@@ -177,23 +189,6 @@ export function DashboardScreen() {
           ) : null}
         </View>
       </Hero>
-
-      {data.live && token ? (
-        <LiveBar key={token} token={token} latest={data.live} onArrived={onArrived} />
-      ) : null}
-
-      {quality.notes.length > 0 ? (
-        <Notice text={`${ru.dashboard.notesTitle}: ${quality.notes.join(" ")}`} />
-      ) : null}
-
-      {data.duplicates > 0 ? (
-        <Card title={ru.duplicates.dashboardTitle} icon="alert">
-          <Muted>
-            {ru.duplicates.title}: {data.duplicates}
-          </Muted>
-          <Button label={ru.duplicates.open} onPress={() => router.push("/duplicates")} />
-        </Card>
-      ) : null}
 
       <Card title={ru.dashboard.decisionTitle} icon="sparkle">
         {data.accounts.items.length === 0 ? (
@@ -259,8 +254,15 @@ export function DashboardScreen() {
 
       {isLive && token ? (
         <>
-          <RecurringCard token={token} refreshKey={feedbackKey} onConfirmed={onArrived} />
-          <FeedbackCard token={token} refreshKey={feedbackKey} onLabeled={onLabeled} />
+          <RecurringCard
+            token={token}
+            refreshKey={feedbackKey}
+            onConfirmed={onArrived}
+            onAvailabilityChange={setHasRecurring}
+          />
+          {hasRecurring === false ? (
+            <FeedbackCard token={token} refreshKey={feedbackKey} onLabeled={onLabeled} />
+          ) : null}
         </>
       ) : null}
 
@@ -370,29 +372,13 @@ export function DashboardScreen() {
         })}
       </Card>
 
-      <Text style={[styles.section, { color: palette.muted }]}>{ru.dashboard.actionsTitle}</Text>
-      <View style={styles.grid}>
-        <ActionTile icon="calendar" label={ru.dashboard.calendar} onPress={() => router.push("/calendar")} />
-        <ActionTile icon="plus" label={ru.dashboard.add} onPress={() => router.push("/add")} />
-        <ActionTile icon="upload" label={ru.dashboard.importCsv} onPress={() => router.push("/import")} />
-        <ActionTile icon="crown" label={ru.dashboard.plans} onPress={() => router.push("/plans")} />
-        {session.user.is_demo ? (
-          <ActionTile icon="bank" label={ru.dashboard.bankMock} onPress={() => router.push("/bank")} />
-        ) : null}
-      </View>
-      {/* Последний элемент экрана: на него опирается Android-сценарий. */}
-      <Button
-        label={ru.dashboard.privacy}
-        icon="shield"
-        onPress={() => router.push("/privacy")}
-        variant="secondary"
-      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space.md },
+  heroActions: { flexDirection: "row", gap: space.sm },
   // Бейджи сжимаются и переносятся, колокольчик остаётся в панели даже на 320–375 px.
   heroBadges: { flex: 1, flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
   balance: { gap: space.xs, paddingTop: space.sm },
@@ -439,12 +425,4 @@ const styles = StyleSheet.create({
   activityNote: { fontSize: 13, lineHeight: 18 },
   activityBadge: { alignSelf: "flex-start", paddingTop: 2 },
   total: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md },
-  section: {
-    fontFamily: fonts.mono,
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    marginBottom: -space.sm,
-  },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, borderRadius: radius.lg },
 });

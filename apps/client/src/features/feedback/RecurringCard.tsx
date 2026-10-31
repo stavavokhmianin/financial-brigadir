@@ -24,10 +24,11 @@ interface Props {
   refreshKey: number;
   /** Обязательство добавлено: главной пора обновить календарь и прогноз. */
   onConfirmed: () => void;
+  onAvailabilityChange?: (available: boolean) => void;
 }
 
 /** «Похоже на регулярный платёж» (FR-11): повторения, которых нет в календаре. */
-export function RecurringCard({ token, refreshKey, onConfirmed }: Props) {
+export function RecurringCard({ token, refreshKey, onConfirmed, onAvailabilityChange }: Props) {
   const [items, setItems] = useState<RecurringCandidate[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,12 +36,15 @@ export function RecurringCard({ token, refreshKey, onConfirmed }: Props) {
 
   const load = useCallback(async () => {
     try {
-      setItems((await api.listRecurring(token)).items);
+      const next = (await api.listRecurring(token)).items;
+      setItems(next);
+      onAvailabilityChange?.(next.length > 0);
     } catch {
       // Блок вспомогательный: без него главная остаётся рабочей.
       setItems([]);
+      onAvailabilityChange?.(false);
     }
-  }, [token]);
+  }, [token, onAvailabilityChange]);
 
   useEffect(() => {
     void load();
@@ -71,7 +75,7 @@ export function RecurringCard({ token, refreshKey, onConfirmed }: Props) {
       {items.length > 0 ? <Muted>{t.lead}</Muted> : null}
       {done ? <Confirmed result={done} /> : null}
       {error ? <Muted>{`${t.error}: ${error}`}</Muted> : null}
-      {items.map((item) => (
+      {items.slice(0, 1).map((item) => (
         <Candidate
           key={item.id}
           item={item}

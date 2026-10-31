@@ -52,6 +52,7 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
   const [starting, setStarting] = useState(false);
   const [startingLive, setStartingLive] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [showProfiles, setShowProfiles] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -129,7 +130,7 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
         <ErrorState title={ru.demo.loadError} message={startError} hint={ru.demo.serverHint} />
       ) : null}
 
-      <Card title={ru.demo.profilesTitle}>
+      {showProfiles ? <Card title={ru.demo.profilesTitle}>
         <Muted>{ru.demo.profilesLead}</Muted>
         {loadError ? (
           <ErrorState
@@ -190,16 +191,22 @@ export function DemoLaunchScreen({ notice }: { notice?: ReactNode }) {
             })}
           </View>
         )}
-      </Card>
+      </Card> : null}
 
-      <Button
-        variant="secondary"
-        trailingIcon="arrow"
-        label={starting ? ru.demo.starting : ru.demo.start}
-        onPress={() => void start()}
-        loading={starting}
-        disabled={profiles === null || profiles.length === 0 || startingLive}
-      />
+      {showProfiles ? (
+        <Button
+          variant="secondary"
+          trailingIcon="arrow"
+          label={starting ? ru.demo.starting : ru.demo.start}
+          onPress={() => void start()}
+          loading={starting}
+          disabled={profiles === null || profiles.length === 0 || startingLive}
+        />
+      ) : (
+        <Pressable accessibilityRole="button" onPress={() => setShowProfiles(true)}>
+          <Text style={[styles.technical, { color: palette.muted }]}>Технические сценарии демо</Text>
+        </Pressable>
+      )}
       <Muted>{ru.demo.disclaimer}</Muted>
     </Screen>
   );
@@ -234,4 +241,5 @@ const styles = StyleSheet.create({
   optionBody: { flex: 1, gap: space.xs },
   optionHeader: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
   optionTitle: { fontSize: 15, fontWeight: "600", letterSpacing: -0.2 },
+  technical: { textAlign: "center", fontSize: 12, textDecorationLine: "underline" },
 });

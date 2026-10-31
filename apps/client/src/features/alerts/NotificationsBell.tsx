@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from "react-native";
 
@@ -20,7 +19,6 @@ interface Props {
  */
 export function NotificationsBell({ token }: Props) {
   const palette = usePalette();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AlertItem[] | null>(null);
   // Что сервис решил не показывать (повтор того же риска, тихие часы, лимит): подавление
@@ -37,11 +35,6 @@ export function NotificationsBell({ token }: Props) {
       setHidden(0);
     }
   }, [token]);
-
-  const openAll = () => {
-    setOpen(false);
-    router.push("/alerts");
-  };
 
   useEffect(() => {
     void load();
@@ -160,13 +153,11 @@ export function NotificationsBell({ token }: Props) {
               ))
             )}
 
-            <View style={[styles.footer, { borderColor: palette.border }]}>
-              {hidden > 0 ? <Muted>{`${ru.alerts.hiddenSummary}: ${hidden}`}</Muted> : null}
-              {/* Режимы, тихие часы и лимит частоты (FR-24) и полная история решений. */}
-              <Pressable accessibilityRole="button" onPress={openAll} hitSlop={8}>
-                <Text style={[styles.mute, { color: palette.accent }]}>{ru.alerts.openAll}</Text>
-              </Pressable>
-            </View>
+            {hidden > 0 ? (
+              <View style={[styles.footer, { borderColor: palette.border }]}>
+                <Muted>{`${ru.alerts.hiddenSummary}: ${hidden}`}</Muted>
+              </View>
+            ) : null}
           </View>
         </View>
       </Modal>
