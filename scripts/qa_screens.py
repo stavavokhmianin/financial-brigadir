@@ -206,6 +206,7 @@ def live_pass(run: Run) -> None:
     run.settle()
     run.close_panel()
     run.where = "учебный аккаунт: регулярный платёж"
+    run.tap("Уточнить траты")
     expect(
         page.get_by_text("Похоже на регулярный платёж").filter(visible=True).first
     ).to_be_visible(timeout=15_000)
@@ -233,6 +234,7 @@ def live_pass(run: Run) -> None:
     page.screenshot(path=str(run.out / "live-feedback.png"), full_page=True)
     run.tap("Снять метку")
     run.settle()
+    run.close_panel()
     run.where = "учебный аккаунт: выход"
     run.tap("Данные и настройки")
     run.tap("Приватность, экспорт и выход")

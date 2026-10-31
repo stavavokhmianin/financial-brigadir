@@ -11,9 +11,8 @@ import {
   type ObligationsResponse,
   type Transaction,
 } from "@/shared/api/client";
-import { FeedbackCard } from "@/features/feedback/FeedbackCard";
 import { LiveBar } from "@/features/feedback/LiveBar";
-import { RecurringCard } from "@/features/feedback/RecurringCard";
+import { SpendingReview } from "@/features/feedback/SpendingReview";
 import { NotificationsBell } from "@/features/alerts/NotificationsBell";
 import { ForecastChart } from "@/features/forecast/ForecastChart";
 import {
@@ -126,8 +125,6 @@ export function DashboardScreen() {
     setFeedbackKey((key) => key + 1);
     void load(true);
   }, [load]);
-  const onLabeled = useCallback(() => void load(true), [load]);
-
   // Перезагрузка при возврате на экран: данные могли измениться в календаре или импорте.
   useFocusEffect(
     useCallback(() => {
@@ -616,26 +613,18 @@ export function DashboardScreen() {
                 );
               })}
             </Card>
+            {isLive && token ? (
+              <SpendingReview
+                token={token}
+                refreshKey={feedbackKey}
+                hasRecurring={hasRecurring}
+                onRecurringChange={setHasRecurring}
+                onChanged={onArrived}
+              />
+            ) : null}
           </View>
         </View>
       </Reveal>
-      {isLive && token ? (
-        <>
-          <RecurringCard
-            token={token}
-            refreshKey={feedbackKey}
-            onConfirmed={onArrived}
-            onAvailabilityChange={setHasRecurring}
-          />
-          {hasRecurring === false ? (
-            <FeedbackCard
-              token={token}
-              refreshKey={feedbackKey}
-              onLabeled={onLabeled}
-            />
-          ) : null}
-        </>
-      ) : null}
 
       <Card title={ru.dashboard.recentTitle} icon="wallet">
         <Muted>{ru.dashboard.recentHint}</Muted>
