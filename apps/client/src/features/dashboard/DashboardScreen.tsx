@@ -405,6 +405,16 @@ export function DashboardScreen() {
         </Card>
       </View>
 
+      {isLive && token ? (
+        <SpendingReview
+          token={token}
+          refreshKey={feedbackKey}
+          hasRecurring={hasRecurring}
+          onRecurringChange={setHasRecurring}
+          onChanged={onArrived}
+        />
+      ) : null}
+
       <Reveal delay={55}>
         <View style={[styles.overviewGrid, desktop && styles.horizontal]}>
           <Card
@@ -613,15 +623,6 @@ export function DashboardScreen() {
                 );
               })}
             </Card>
-            {isLive && token ? (
-              <SpendingReview
-                token={token}
-                refreshKey={feedbackKey}
-                hasRecurring={hasRecurring}
-                onRecurringChange={setHasRecurring}
-                onChanged={onArrived}
-              />
-            ) : null}
           </View>
         </View>
       </Reveal>
