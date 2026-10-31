@@ -88,6 +88,26 @@ def test_reserve_and_horizon_are_respected(client: TestClient, headers: dict[str
     assert "не опускается ниже резерва" in data["risk"]["explanation"]
 
 
+def test_saved_reserve_is_used_only_by_its_owner(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    changed = client.patch(
+        "/api/v1/risk-preferences",
+        headers=headers,
+        json={"reserve_minor": 2_000_000},
+    )
+    assert changed.status_code == 200
+    assert changed.json() == {"reserve_minor": 2_000_000}
+    assert client.get("/api/v1/risk-preferences", headers=headers).json() == changed.json()
+    assert _forecast(client, headers)["reserve_minor"] == 2_000_000
+
+    other = _headers(client, "two_banks")
+    assert client.get("/api/v1/risk-preferences", headers=other).json() == {
+        "reserve_minor": 500_000
+    }
+    assert _forecast(client, other)["reserve_minor"] == 500_000
+
+
 def test_idempotency_and_get(client: TestClient, headers: dict[str, str]) -> None:
     key = {"Idempotency-Key": "fc-1", **headers}
     first = client.post("/api/v1/forecasts", headers=key, json={})

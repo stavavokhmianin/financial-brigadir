@@ -15,6 +15,7 @@ import { LiveBar } from "@/features/feedback/LiveBar";
 import { SpendingReview } from "@/features/feedback/SpendingReview";
 import { NotificationsBell } from "@/features/alerts/NotificationsBell";
 import { ForecastChart } from "@/features/forecast/ForecastChart";
+import { ReserveEditor } from "@/features/forecast/ReserveEditor";
 import {
   addDays,
   formatDay,
@@ -276,7 +277,7 @@ export function DashboardScreen() {
                   style={[styles.heroLabel, { color: palette.heroMuted }]}
                 >
                   Из свободных средств уже вычтены будущие платежи, обычные
-                  расходы и резерв {formatRub(data.forecast.reserve_minor)}
+                  расходы и неснижаемый остаток {formatRub(data.forecast.reserve_minor)}
                 </Text>
                 <Text
                   style={[styles.heroLabel, { color: palette.heroMuted }]}
@@ -387,12 +388,13 @@ export function DashboardScreen() {
                     style={[typeScale.heading, { color: palette.text }]}
                   />
                 </View>
-                <View style={styles.forecastStat}>
-                  <Muted>Неприкосновенный резерв</Muted>
-                  <Text style={[typeScale.heading, { color: palette.text }]}>
-                    {formatRub(data.forecast.reserve_minor)}
-                  </Text>
-                </View>
+                {token ? (
+                  <ReserveEditor
+                    token={token}
+                    reserveMinor={data.forecast.reserve_minor}
+                    onSaved={() => load(true)}
+                  />
+                ) : null}
               </View>
               <Text style={[typeScale.caption, { color: palette.muted }]}>
                 Линия — ожидаемый остаток; полоса вокруг неё — возможный разброс

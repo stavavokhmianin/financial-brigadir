@@ -51,6 +51,16 @@ class ForecastRequest(APIModel):
     scenario: ScenarioEvent | None = None
 
 
+class RiskPreferencesOut(APIModel):
+    """Личная граница, ниже которой пользователь не хочет опускать остаток."""
+
+    reserve_minor: NonNegativeMinor
+
+
+class RiskPreferencesPatch(APIModel):
+    reserve_minor: NonNegativeMinor
+
+
 class ForecastPointOut(APIModel):
     day: dt.date
     p10_minor: Minor = Field(description="Пессимистичный сценарий")

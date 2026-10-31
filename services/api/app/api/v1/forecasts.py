@@ -5,15 +5,23 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import APIError, error_responses, not_found
-from app.db.models import ForecastRun
+from app.db.models import AuditEvent, ForecastRun
 from app.modules.forecasting import (
+    DEFAULT_RESERVE_MINOR,
     ForecastInputError,
     create_forecast,
     create_scenario,
     load_forecast,
 )
 from app.modules.plans import ensure_forecast_access, lock_profile
-from app.schemas.forecasts import ForecastOut, ForecastRequest, ScenarioOut, ScenarioRequest
+from app.schemas.forecasts import (
+    ForecastOut,
+    ForecastRequest,
+    RiskPreferencesOut,
+    RiskPreferencesPatch,
+    ScenarioOut,
+    ScenarioRequest,
+)
 
 router = APIRouter(tags=["forecasts"])
 
@@ -25,6 +33,44 @@ IdempotencyKey = Annotated[
         description="Повтор запроса с тем же ключом вернёт тот же расчёт",
     ),
 ]
+
+
+@router.get(
+    "/risk-preferences",
+    operation_id="getRiskPreferences",
+    summary="Неснижаемый остаток пользователя для прогнозов",
+    responses=error_responses(401),
+)
+def get_risk_preferences(user: CurrentUser) -> RiskPreferencesOut:
+    return RiskPreferencesOut(
+        reserve_minor=int(user.risk_preferences.get("reserve_minor", DEFAULT_RESERVE_MINOR))
+    )
+
+
+@router.patch(
+    "/risk-preferences",
+    operation_id="updateRiskPreferences",
+    summary="Изменить неснижаемый остаток и применять его к новым прогнозам",
+    responses=error_responses(401),
+)
+def update_risk_preferences(
+    body: RiskPreferencesPatch, user: CurrentUser, db: DbSession
+) -> RiskPreferencesOut:
+    user.risk_preferences = {
+        **(user.risk_preferences or {}),
+        "reserve_minor": body.reserve_minor,
+    }
+    db.add(
+        AuditEvent(
+            user_id=user.id,
+            action="risk_preferences_updated",
+            object_type="user",
+            object_id=user.id,
+            meta={"fields": ["reserve_minor"]},
+        )
+    )
+    db.commit()
+    return RiskPreferencesOut(reserve_minor=body.reserve_minor)
 
 
 @router.post(

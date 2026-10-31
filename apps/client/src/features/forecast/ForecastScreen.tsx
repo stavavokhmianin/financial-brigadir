@@ -9,7 +9,6 @@ import { useSession } from "@/shared/session";
 import {
   Button,
   Card,
-  Choice,
   ErrorState,
   LoadingState,
   Muted,
@@ -21,11 +20,10 @@ import { Text } from "@/shared/ui/text";
 import { radius, space, usePalette, type Palette } from "@/shared/ui/theme";
 
 import { ForecastChart } from "./ForecastChart";
+import { ReserveEditor } from "./ReserveEditor";
 import { keyDays, riskScale, riskShift, riskTone } from "./logic";
 
 const t = ru.forecast;
-const RESERVES = ["0", "500000", "1000000", "2000000"] as const;
-type ReserveOption = (typeof RESERVES)[number];
 
 function toneColors(
   palette: Palette,
@@ -196,7 +194,6 @@ export function ForecastScreen() {
   const palette = usePalette();
   const { session } = useSession();
   const token = session?.access_token;
-  const [reserve, setReserve] = useState<ReserveOption>("500000");
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -207,14 +204,14 @@ export function ForecastScreen() {
     setError(null);
     try {
       setForecast(
-        await api.createForecast(token, { reserve_minor: Number(reserve) }),
+        await api.createForecast(token, {}),
       );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Неизвестная ошибка.");
     } finally {
       setLoading(false);
     }
-  }, [token, reserve]);
+  }, [token]);
 
   useEffect(() => {
     void load();
@@ -229,15 +226,13 @@ export function ForecastScreen() {
   return (
     <Screen wide>
       <Card title={t.title} icon="shield">
-        <Choice
-          label={t.reserve}
-          value={reserve}
-          onChange={setReserve}
-          options={RESERVES.map((value) => ({
-            value,
-            label: formatRub(Number(value)),
-          }))}
-        />
+        {forecast && token ? (
+          <ReserveEditor
+            token={token}
+            reserveMinor={forecast.reserve_minor}
+            onSaved={load}
+          />
+        ) : null}
         <Muted>{t.reserveHint}</Muted>
       </Card>
 

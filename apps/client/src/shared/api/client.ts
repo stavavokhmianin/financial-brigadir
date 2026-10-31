@@ -24,6 +24,7 @@ export type TransactionsPage = Schemas["TransactionsPage"];
 export type Transaction = Schemas["TransactionOut"];
 export type Forecast = Schemas["ForecastOut"];
 export type ForecastRequest = Schemas["ForecastRequest"];
+export type RiskPreferences = Schemas["RiskPreferencesOut"];
 export type ScenarioRequest = Schemas["ScenarioRequest"];
 export type ScenarioResult = Schemas["ScenarioOut"];
 export type DuplicatePair = Schemas["DuplicatePair"];
@@ -224,6 +225,16 @@ export const api = {
 
   createForecast: (token: string, body: ForecastRequest) =>
     request<Forecast>("/api/v1/forecasts", { method: "POST", token, body }),
+
+  getRiskPreferences: (token: string) =>
+    request<RiskPreferences>("/api/v1/risk-preferences", { token }),
+
+  updateRiskPreferences: (token: string, reserveMinor: number) =>
+    request<RiskPreferences>("/api/v1/risk-preferences", {
+      method: "PATCH",
+      token,
+      body: { reserve_minor: reserveMinor },
+    }),
 
   createScenario: (token: string, body: ScenarioRequest) =>
     request<ScenarioResult>("/api/v1/scenarios", { method: "POST", token, body }),

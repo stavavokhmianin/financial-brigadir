@@ -1269,6 +1269,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/risk-preferences:
+    get:
+      tags:
+      - forecasts
+      summary: Неснижаемый остаток пользователя для прогнозов
+      operationId: getRiskPreferences
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskPreferencesOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+      security:
+      - HTTPBearer: []
+    patch:
+      tags:
+      - forecasts
+      summary: Изменить неснижаемый остаток и применять его к новым прогнозам
+      operationId: updateRiskPreferences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskPreferencesPatch'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskPreferencesOut'
+        '401':
+          description: Нужна авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
   /api/v1/forecasts:
     post:
       tags:
@@ -4262,6 +4315,33 @@ components:
       - explanation
       - drivers
       title: RiskOut
+    RiskPreferencesOut:
+      properties:
+        reserve_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Reserve Minor
+          examples:
+          - 500000
+      type: object
+      required:
+      - reserve_minor
+      title: RiskPreferencesOut
+      description: Личная граница, ниже которой пользователь не хочет опускать остаток.
+    RiskPreferencesPatch:
+      properties:
+        reserve_minor:
+          type: integer
+          maximum: 9.223372036854776e+18
+          minimum: 0.0
+          title: Reserve Minor
+          examples:
+          - 500000
+      type: object
+      required:
+      - reserve_minor
+      title: RiskPreferencesPatch
     SafeSpendOut:
       properties:
         date:
