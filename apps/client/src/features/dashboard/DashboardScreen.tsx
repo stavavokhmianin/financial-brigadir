@@ -417,9 +417,14 @@ export function DashboardScreen() {
                           {item.title}
                         </Text>
                         <Muted>
-                          {formatDay(item.date, year)} ·{" "}
-                          {ru.status[item.status as keyof typeof ru.status] ??
-                            item.status}
+                          {formatDay(item.date, year)}
+                          {item.status === "confirmed"
+                            ? ""
+                            : ` · ${
+                                ru.status[
+                                  item.status as keyof typeof ru.status
+                                ] ?? item.status
+                              }`}
                         </Muted>
                       </View>
                       <Text

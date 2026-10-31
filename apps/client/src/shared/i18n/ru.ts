@@ -173,7 +173,7 @@ export const ru = {
     demoBadge: "Демо",
     notesTitle: "Ограничения данных",
     upcomingTitle: "Ближайшие платежи",
-    upcomingTotal: "До конца окна",
+    upcomingTotal: "Всего за 30 дней",
     upcomingEmpty: "Обязательств в ближайшие 30 дней нет.",
     accountsTitle: "Счета",
     recentTitle: "Последние операции",
