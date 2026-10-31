@@ -10,6 +10,8 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "export_openapi.py"
 
 REQUIRED = {  # раздел 22.2
     ("post", "/api/v1/demo/sessions"),
+    ("post", "/api/v1/auth/register"),
+    ("post", "/api/v1/auth/sessions"),
     ("get", "/api/v1/accounts"),
     ("post", "/api/v1/accounts"),
     ("post", "/api/v1/imports/csv"),
@@ -33,6 +35,8 @@ PUBLIC = {
     "/api/v1/demo/live-sessions",
     "/api/v1/meta",
     "/api/v1/pilot/sessions",
+    "/api/v1/auth/register",
+    "/api/v1/auth/sessions",
 }
 
 

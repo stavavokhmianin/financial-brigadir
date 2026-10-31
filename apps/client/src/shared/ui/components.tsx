@@ -10,6 +10,7 @@ import {
   View,
   type KeyboardTypeOptions,
   type PressableStateCallbackType,
+  type TextInputProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -38,6 +39,9 @@ interface FieldProps {
   multiline?: boolean;
   keyboardType?: KeyboardTypeOptions;
   monospace?: boolean;
+  secureTextEntry?: boolean;
+  autoComplete?: TextInputProps["autoComplete"];
+  autoCapitalize?: TextInputProps["autoCapitalize"];
 }
 export function Field(props: FieldProps) {
   const palette = usePalette();
@@ -56,7 +60,9 @@ export function Field(props: FieldProps) {
         placeholderTextColor={palette.placeholder}
         multiline={props.multiline}
         keyboardType={props.keyboardType}
-        autoCapitalize="none"
+        secureTextEntry={props.secureTextEntry}
+        autoComplete={props.autoComplete}
+        autoCapitalize={props.autoCapitalize ?? "none"}
         autoCorrect={false}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

@@ -23,6 +23,8 @@ class DemoSessionCreate(APIModel):
 
 class UserOut(APIModel):
     id: str
+    display_name: str | None = None
+    email: str | None = None
     locale: str
     timezone: str
     plan: Plan

@@ -22,12 +22,23 @@ interface SessionState {
 const SessionContext = createContext<SessionState | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSessionState] = useState<Session | null>(null);
+  const [session, setSessionState] = useState<Session | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = window.sessionStorage.getItem("brigadir-session");
+      return saved ? (JSON.parse(saved) as Session) : null;
+    } catch {
+      return null;
+    }
+  });
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     setSessionExpiredListener(() => {
       setSessionState(null);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("brigadir-session");
+      }
       setExpired(true);
       if (router.canDismiss()) router.dismissAll();
       router.replace("/");
@@ -42,6 +53,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession: (next: Session | null) => {
         setExpired(false);
         setSessionState(next);
+        if (typeof window !== "undefined") {
+          if (next) window.sessionStorage.setItem("brigadir-session", JSON.stringify(next));
+          else window.sessionStorage.removeItem("brigadir-session");
+        }
       },
     }),
     [session, expired],

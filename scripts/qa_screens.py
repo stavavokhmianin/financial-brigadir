@@ -82,7 +82,6 @@ class Run:
 def profile_pass(run: Run, profile: str) -> None:
     page = run.page
     run.where = f"{profile}: старт"
-    run.tap("Технические сценарии демо")
     # Имя карточки профиля включает описание: сопоставляем по началу.
     run.tap(re.compile("^" + re.escape(profile)), role="radio")
     run.tap("Запустить демо")
@@ -189,16 +188,14 @@ def profile_pass(run: Run, profile: str) -> None:
     run.tap("Данные и настройки")
     run.tap("Приватность, экспорт и выход")
     run.tap("Выйти и отозвать сессии")
-    expect(page.get_by_role("button", name="Технические сценарии демо")).to_be_visible(
-        timeout=15_000
-    )
+    expect(page.get_by_role("button", name="Запустить демо")).to_be_visible(timeout=15_000)
 
 
 def live_pass(run: Run) -> None:
     """Учебный аккаунт (ADR-0007): время идёт, метка меняет модель и объясняет изменение."""
     page = run.page
     run.where = "учебный аккаунт: старт"
-    run.tap("Начать без регистрации")
+    run.tap("Попробовать без регистрации")
     expect(page.get_by_role("button", name="Данные и настройки")).to_be_visible(timeout=30_000)
     run.tap("Данные и настройки")
     run.tap("Управление учебным временем")
@@ -242,7 +239,9 @@ def live_pass(run: Run) -> None:
     run.tap("Данные и настройки")
     run.tap("Приватность, экспорт и выход")
     run.tap("Выйти и отозвать сессии")
-    expect(page.get_by_role("button", name="Начать без регистрации")).to_be_visible(timeout=15_000)
+    expect(page.get_by_role("button", name="Попробовать без регистрации")).to_be_visible(
+        timeout=15_000
+    )
 
 
 def main() -> int:
@@ -268,8 +267,11 @@ def main() -> int:
         run = Run(page, out)
         try:
             if not args.live_only:
+                separator = "&" if "?" in args.web else "?"
+                page.goto(f"{args.web}{separator}technical=1")
                 for profile in PROFILES:
                     profile_pass(run, profile)
+                page.goto(args.web)
             live_pass(run)
         except Exception as error:
             page.screenshot(path=str(out / "failure.png"), full_page=True)

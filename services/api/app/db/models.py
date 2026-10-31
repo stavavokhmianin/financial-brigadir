@@ -59,6 +59,9 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(ID, primary_key=True)
+    display_name: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(254), unique=True, index=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     locale: Mapped[str] = mapped_column(String(16), default="ru-RU")
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")

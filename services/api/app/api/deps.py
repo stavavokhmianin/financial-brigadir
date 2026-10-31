@@ -17,7 +17,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 _bearer = HTTPBearer(
     auto_error=False,
-    description="Токен сессии из POST /api/v1/demo/sessions или /api/v1/pilot/sessions",
+    description="Токен сессии из /auth, /demo или /pilot",
 )
 
 

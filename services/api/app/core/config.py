@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./brigadir.db"
     cors_origins: str = "http://localhost:8081,http://127.0.0.1:8081"
     demo_session_ttl_hours: int = Field(default=24, ge=1, le=24 * 7)
+    user_session_ttl_hours: int = Field(default=24 * 30, ge=1, le=24 * 90)
     log_level: str = "INFO"
     # demo — синтетические профили и учебный банк; pilot — вход по коду участника,
     # демо-эндпоинты и мок банка выключены (раздел 16.2, спринт 3).

@@ -91,7 +91,6 @@ def run(demo: Demo) -> None:
     demo.caption("«Финансовый бригадир»: хватит ли денег до следующего дохода — до покупки.", 3)
 
     demo.caption("Шаг 1. Демо-профиль «Молодой специалист»: синтетика, без банковских паролей.")
-    demo.button("Технические сценарии демо")
     demo.button("Запустить демо")
     demo.expect_text("55 000 ₽")
     demo.caption("55 000 ₽, данные на 19 октября. Впереди кредит 12 000 ₽ и аренда 30 000 ₽.", 3)
@@ -187,7 +186,8 @@ def main() -> int:
             record_video_size=VIEWPORT,
         )
         page = context.new_page()
-        page.goto(args.web)
+        separator = "&" if "?" in args.web else "?"
+        page.goto(f"{args.web}{separator}technical=1")
         try:
             run(Demo(page, args.pace, out))
         except Exception:

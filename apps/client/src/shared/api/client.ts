@@ -7,7 +7,8 @@ export type DemoProfile = Schemas["DemoProfileOut"];
 export type DemoSession = Schemas["DemoSessionOut"];
 export type DemoSessionCreate = Schemas["DemoSessionCreate"];
 export type PilotSession = Schemas["PilotSessionOut"];
-export type Session = DemoSession | PilotSession;
+export type UserSession = Schemas["UserSessionOut"];
+export type Session = DemoSession | PilotSession | UserSession;
 export type Meta = Schemas["MetaOut"];
 export type AccountsResponse = Schemas["AccountsOut"];
 export type Account = Schemas["AccountOut"];
@@ -130,6 +131,10 @@ export interface CsvImportInput {
 
 export const api = {
   getMeta: () => request<Meta>("/api/v1/meta"),
+  registerUser: (body: Schemas["RegisterIn"]) =>
+    request<UserSession>("/api/v1/auth/register", { method: "POST", body }),
+  createUserSession: (body: Schemas["SignInIn"]) =>
+    request<UserSession>("/api/v1/auth/sessions", { method: "POST", body }),
   createPilotSession: (body: Schemas["PilotSignIn"]) =>
     request<PilotSession>("/api/v1/pilot/sessions", { method: "POST", body }),
   getPlans: (token: string) => request<Schemas["PlansOut"]>("/api/v1/plans", { token }),

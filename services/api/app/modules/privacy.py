@@ -52,10 +52,12 @@ def export_profile(db: Session, user: User) -> dict[str, Any]:
     def row(item: Any) -> dict[str, Any]:
         return {column.name: getattr(item, column.name) for column in item.__table__.columns}
 
+    user_row = row(user)
+    user_row.pop("password_hash", None)
     result: dict[str, Any] = {
         "schema_version": "1.0",
         "exported_at": datetime.now(UTC),
-        "user": row(user),
+        "user": user_row,
     }
     for model in EXPORT_MODELS:
         result[model.__tablename__] = [

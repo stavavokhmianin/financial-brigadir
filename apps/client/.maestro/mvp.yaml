@@ -10,7 +10,7 @@ name: Demo purchase, plan preview and bank mock
     times: 3
     commands:
       - extendedWaitUntil:
-          visible: "(?s).*(Начать без регистрации|System UI isn't responding|Pixel Launcher isn't responding).*"
+          visible: "(?s).*(Попробовать без регистрации|System UI isn't responding|Pixel Launcher isn't responding).*"
           timeout: 30000
       - runFlow:
           when:
@@ -18,21 +18,9 @@ name: Demo purchase, plan preview and bank mock
           commands:
             - tapOn: "Wait"
 - extendedWaitUntil:
-    visible: ".*Начать без регистрации.*"
+    visible: ".*Попробовать без регистрации.*"
     timeout: 30000
-# Фиксированный сценарий для защиты — ниже основного входа (ADR-0007).
-- scrollUntilVisible:
-    element: "Технические сценарии демо"
-- tapOn: "Технические сценарии демо"
-- scrollUntilVisible:
-    element: ".*Молодой специалист.*"
-- scrollUntilVisible:
-    element: "Запустить демо"
-# Поднять цель от панели навигации перед касанием (edge-to-edge).
-- swipe:
-    start: "50%, 70%"
-    end: "50%, 50%"
-- tapOn: "Запустить демо"
+- tapOn: "Попробовать без регистрации"
 - extendedWaitUntil:
     visible: "Свободные средства"
     timeout: 30000

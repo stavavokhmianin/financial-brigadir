@@ -196,7 +196,10 @@ export function DashboardScreen() {
             <View style={styles.heroBadges}>
               {/* Учебный аккаунт не показывает основу синтетики как персонажа (ADR-0007). */}
               {isLive ? (
-                <Badge label={ru.live.badge} tone="hero" />
+                <Badge
+                  label={session.user.display_name ?? ru.live.badge}
+                  tone="hero"
+                />
               ) : (
                 <>
                   <Badge

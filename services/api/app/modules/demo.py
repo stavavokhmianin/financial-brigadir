@@ -56,6 +56,9 @@ def create_demo_session(
     seed: int,
     ttl_hours: int,
     live: LiveOptions | None = None,
+    display_name: str | None = None,
+    email: str | None = None,
+    password_hash: str | None = None,
 ) -> DemoSessionResult:
     """Профиль из seed. С ``live`` — живой учебный аккаунт со скрытым будущим (ADR-0007)."""
     if live is None:
@@ -70,6 +73,9 @@ def create_demo_session(
         plan=Plan.PLUS,  # Full demo by default; Free can be previewed without billing.
         demo_profile=profile_id,
         demo_seed=seed,
+        display_name=display_name,
+        email=email,
+        password_hash=password_hash,
         timezone=str(bundle.profile["timezone"]),
         risk_preferences={"reserve_minor": DEFAULT_RESERVE_MINOR, "alpha": DEFAULT_ALPHA},
         consent_versions={},
