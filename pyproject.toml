@@ -23,6 +23,7 @@ known-first-party = ["app", "fb_worker", "financial_sdk", "forecast_core", "synt
 [tool.pytest.ini_options]
 testpaths = [
   "packages/forecast_core/tests",
+  "packages/financial_sdk/tests",
   "packages/synthetic_generator/tests",
   "services/api/tests",
   "services/worker/tests",
