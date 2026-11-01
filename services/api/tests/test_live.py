@@ -129,10 +129,11 @@ def test_feedback_queue_label_effect_and_reducible_sum(client: TestClient) -> No
     fixed = client.post("/api/v1/demo/sessions", json={}).json()
     headers = {"Authorization": f"Bearer {fixed['access_token']}"}
     queue = client.get("/api/v1/feedback", headers=headers).json()
-    assert 3 <= len(queue["items"]) <= 5
+    assert 1 <= len(queue["items"]) <= 3
     assert queue["labeled"] == 0 and queue["reducible_30d_minor"] == 0
     reasons = [item["reason"] for item in queue["items"]]
     assert reasons == sorted(reasons, key=["large", "new", "recent"].index)
+    assert set(reasons) <= {"large", "new"}
 
     item = queue["items"][0]["transaction"]
     url = f"/api/v1/transactions/{item['id']}/label"
@@ -145,6 +146,10 @@ def test_feedback_queue_label_effect_and_reducible_sum(client: TestClient) -> No
     assert one_off["transaction"]["user_note"] == "Вернут деньги после командировки"
     assert one_off["effect"]["after"]["excluded_one_off"] == 1
     assert one_off["effect"]["before"]["excluded_one_off"] == 0
+    assert (
+        one_off["effect"]["after"]["min_balance_minor"]
+        > one_off["effect"]["before"]["min_balance_minor"]
+    )
     # Баланс от метки не зависит.
     forecast = _forecast(client, headers)
     assert forecast["start_balance_minor"] == fixed_start(client, headers)

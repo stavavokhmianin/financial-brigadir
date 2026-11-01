@@ -1,8 +1,9 @@
 """Обратная связь по тратам (ADR-0007, п. 4): что спросить и как метка меняет прогноз.
 
-Спрашиваем не обо всём: сначала дорогие и новые траты, остальное — только чтобы блок
-не пустовал. Влияние метки считается контрфактически: два прогноза на одном снимке
-и одном seed, с прежней меткой и с новой, поэтому разница не тонет в шуме симуляции.
+Спрашиваем только о дорогих и действительно новых тратах: очередь не дополняется
+обычными покупками ради заполнения интерфейса. Влияние метки считается
+контрфактически: два прогноза на одном снимке и одном seed, с прежней меткой
+и с новой, поэтому разница не тонет в шуме симуляции.
 """
 
 from dataclasses import dataclass, replace
@@ -25,8 +26,7 @@ from financial_sdk import (
 
 LABELABLE_TYPES = frozenset({TxType.EXPENSE, TxType.FEE, TxType.CREDIT_PURCHASE})
 QUEUE_DAYS = 14
-QUEUE_SIZE = 5
-QUEUE_MIN = 3  # меньше — добираем последними тратами, чтобы было что уточнить
+QUEUE_SIZE = 3
 LARGE_FACTOR = 3
 LARGE_FLOOR_MINOR = 300_000  # 3 000 ₽: ниже «дорогой» трату не считаем
 STATS_DAYS = 91
@@ -97,7 +97,6 @@ def build_queue(db: Session, user: User) -> Queue:
 
     seen: set[str] = set()
     flagged: list[QueueItem] = []
-    plain: list[QueueItem] = []
     for tx in spending:
         merchant = _merchant(tx)
         is_new = merchant not in seen
@@ -108,15 +107,10 @@ def build_queue(db: Session, user: User) -> Queue:
             flagged.append(QueueItem(tx, "large"))
         elif is_new:
             flagged.append(QueueItem(tx, "new"))
-        else:
-            plain.append(QueueItem(tx, "recent"))
 
     order = {"large": 0, "new": 1}
     flagged.sort(key=lambda item: (order[item.reason], -item.transaction.occurred_at.timestamp()))
     items = flagged[:QUEUE_SIZE]
-    if len(items) < QUEUE_MIN:
-        plain.sort(key=lambda item: -item.transaction.occurred_at.timestamp())
-        items += plain[: QUEUE_MIN - len(items)]
 
     reducible_from = as_of - timedelta(days=REDUCIBLE_DAYS)
     return Queue(

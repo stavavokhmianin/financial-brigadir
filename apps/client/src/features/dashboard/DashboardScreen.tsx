@@ -68,7 +68,6 @@ export function DashboardScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
-  const [hasRecurring, setHasRecurring] = useState<boolean | null>(null);
   const [detailsTab, setDetailsTab] = useState<
     "upcoming" | "accounts" | "activity"
   >("upcoming");
@@ -332,8 +331,6 @@ export function DashboardScreen() {
         <SpendingReview
           token={token}
           refreshKey={feedbackKey}
-          hasRecurring={hasRecurring}
-          onRecurringChange={setHasRecurring}
           onChanged={onArrived}
         />
       ) : null}

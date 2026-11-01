@@ -5,7 +5,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/shared/ui/icons";
 import { Text } from "@/shared/ui/text";
 import { useReducedMotion } from "@/shared/ui/motion";
-import { elevation, radius, space, typeScale, usePalette } from "@/shared/ui/theme";
+import {
+  elevation,
+  radius,
+  space,
+  typeScale,
+  usePalette,
+} from "@/shared/ui/theme";
 
 import { FeedbackCard } from "./FeedbackCard";
 import { RecurringCard } from "./RecurringCard";
@@ -13,14 +19,10 @@ import { RecurringCard } from "./RecurringCard";
 export function SpendingReview({
   token,
   refreshKey,
-  hasRecurring,
-  onRecurringChange,
   onChanged,
 }: {
   token: string;
   refreshKey: number;
-  hasRecurring: boolean | null;
-  onRecurringChange: (value: boolean) => void;
   onChanged: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -48,7 +50,9 @@ export function SpendingReview({
           <Icon name="sparkle" color={palette.accent} size={20} />
         </View>
         <View style={styles.launchText}>
-          <Text style={[styles.launchTitle, { color: palette.text }]}>Разобрать покупки</Text>
+          <Text style={[styles.launchTitle, { color: palette.text }]}>
+            Разобрать покупки
+          </Text>
           <Text style={[styles.launchHint, { color: palette.muted }]}>
             Обычная или разовая? Пара тапов — и готово
           </Text>
@@ -65,7 +69,10 @@ export function SpendingReview({
         <View
           style={[
             styles.overlay,
-            { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md },
+            {
+              paddingTop: insets.top + space.md,
+              paddingBottom: insets.bottom + space.md,
+            },
           ]}
         >
           <Pressable
@@ -86,26 +93,34 @@ export function SpendingReview({
               <View style={styles.headTitle}>
                 <Icon name="sparkle" color={palette.accent} size={18} />
                 <View style={{ flex: 1 }}>
-                  <Text accessibilityRole="header" style={[typeScale.heading, { color: palette.text }]}>
+                  <Text
+                    accessibilityRole="header"
+                    style={[typeScale.heading, { color: palette.text }]}
+                  >
                     Разобрать покупки
                   </Text>
-                  <Text style={[styles.headHint, { color: palette.muted }]}>Одна карточка за раз, без правильных ответов</Text>
+                  <Text style={[styles.headHint, { color: palette.muted }]}>
+                    Одна карточка за раз, без правильных ответов
+                  </Text>
                 </View>
               </View>
-              <Pressable accessibilityRole="button" onPress={() => setOpen(false)} hitSlop={8}>
-                <Text style={[styles.close, { color: palette.muted }]}>Закрыть</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setOpen(false)}
+                hitSlop={8}
+              >
+                <Text style={[styles.close, { color: palette.muted }]}>
+                  Закрыть
+                </Text>
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+              <FeedbackCard token={token} refreshKey={refreshKey} onLabeled={onChanged} />
               <RecurringCard
                 token={token}
                 refreshKey={refreshKey}
                 onConfirmed={onChanged}
-                onAvailabilityChange={onRecurringChange}
               />
-              {hasRecurring === false ? (
-                <FeedbackCard token={token} refreshKey={refreshKey} onLabeled={onChanged} />
-              ) : null}
             </ScrollView>
           </View>
         </View>
@@ -151,8 +166,18 @@ const styles = StyleSheet.create({
     padding: space.lg,
     gap: space.md,
   },
-  head: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space.md },
-  headTitle: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.sm },
+  head: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: space.md,
+  },
+  headTitle: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
   headHint: { fontSize: 12, lineHeight: 17, paddingTop: 2 },
   close: { minHeight: 44, paddingVertical: 11, fontSize: 13, fontWeight: "500" },
   content: { gap: space.md, paddingBottom: space.md },

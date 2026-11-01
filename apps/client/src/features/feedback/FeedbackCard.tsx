@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, PanResponder, Pressable, StyleSheet, View } from "react-native";
 
 import {
   api,
@@ -9,16 +9,14 @@ import {
   type LabelResult,
   type TxLabel,
 } from "@/shared/api/client";
-import { formatDay, formatRub, plural } from "@/shared/format";
+import { formatDay, formatRub } from "@/shared/format";
 import { ru } from "@/shared/i18n/ru";
 import {
   Badge,
-  Card,
   ErrorState,
   Field,
   LoadingState,
   Muted,
-  Stat,
   type PressState,
 } from "@/shared/ui/components";
 import { Icon } from "@/shared/ui/icons";
@@ -40,13 +38,11 @@ interface Props {
 }
 
 export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
-  const palette = usePalette();
   const [data, setData] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [applied, setApplied] = useState<Applied | null>(null);
-  const [cursor, setCursor] = useState(0);
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
   const [userNote, setUserNote] = useState("");
 
@@ -65,7 +61,6 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
 
   // Новые операции начинают новую лёгкую очередь; пропуски живут только в текущем просмотре.
   useEffect(() => {
-    setCursor(0);
     setSkipped(new Set());
   }, [refreshKey]);
 
@@ -93,9 +88,7 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
     : undefined;
   const visible =
     data?.items.filter((item) => !skipped.has(item.transaction.id)) ?? [];
-  const safeCursor =
-    visible.length === 0 ? 0 : Math.min(cursor, visible.length - 1);
-  const current = visible[safeCursor] ?? null;
+  const current = visible[0] ?? null;
 
   useEffect(() => {
     setUserNote(current?.transaction.user_note ?? "");
@@ -103,18 +96,10 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
 
   const skip = (id: string) => {
     setSkipped((previous) => new Set(previous).add(id));
-    setCursor(0);
-  };
-
-  const move = (step: number) => {
-    if (visible.length < 2) return;
-    setCursor((value) => (value + step + visible.length) % visible.length);
   };
 
   return (
-    <Card title={ru.feedback.title} icon="sparkle">
-      <Muted>{ru.feedback.lead}</Muted>
-
+    <View style={styles.container}>
       {applied ? (
         <AppliedNote
           applied={applied}
@@ -142,10 +127,7 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
           year={year}
           saving={saving === current.transaction.id}
           disabled={saving !== null}
-          position={safeCursor + 1}
           total={visible.length}
-          onPrevious={() => move(-1)}
-          onNext={() => move(1)}
           onSkip={() => skip(current.transaction.id)}
           userNote={userNote}
           onUserNoteChange={setUserNote}
@@ -154,24 +136,7 @@ export function FeedbackCard({ token, refreshKey, onLabeled }: Props) {
           }
         />
       )}
-
-      {data && (data.reducible_30d_minor > 0 || data.labeled > 0) ? (
-        <View style={[styles.footer, { borderColor: palette.border }]}>
-          {data.reducible_30d_minor > 0 ? (
-            <>
-              <Stat
-                label={ru.feedback.reducible}
-                value={formatRub(data.reducible_30d_minor)}
-              />
-              <Muted>{ru.feedback.reducibleNote}</Muted>
-            </>
-          ) : null}
-          {data.labeled > 0 ? (
-            <Muted>{`${data.labeled} ${plural(data.labeled, ru.feedback.labeled)}`}</Muted>
-          ) : null}
-        </View>
-      ) : null}
-    </Card>
+    </View>
   );
 }
 
@@ -180,10 +145,7 @@ function Item({
   year,
   saving,
   disabled,
-  position,
   total,
-  onPrevious,
-  onNext,
   onSkip,
   userNote,
   onUserNoteChange,
@@ -193,10 +155,7 @@ function Item({
   year: number | undefined;
   saving: boolean;
   disabled: boolean;
-  position: number;
   total: number;
-  onPrevious: () => void;
-  onNext: () => void;
   onSkip: () => void;
   userNote: string;
   onUserNoteChange: (value: string) => void;
@@ -204,30 +163,53 @@ function Item({
 }) {
   const palette = usePalette();
   const [showNote, setShowNote] = useState(false);
-  const [showMore, setShowMore] = useState(false);
+  const offset = useRef(new Animated.Value(0)).current;
   const tx = item.transaction;
+  const choose = useCallback(
+    (label: "regular" | "one_off", direction: -1 | 1) => {
+      if (disabled) return;
+      Animated.timing(offset, {
+        toValue: direction * 420,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        offset.setValue(0);
+        onMark(label);
+      });
+    },
+    [disabled, offset, onMark],
+  );
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          !disabled &&
+          Math.abs(gesture.dx) > 12 &&
+          Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderMove: (_, gesture) => offset.setValue(gesture.dx),
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx > 72) choose("regular", 1);
+          else if (gesture.dx < -72) choose("one_off", -1);
+          else {
+            Animated.spring(offset, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+          }
+        },
+        onPanResponderTerminate: () =>
+          Animated.spring(offset, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start(),
+      }),
+    [choose, disabled, offset],
+  );
   return (
-    <View style={[styles.item, { borderColor: palette.border }]}>
+    <View style={styles.item}>
       <View style={styles.progressRow}>
-        <Muted>{`Покупка ${position} ${ru.feedback.of} ${total}`}</Muted>
-        {total > 1 ? (
-          <View style={styles.pager}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onPrevious}
-              hitSlop={8}
-            >
-              <Text style={[styles.pagerAction, { color: palette.accent }]}>
-                {ru.feedback.previous}
-              </Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={onNext} hitSlop={8}>
-              <Text style={[styles.pagerAction, { color: palette.accent }]}>
-                {ru.feedback.next}
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
+        <Muted>{`${ru.feedback.remaining}: ${total}`}</Muted>
+        <Muted>{ru.feedback.swipeHint}</Muted>
       </View>
       <View style={[styles.progressTrack, { backgroundColor: palette.track }]}>
         <View
@@ -235,15 +217,28 @@ function Item({
             styles.progressFill,
             {
               backgroundColor: palette.accent,
-              width: `${Math.max(8, (position / total) * 100)}%`,
+              width: `${Math.max(12, 100 / total)}%`,
             },
           ]}
         />
       </View>
-      <View
+      <Animated.View
+        {...pan.panHandlers}
         style={[
           styles.purchase,
           { backgroundColor: palette.surface, borderColor: palette.border },
+          {
+            transform: [
+              { translateX: offset },
+              {
+                rotate: offset.interpolate({
+                  inputRange: [-220, 0, 220],
+                  outputRange: ["-3deg", "0deg", "3deg"],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          },
         ]}
       >
         <View style={styles.purchaseTop}>
@@ -262,7 +257,7 @@ function Item({
           {formatRub(Math.abs(tx.amount_minor))}
         </Text>
         <Muted>Сумма операции</Muted>
-      </View>
+      </Animated.View>
       <Text style={[styles.question, { color: palette.text }]}>
         {ru.feedback.question}
       </Text>
@@ -271,16 +266,15 @@ function Item({
         <Muted>{ru.feedback.saving}</Muted>
       ) : (
         <>
-          <View accessibilityRole="radiogroup" style={styles.primaryChoices}>
+          <View style={styles.primaryChoices}>
             {(["regular", "one_off"] as const).map((label) => (
               <Answer
                 key={label}
                 title={ru.feedback.labels[label]}
                 transaction={tx.description ?? ""}
-                checked={tx.label === label}
                 disabled={disabled}
-                primary
-                onPress={() => onMark(label)}
+                tone={label}
+                onPress={() => choose(label, label === "regular" ? 1 : -1)}
               />
             ))}
           </View>
@@ -288,72 +282,34 @@ function Item({
       )}
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ expanded: showMore }}
-        onPress={() => setShowMore((value) => !value)}
+        accessibilityState={{ expanded: showNote }}
+        onPress={() => setShowNote((value) => !value)}
         hitSlop={8}
       >
-        <Text style={[styles.moreToggle, { color: palette.accent }]}>
-          {showMore ? "Скрыть варианты" : "Другой вариант"}
+        <Text style={[styles.noteToggle, { color: palette.accent }]}>
+          {showNote ? "Скрыть комментарий" : ru.feedback.note}
         </Text>
       </Pressable>
-      {showMore ? (
-        <View style={styles.moreBlock}>
-          <View accessibilityRole="radiogroup" style={styles.secondaryChoices}>
-            {(["mandatory", "reducible"] as const).map((label) => (
-              <Answer
-                key={label}
-                title={ru.feedback.labels[label]}
-                transaction={tx.description ?? ""}
-                checked={tx.label === label}
-                disabled={disabled}
-                onPress={() => onMark(label)}
-              />
-            ))}
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showNote }}
-            onPress={() => setShowNote((value) => !value)}
-            hitSlop={8}
-          >
-            <Text style={[styles.noteToggle, { color: palette.accent }]}>
-              {showNote ? "Скрыть комментарий" : ru.feedback.note}
-            </Text>
-          </Pressable>
-          {showNote ? (
-            <Field
-              label={ru.feedback.note}
-              value={userNote}
-              onChangeText={onUserNoteChange}
-              placeholder={ru.feedback.notePlaceholder}
-              hint={ru.feedback.noteHint}
-              multiline
-            />
-          ) : null}
-        </View>
+      {showNote ? (
+        <Field
+          label={ru.feedback.note}
+          value={userNote}
+          onChangeText={onUserNoteChange}
+          placeholder={ru.feedback.notePlaceholder}
+          hint={ru.feedback.noteHint}
+          multiline
+        />
       ) : null}
-      <View style={styles.skipRow}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={onSkip}
-          hitSlop={8}
-        >
-          <Text style={[styles.skip, { color: palette.muted }]}>
-            {ru.feedback.skip}
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={onSkip}
-          hitSlop={8}
-        >
-          <Text style={[styles.skip, { color: palette.muted }]}>
-            {ru.feedback.unknown}
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        disabled={disabled}
+        onPress={onSkip}
+        hitSlop={8}
+      >
+        <Text style={[styles.skip, { color: palette.muted }]}>
+          {ru.feedback.unknown}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -361,43 +317,39 @@ function Item({
 function Answer({
   title,
   transaction,
-  checked,
   disabled,
-  primary = false,
+  tone,
   onPress,
 }: {
   title: string;
   transaction: string;
-  checked: boolean;
   disabled: boolean;
-  primary?: boolean;
+  tone: "regular" | "one_off";
   onPress: () => void;
 }) {
   const palette = usePalette();
   return (
     <Pressable
-      accessibilityRole="radio"
+      accessibilityRole="button"
       accessibilityLabel={`${title}: ${transaction}`}
-      accessibilityState={{ checked, disabled }}
-      aria-checked={checked}
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed, hovered }: PressState) => [
-        primary ? styles.primaryChoice : styles.secondaryChoice,
+        styles.primaryChoice,
         {
-          borderColor: checked ? palette.accent : palette.border,
+          borderColor: tone === "regular" ? palette.ok : palette.border,
           backgroundColor:
-            checked || pressed || hovered ? palette.accentSoft : palette.card,
+            pressed || hovered
+              ? tone === "regular"
+                ? palette.okSoft
+                : palette.accentSoft
+              : palette.card,
           opacity: disabled ? 0.5 : 1,
         },
       ]}
     >
-      <Text
-        style={[
-          primary ? styles.primaryChoiceText : styles.secondaryChoiceText,
-          { color: palette.text },
-        ]}
-      >
+      <Text style={[styles.primaryChoiceText, { color: palette.text }]}>
         {title}
       </Text>
     </Pressable>
@@ -424,14 +376,11 @@ function AppliedNote({
       <View style={styles.appliedHead}>
         <Icon name="check" color={palette.ok} size={18} />
         <Text style={[styles.appliedTitle, { color: palette.text }]}>
-          {`${title}: ${ru.feedback.applied[applied.label ?? "none"]}`}
+          {applied.label === null
+            ? `${title}: ответ отменён`
+            : `${title}: ${ru.feedback.labels[applied.label].toLocaleLowerCase()}`}
         </Text>
       </View>
-      <Muted>
-        {applied.label === null
-          ? "Ответ отменён. Можно выбрать заново."
-          : "Готово — прогноз обновлён, можно идти дальше."}
-      </Muted>
       {applied.label !== null ? (
         <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={8}>
           <Text style={[styles.undo, { color: palette.accent }]}>
@@ -444,6 +393,7 @@ function AppliedNote({
 }
 
 const styles = StyleSheet.create({
+  container: { gap: space.md },
   item: {
     gap: space.md,
   },
@@ -452,14 +402,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     gap: space.sm,
-  },
-  pager: { flexDirection: "row", gap: space.md },
-  pagerAction: {
-    minHeight: 44,
-    minWidth: 44,
-    paddingVertical: 12,
-    fontSize: 13,
-    fontWeight: "500",
   },
   progressTrack: { height: 4, borderRadius: radius.pill, overflow: "hidden" },
   progressFill: { height: 4, borderRadius: radius.pill },
@@ -503,44 +445,19 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
   },
   primaryChoiceText: { fontSize: 15, fontWeight: "700", textAlign: "center" },
-  secondaryChoices: { flexDirection: "row", gap: space.sm, flexWrap: "wrap" },
-  secondaryChoice: {
-    flexGrow: 1,
-    flexBasis: "44%",
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-  },
-  secondaryChoiceText: { fontSize: 13, fontWeight: "500", textAlign: "center" },
-  moreToggle: {
-    minHeight: 44,
-    paddingVertical: 12,
-    fontSize: 13,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  moreBlock: { gap: space.sm },
   noteToggle: {
     minHeight: 44,
     paddingVertical: 12,
     fontSize: 13,
     fontWeight: "600",
   },
-  skipRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: space.md,
-  },
   skip: {
     minHeight: 44,
     minWidth: 44,
     fontSize: 13,
     fontWeight: "500",
-    paddingVertical: space.xs,
+    paddingVertical: space.sm,
+    textAlign: "center",
   },
   applied: { borderRadius: radius.md, padding: space.md, gap: space.xs },
   appliedHead: {
@@ -555,10 +472,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     paddingTop: space.xs,
-  },
-  footer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: space.md,
-    gap: space.xs,
   },
 });
