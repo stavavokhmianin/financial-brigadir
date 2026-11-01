@@ -11,6 +11,7 @@
 Критерии приёмки: [docs/quality-gates.md](docs/quality-gates.md).
 Android APK и нативный E2E: [docs/mobile-verification.md](docs/mobile-verification.md).
 Возможности Free/Plus: [docs/plans.md](docs/plans.md).
+Самостоятельный финансовый SDK: [docs/sdk.md](docs/sdk.md).
 Плановая экономика: [docs/business-model.md](docs/business-model.md)
 (`python scripts/business_model.py`).
 
@@ -29,6 +30,7 @@ services/api/                FastAPI, модульный монолит, /api/v1
   migrations/                Alembic
 services/worker/             простой фоновый воркер
 packages/forecast_core/      расчётное ядро: чистый Python
+packages/financial_sdk/      публичный SDK: данные → прогноз, риск и сценарии
 packages/synthetic_generator/  воспроизводимые демо-профили
 packages/api_contracts/      openapi.yaml — контракт клиента и сервера
 infra/                       Dockerfile'ы и compose (демо)
@@ -94,7 +96,7 @@ python scripts/record_demo.py --web http://127.0.0.1:8081        # видео-с
 
 ```bash
 ruff check . && ruff format --check .
-mypy packages/forecast_core/src packages/synthetic_generator/src services/api/app services/worker/fb_worker
+mypy packages/forecast_core/src packages/financial_sdk/src packages/synthetic_generator/src services/api/app services/worker/fb_worker
 pytest                                  # SQLite; при TEST_DATABASE_URL ещё и PostgreSQL
 cd apps/client && npm run typecheck && npm test
 ```
@@ -109,7 +111,7 @@ CI (`.github/workflows/ci.yml`) прогоняет то же самое, соб�
 |------|------|
 | A — backend/data | `services/api`: модель данных, миграции, API, адаптеры, авторизация |
 | B — client/product | `apps/client`: экраны, онбординг, состояния ошибок |
-| C — forecasting/QA/infra | `packages/forecast_core`, `packages/synthetic_generator`, CI, Docker |
+| C — forecasting/QA/infra | `packages/forecast_core`, `packages/financial_sdk`, `packages/synthetic_generator`, CI, Docker |
 
 Правила: деньги — целые копейки, время — UTC, новый эндпоинт только вместе с обновлённым
 `openapi.yaml`, архитектурные изменения — через `docs/ADR/`.

@@ -95,7 +95,9 @@ def _weighted_mean(rows: Sequence[tuple[date, int]], today: date) -> int:
         (value, 0.5 ** (max(0, (today - day).days) / RECENCY_HALF_LIFE_DAYS)) for day, value in rows
     ]
     total_weight = sum(weight for _, weight in weighted)
-    return round(sum(value * weight for value, weight in weighted) / total_weight)
+    return round(  # type: ignore[no-any-return]
+        sum(value * weight for value, weight in weighted) / total_weight
+    )
 
 
 def _stable_recent_trend(rows: Sequence[tuple[date, int]], today: date) -> bool:

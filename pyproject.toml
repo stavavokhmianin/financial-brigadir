@@ -14,7 +14,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app", "fb_worker", "forecast_core", "synthetic_generator"]
+known-first-party = ["app", "fb_worker", "financial_sdk", "forecast_core", "synthetic_generator"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S105", "S106"]
