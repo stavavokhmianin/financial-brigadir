@@ -4,8 +4,7 @@ from collections.abc import Sequence
 from datetime import date, datetime
 from typing import Any
 
-from forecast_core.baseline import ForecastResult, RiskDriver
-from forecast_core.scenarios import SafeSpend, ScenarioComparison
+from financial_sdk import ForecastResult, RiskDriver, SafeSpend, ScenarioComparison
 
 MONTHS = (
     "января", "февраля", "марта", "апреля", "мая", "июня",

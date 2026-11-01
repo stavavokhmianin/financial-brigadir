@@ -1,7 +1,6 @@
 from enum import StrEnum
 
-from forecast_core import AccountType, Coverage, ObligationStatus, TxStatus, TxType
-from forecast_core.calendar import Recurrence
+from financial_sdk import AccountType, Coverage, ObligationStatus, Recurrence, TxStatus, TxType
 
 __all__ = [
     "AccountType",

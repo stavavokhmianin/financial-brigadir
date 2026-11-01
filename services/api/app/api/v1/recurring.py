@@ -8,7 +8,7 @@ from app.core.errors import error_responses, not_found
 from app.modules import recurring
 from app.schemas.obligations import ObligationOut
 from app.schemas.recurring import RecurringCandidateOut, RecurringConfirmOut, RecurringOut
-from forecast_core.recurring import RecurringCandidate
+from financial_sdk import RecurringCandidate
 
 router = APIRouter(prefix="/recurring", tags=["recurring"])
 

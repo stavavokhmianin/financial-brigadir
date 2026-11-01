@@ -20,8 +20,7 @@ from app.modules.alert_policy import (
 )
 from app.modules.explain import day_text, rub
 from app.schemas.alerts import AlertAnalyticsOut, AlertOut
-from forecast_core.baseline import ForecastResult
-from forecast_core.calendar import occurrences
+from financial_sdk import ForecastResult, occurrences
 
 HISTORY_WINDOW = timedelta(days=14)
 EXPECTED_RECURRING = "expected_recurring"

@@ -18,14 +18,14 @@ from app.domain.enums import ObligationKind, ObligationStatus, Priority, Recurre
 from app.domain.ids import new_id
 from app.modules.forecasting import current_as_of, prepare_snapshot
 from app.schemas.forecasts import ForecastRequest
-from forecast_core import HistoricalTransaction
-from forecast_core.baseline import ForecastResult
-from forecast_core.probabilistic import run_monte_carlo
-from forecast_core.recurring import (
+from financial_sdk import (
     WINDOW_DAYS,
+    ForecastResult,
+    HistoricalTransaction,
     RecurringCandidate,
     detect_recurring,
     merchant_key,
+    run_monte_carlo,
 )
 
 MIN_CONFIDENCE = 0.6

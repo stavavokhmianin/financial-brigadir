@@ -15,7 +15,7 @@ from app.schemas.incomes import (
     IncomePatch,
     IncomesOut,
 )
-from forecast_core.calendar import occurrences
+from financial_sdk import occurrences
 
 router = APIRouter(prefix="/incomes", tags=["incomes"])
 

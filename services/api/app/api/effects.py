@@ -1,7 +1,7 @@
 """«Было / стало» прогноза для действий пользователя: метка траты, новое обязательство."""
 
 from app.schemas.transactions import ForecastEffectOut, ForecastGlance
-from forecast_core.baseline import ForecastResult
+from financial_sdk import ForecastResult
 
 
 def glance(result: ForecastResult) -> ForecastGlance:

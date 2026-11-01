@@ -12,7 +12,7 @@ from app.domain.ids import new_id
 from app.modules.plans import ensure_account_capacity, lock_profile
 from app.modules.quality import data_quality
 from app.schemas.accounts import AccountCreate, AccountOut, AccountPatch, AccountsOut
-from forecast_core import AccountSnapshot, liquid_balance_minor
+from financial_sdk import AccountSnapshot, liquid_balance_minor
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 

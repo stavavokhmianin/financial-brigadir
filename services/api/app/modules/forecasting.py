@@ -43,23 +43,31 @@ from app.schemas.forecasts import (
     ScenarioRequest,
     SpendingModelOut,
 )
-from forecast_core import (
+from financial_sdk import (
+    HISTORY_WINDOW_DAYS,
+    PROBABILISTIC_MODEL_VERSION,
     AccountSnapshot,
+    FinancialEngine,
     ForecastInputSnapshot,
+    ForecastModel,
+    ForecastOptions,
+    ForecastResult,
     HistoricalTransaction,
     IncomeExpectation,
+    IncomeShift,
     ObligationEvent,
+    ScenarioExpense,
     analyze_purchase_context,
+    compare,
+    merchant_key,
+    run_baseline,
+    safe_to_spend,
     snapshot_fingerprint,
 )
-from forecast_core.baseline import HISTORY_WINDOW_DAYS, ForecastResult, run_baseline
-from forecast_core.probabilistic import MODEL_VERSION as PROBABILISTIC_MODEL_VERSION
-from forecast_core.probabilistic import run_monte_carlo
-from forecast_core.recurring import merchant_key
-from forecast_core.scenarios import compare, safe_to_spend
-from forecast_core.types import IncomeShift, ScenarioExpense
 
 DEFAULT_RESERVE_MINOR = 500_000
+ENGINE = FinancialEngine()
+ENGINE_OPTIONS = ForecastOptions(model=ForecastModel.MONTE_CARLO, seed=0)
 
 
 class ForecastInputError(ValueError):
@@ -440,7 +448,7 @@ def create_forecast(
             return ForecastOut.model_validate(existing.result), False
     prepared = prepare_snapshot(db, user, request)
     events = [request.scenario] if request.scenario else []
-    result = run_monte_carlo(prepared.snapshot)
+    result = ENGINE.forecast(prepared.snapshot, ENGINE_OPTIONS).result
     run, output = _store(db, user, prepared, result, events, idempotency_key)
     if not events:
         # Сценарии «что если» не порождают предупреждений — только реальный прогноз.
@@ -464,8 +472,8 @@ def create_scenario(db: Session, user: User, request: ScenarioRequest) -> Scenar
     base_prepared = prepare_snapshot(db, user, params, events=[])
     scenario_prepared = prepare_snapshot(db, user, params, events=request.events)
     # Один seed для базы и сценария: разница — эффект события, а не случайности.
-    base_result = run_monte_carlo(base_prepared.snapshot)
-    scenario_result = run_monte_carlo(scenario_prepared.snapshot)
+    base_result = ENGINE.forecast(base_prepared.snapshot, ENGINE_OPTIONS).result
+    scenario_result = ENGINE.forecast(scenario_prepared.snapshot, ENGINE_OPTIONS).result
 
     stored_model = base_run.result.get("model_version") if base_run.result else None
     recomputed = (

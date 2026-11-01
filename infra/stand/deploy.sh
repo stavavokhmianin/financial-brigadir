@@ -24,7 +24,7 @@ SSH=(ssh -i "$KEY" -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$TARGET
 echo "== релиз $SHA → $TARGET (https://$HOST)"
 mkdir -p "$WORK/release"
 git -C "$ROOT" archive --format=tar HEAD \
-  packages/forecast_core packages/synthetic_generator services/api infra/stand |
+  packages/forecast_core packages/financial_sdk packages/synthetic_generator services/api infra/stand |
   tar -x -C "$WORK/release"
 
 if [ -n "${STAND_WEB_DIR:-}" ]; then

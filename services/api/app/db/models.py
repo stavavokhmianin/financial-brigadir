@@ -329,7 +329,7 @@ class Obligation(Base):
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     movable: Mapped[bool] = mapped_column(Boolean, default=False)
     idempotency_key: Mapped[str | None] = mapped_column(String(80))
-    # Получатель из выписки (forecast_core.recurring.merchant_key): операции с ним на том
+    # Получатель из выписки (financial_sdk.merchant_key): операции с ним на том
     # же счёте — платежи этого обязательства, в модель повседневных трат они не идут.
     match_key: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

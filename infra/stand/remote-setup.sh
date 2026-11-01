@@ -50,7 +50,8 @@ echo "== Python-окружение"
 [ -x /opt/brigadir/venv/bin/python ] || python3.12 -m venv /opt/brigadir/venv
 /opt/brigadir/venv/bin/pip install -q --upgrade pip
 /opt/brigadir/venv/bin/pip install -q \
-  "$RELEASE/packages/forecast_core" "$RELEASE/packages/synthetic_generator" "$RELEASE/services/api"
+  "$RELEASE/packages/forecast_core" "$RELEASE/packages/financial_sdk" \
+  "$RELEASE/packages/synthetic_generator" "$RELEASE/services/api"
 ln -sfn "$RELEASE" /opt/brigadir/current
 
 echo "== web-клиент"

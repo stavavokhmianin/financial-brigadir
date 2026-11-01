@@ -15,7 +15,7 @@ from datetime import UTC, date, datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from forecast_core import parse_rub_to_minor
+from financial_sdk import parse_rub_to_minor
 
 MAX_BYTES = 2 * 1024 * 1024
 MAX_ROWS = 20_000

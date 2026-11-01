@@ -16,9 +16,12 @@ from app.db.models import AuditEvent, Obligation, Transaction, User
 from app.domain.enums import TxLabel, TxType
 from app.modules.forecasting import current_as_of, prepare_snapshot
 from app.schemas.forecasts import ForecastRequest
-from forecast_core.baseline import DEFAULT_OBLIGATION_CATEGORIES, ForecastResult
-from forecast_core.probabilistic import run_monte_carlo
-from forecast_core.recurring import merchant_key
+from financial_sdk import (
+    DEFAULT_OBLIGATION_CATEGORIES,
+    ForecastResult,
+    merchant_key,
+    run_monte_carlo,
+)
 
 LABELABLE_TYPES = frozenset({TxType.EXPENSE, TxType.FEE, TxType.CREDIT_PURCHASE})
 QUEUE_DAYS = 14
