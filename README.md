@@ -8,6 +8,7 @@
 **Демо-стенд:** https://5-35-98-96.sslip.io — выкатка `infra/stand/deploy.sh`, устройство и эксплуатация: [docs/stand.md](docs/stand.md).
 
 Приватность, экспорт, удаление и сроки хранения: [docs/privacy.md](docs/privacy.md).
+Фактическая готовность безопасности и блокеры production: [docs/security-readiness.md](docs/security-readiness.md).
 Критерии приёмки: [docs/quality-gates.md](docs/quality-gates.md).
 Android APK и нативный E2E: [docs/mobile-verification.md](docs/mobile-verification.md).
 Возможности Free/Plus: [docs/plans.md](docs/plans.md).

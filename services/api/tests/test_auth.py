@@ -1,6 +1,9 @@
 """Регистрация создаёт постоянный изолированный профиль, вход возвращает в него же."""
 
+from fastapi import FastAPI, Response
 from fastapi.testclient import TestClient
+
+from app.core.limits import IngressLimits
 
 REGISTER = {
     "display_name": "Алексей",
@@ -54,9 +57,7 @@ def test_duplicate_email_and_bad_credentials_do_not_create_another_profile(
     client: TestClient,
 ) -> None:
     client.post("/api/v1/auth/register", json=REGISTER)
-    duplicate = client.post(
-        "/api/v1/auth/register", json={**REGISTER, "email": "ALEX@example.com"}
-    )
+    duplicate = client.post("/api/v1/auth/register", json={**REGISTER, "email": "ALEX@example.com"})
     assert duplicate.status_code == 409
     assert duplicate.json()["error"]["code"] == "email_exists"
 
@@ -64,9 +65,7 @@ def test_duplicate_email_and_bad_credentials_do_not_create_another_profile(
         (REGISTER["email"], "wrong-password"),
         ("nobody@example.com", "wrong-password"),
     ):
-        denied = client.post(
-            "/api/v1/auth/sessions", json={"email": email, "password": password}
-        )
+        denied = client.post("/api/v1/auth/sessions", json={"email": email, "password": password})
         assert denied.status_code == 401
         assert denied.json()["error"]["code"] == "invalid_credentials"
 
@@ -76,3 +75,24 @@ def test_password_hash_is_not_exported(client: TestClient) -> None:
     headers = {"Authorization": f"Bearer {session['access_token']}"}
     exported = client.get("/api/v1/privacy/export", headers=headers).json()
     assert "password_hash" not in exported["user"]
+
+
+def test_sign_in_has_stricter_rate_limit() -> None:
+    app = FastAPI()
+
+    @app.post("/api/v1/auth/sessions")
+    def denied() -> Response:
+        return Response(status_code=401)
+
+    app.add_middleware(
+        IngressLimits,
+        requests_per_minute=100,
+        auth_requests_per_minute=2,
+    )
+    with TestClient(app) as limited:
+        body = {"email": "nobody@example.com", "password": "wrong-password"}
+        assert limited.post("/api/v1/auth/sessions", json=body).status_code == 401
+        assert limited.post("/api/v1/auth/sessions", json=body).status_code == 401
+        blocked = limited.post("/api/v1/auth/sessions", json=body)
+        assert blocked.status_code == 429
+        assert blocked.json()["error"]["code"] == "auth_rate_limited"
