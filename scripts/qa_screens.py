@@ -98,7 +98,7 @@ def full_pass(run: Run) -> None:
         page.get_by_label("Магазин или получатель — необязательно").fill("Супермаркет")
         page.get_by_label("Категория — необязательно").fill("groceries")
         run.tap("Посчитать")
-        # Сначала вердикт, детали расчёта — по запросу (REPORT_7.7).
+        # Сначала вердикт, детали расчёта — по запросу (docs/product-ux.md).
         verdict = page.locator("[data-testid^='scenario-verdict-']").filter(visible=True).first
         expect(verdict).to_be_visible(timeout=15_000)
         run.tap("Показать расчёт")

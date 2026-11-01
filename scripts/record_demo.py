@@ -114,7 +114,7 @@ def run(demo: Demo) -> None:
     amount.click()
     amount.press_sequentially("12000", delay=120)
     demo.button("Посчитать")
-    # Сначала вердикт; шкала и таблица «до / после» — под «Показать расчёт» (REPORT_7.7).
+    # Сначала вердикт; шкала и таблица «до / после» — по запросу (docs/product-ux.md).
     demo.show("scenario-verdict-shortfall")
     demo.button("Показать расчёт")
     demo.show("risk-scale-high")

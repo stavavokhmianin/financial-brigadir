@@ -73,7 +73,8 @@ cd android
 Успешный эмуляторный E2E подтверждает работу установленного Android-приложения.
 Физическое устройство, iOS simulator/IPA, публикация в магазинах и промышленная
 подпись — отдельные проверки. iOS Hermes export остаётся частью основного CI.
-Результат именно текущего запуска фиксируется в `master/reports/REPORT_5.6.md`.
+Результат конкретного запуска хранится в GitHub Actions вместе с JUnit, скриншотами и логами;
+он не коммитится в репозиторий как отдельный отчёт.
 
 Основания реализации: [Expo CLI](https://docs.expo.dev/more/expo-cli/),
 [Android emulator runner](https://github.com/ReactiveCircus/android-emulator-runner),

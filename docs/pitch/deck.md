@@ -187,6 +187,6 @@ CI на каждый push поднимает контур с нуля и про�
 
 [S1] Russian Field, 2026 · [S3] НАФИ, 2023 · [S6] Grubb et al., J. of Finance, 2025 · [S7] Дзен-мани · [S8] CoinKeeper · [S9] Rocket Money — полный список в разделе 27 ТЗ.
 
-Код и отчёты: репозиторий проекта, ветка `master`. Бэктест — `docs/backtest/baseline.md`, пилот — `docs/pilot.md`, план — `docs/roadmap.md`.
+Код и актуальная документация: репозиторий проекта, ветка `master`. Бэктест — `docs/backtest/baseline.md`, пилот — `docs/pilot.md`, план — `docs/roadmap.md`.
 
 <!-- Экспорт: артефакт pitch-deck в workflow «Demo video and web QA»; локально — npx @marp-team/marp-cli@4.5.1 --allow-local-files docs/pitch/deck.md --pptx (или --pdf) -->

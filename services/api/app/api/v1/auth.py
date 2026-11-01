@@ -21,9 +21,7 @@ router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(demo_onl
 adapter = SyntheticDataAdapter()
 
 
-def _out(
-    db: DbSession, user: User, token: str, expires_at: datetime
-) -> UserSessionOut:
+def _out(db: DbSession, user: User, token: str, expires_at: datetime) -> UserSessionOut:
     clock = db.get(LiveClock, user.id)
     if clock is None:
         raise APIError(status.HTTP_409_CONFLICT, "profile_incomplete", "Профиль не готов")

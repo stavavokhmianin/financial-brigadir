@@ -57,9 +57,7 @@ def list_alerts(
     summary="Отметить показанные предупреждения прочитанными после открытия колокольчика",
     responses=error_responses(401),
 )
-def mark_alerts_read(
-    body: AlertsReadRequest, user: CurrentUser, db: DbSession
-) -> AlertsReadOut:
+def mark_alerts_read(body: AlertsReadRequest, user: CurrentUser, db: DbSession) -> AlertsReadOut:
     now = datetime.now(UTC)
     rows = list(
         db.scalars(
